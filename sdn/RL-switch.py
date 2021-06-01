@@ -1,3 +1,4 @@
+import time
 from threading import Timer
 from model.dqn import DQN
 
@@ -38,22 +39,19 @@ class rl_switch(app_manager.RyuApp):
 
         self.model = DQN(4,10)
         self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
-        self.queue_dp1 = {1: deque(), 2: deque(), 3: deque()}
-        self.queue_dp2 = {1: deque(), 2: deque(), 3: deque()}
-        self.queue_dp3 = {1: deque(), 2: deque(), 3: deque()}
-        self.queue_dp4 = {1: deque(), 2: deque(), 3: deque()}
-        self.queue_dp5 = {1: deque(), 2: deque(), 3: deque()}
-        self.queue_dp6 = {1: deque(), 2: deque(), 3: deque()}
 
-        self.state=[]
-
+        self.state=np.zeros((6,4))
         self.mac_to_port = addr_table()
         self.H = ['00:00:00:00:00:0' + str(h) for h in range(1, 9)]  # hosts
         self.dp={}
+        self.queue = np.zeros((6,3,4)) #switch, (output)port, priority queue
         self.timeslot_size = 0.5 #ms
         self.cycle = 10
         self.ts_cnt=0
-        self.gcl={}
+        self.gcl = {1: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    2: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    3: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    4: ['1111111111', '1111111111', '1111111111', '1111111111']} #스위치 첫 연결 시 action은 FIFO
 
         # flow attribute
         # self.best_effort = 30  # best effort traffic (Even)
@@ -99,7 +97,7 @@ class rl_switch(app_manager.RyuApp):
         datapath.send_msg(mod)
 
         #switch가 모두 연결됨과 동시에 flow들을 주기마다 생성, queue state 요청 메세지
-        #TODO: 동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
+        #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
         if len(self.dp)==6:
             self.timeslot() #switch5개가 연결되면 timeslot 시작
             self.cc_generator1()
@@ -109,57 +107,29 @@ class rl_switch(app_manager.RyuApp):
             self.ad_generator2()
             self.vd_generator2()
 
-
-
-    #TODO: Queue를 그냥 내가 구현하자.. self.queue 구현해서 대기중인 flow 구하고, state_observe는 데코레이터가 아니라 그냥 함수호출로 실행, 스위치 첫연결시 gcl?
-    #@set_ev_cls(ofp_event.EventOFPQueueStatsReply, MAIN_DISPATCHER)
+    # self.queue 구현해서 대기중인 flow 구하고, gcl 함수호출로 실행, 스위치 첫연결시 gcl은 FIFO
     def timeslot(self):
         if self.first: #스위치 첫 연결시 action
-            return
-        # msg = ev.msg
-        # datapath = msg.datapath
-        #
-        # queues=[]
-        #
-        # for stat in ev.msg.body:
-        #     self.queue[datapath.id][stat.port_no][stat.queue_id] = stat.tx_packets
-        #
-        # #mininet에서 실험해보고 주석처리
-        # for stat in ev.msg.body:
-        #     queues.append('port_no=%d queue_id=%d '
-        #                   'tx_bytes=%d tx_packets=%d tx_errors=%d '
-        #                   'duration_sec=%d duration_nsec=%d' %
-        #                   (stat.port_no, stat.queue_id,
-        #                    stat.tx_bytes, stat.tx_packets, stat.tx_errors,
-        #                    stat.duration_sec, stat.duration_nsec))
-        #     self.logger.debug('QueueStats: %s', queues)
+            self.first = False
+
+        self.ts_cnt+=1
 
         t = Timer((self.timeslot_size / 1000), self.timeslot)  # timeslot
         t.start()
 
         if self.ts_cnt >= self.cycle:
             t.cancel()
-            self.state_observe()
+            self.gcl_cycle() #Gcl update
 
-    def state_observe(self):
-        # TODO:queue_dp 딕셔너리를 통해 적절한 대기중인 packet의 수 관측
-        self.state = [] #6*4*10
+    def gcl_cycle(self):
+        # queue_dp 딕셔너리를 통해 적절한 대기중인 packet의 수 관측 - 굳이 이렇게 안하고 그냥 port를 제거한 queue로 바로 state 구할수도있음
+        for switch in range(len(self.state)):
+            for queue in range(len(self.state[0])):
+                self.state[switch][queue] = sum(self.queue[switch, :, queue])
+
         for i in range(len(self.state)):#datapath 수만큼 반복
-            gcl = format(np.argmax(self.model.predict_one(self.state[i])), '0' + str(self.tdm_cycle) + 'b')
-            self.gcl[i+1]=gcl
-
-        # for i in range(len(gcl[self.ts_cnt])):
-        #     if gcl[i][self.ts_cnt]==1:
-        #
-        #         #어떡하지....
-        #         return
-
-        # t = Timer((self.timeslot_size / 1000), self.timeslot) #0.5ms마다 실행하고 10회실행하면 종료
-        # t.start()
-        #
-        # if self.ts_cnt >= self.cycle:
-        #     t.cancel()
-        #     self.ts_cnt = 0
+            gcl = format(np.argmax(self.model.predict_one(self.state[i])), '010b')
+            self.gcl[i+1] = gcl
 
         self.ts_cnt=0
         self.timeslot() #cycle재시작
@@ -170,7 +140,7 @@ class rl_switch(app_manager.RyuApp):
     def add_flow(self, datapath, priority, class_, match, actions, buffer_id=None):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        timeout = 0
+        #timeout = 0
 
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
@@ -195,8 +165,7 @@ class rl_switch(app_manager.RyuApp):
                                     match=match, instructions=inst)
         datapath.send_msg(mod)
 
-    # packet-in 처리
-    # TODO:packet-in handler에서는 gcl의 Open정보와 현재 timeslot cnt를 비교하여 delay후 전송한다.
+    # packet-in handler에서는 gcl의 Open정보와 현재 timeslot cnt를 비교하여 delay후 전송한다.
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         class_ = 0
@@ -238,6 +207,12 @@ class rl_switch(app_manager.RyuApp):
         elif eth.ethertype == ether_types.ETH_TYPE_8021AH:
             class_ = 3
             self.logger.info("class %s packet" % (class_))
+        else :
+            class_ = 4 #best effort
+
+        # queue에 진입, ts_cnt와 GCl을 보고 대기
+        # queue에서 대기(하고있다고 가정)중인 패킷 증가
+        self.queue[switchid][in_port][class_ -1] +=1
 
         # mac table에 없는 source 추가
         if not (src in self.mac_to_port[switchid]):
@@ -249,11 +224,8 @@ class rl_switch(app_manager.RyuApp):
         else:
             out_port = ofproto.OFPP_FLOOD
 
-        # # mac address table에 따라 output port 지정
-        # actions = [parser.OFPActionOutput(out_port)]
-
-        #TODO: class에 따라서 setqueue 지정 - flow generate시에도 해당. port지정 후 queue지정으로 바꿔주기
-        actions = [parser.OFPActionOutput(out_port),parser.OFPActionSetQueue(queue_id=class_)]
+        # mac address table에 따라 output port 지정
+        actions = [parser.OFPActionOutput(out_port)]
 
         # 들어온 패킷에 대해 해당하는 Match를 생성하고, flow entry에 추가하는 작업 (꼭 필요한 작업인가?, 내가 생성해야하는 플로우들만 flow entry에 추가해야하는가?)
         if out_port != ofproto.OFPP_FLOOD:
@@ -271,13 +243,18 @@ class rl_switch(app_manager.RyuApp):
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             data = msg.data
 
+        #gcl을 참조하여 dealy 계산
+        clk = self.ts_cnt
+        delay = (self.gcl[switchid][clk - 1 :].find('1'))*self.timeslot_size
+        time.sleep(delay/1000) #delay
+
         #flow가 match와 일치하면 match생성시에 지정해준 action으로 packet out한다.
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   in_port=in_port, actions=actions, data=data)
         datapath.send_msg(out)
 
+        self.queue[switchid][in_port][class_ -1] -=1
 
-    #TODO: setoutputport -> setqueue
     def cc_generator1(self):  # protocol을 추가?
         datapath = self.dp[1]
         #timer는 내부에서 실행해야 계속 재귀호출을 하면서 반복실행될 수 있음.
