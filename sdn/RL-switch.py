@@ -42,7 +42,7 @@ class rl_switch(app_manager.RyuApp):
 
         #self.model = DQN(4,10)
         #self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
-
+        self.start_time=time.time()
         self.first = True
         self.state=np.zeros((6,4))
         self.mac_to_port = addr_table()
@@ -245,16 +245,15 @@ class rl_switch(app_manager.RyuApp):
 
         #gcl을 참조하여 dealy 계산
         clk = self.ts_cnt
-        print ("clk",clk)
-        #print ("gcl",self.gcl[switchid][class_-1][clk-1:].indec('1'))
-        #delay = (self.gcl[switchid][class_-1][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
+        self.logger.info("%s : 패킷 class %s,clk %s " % (time.time()-self.start_time,class_,clk))
+        delay=0
         while True:
-            try:
-                delay = (self.gcl[switchid][class_-1][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
-                break
-            except:
-                print("다음 cycle까지 기다리기 : 현재 사이클에 OPEN예정이 없음")
-                time.sleep(self.timeslot_size/1000)
+            #try:
+            delay = (self.gcl[switchid][class_-1][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
+            break
+            #except:
+                #print("다음 cycle까지 기다리기 : 현재 사이클에 OPEN예정이 없음")
+                #time.sleep(self.timeslot_size/1000)
         time.sleep(delay/1000) #delay
         #flow가 match와 일치하면 match생성시에 지정해준 action으로 packet out한다.
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
