@@ -155,7 +155,7 @@ class rl_switch(app_manager.RyuApp):
         # else:
         #     timeout = 10 #very loose timeout
 
-        # TODO: buffer_id가 없는 경우와 있는 경우의 차이?
+        # TODO: 바로 전송하지 못하면 buffer_id가 생기는데 이때는 패킷 전송을 안함. 그럼 언제하는가? 패킷 전송은 hanlder실행시만 되는거 아닌가?
         if buffer_id:
             mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id,
                                     priority=priority, match=match,
@@ -227,6 +227,8 @@ class rl_switch(app_manager.RyuApp):
         # mac address table에 따라 output port 지정
         actions = [parser.OFPActionOutput(out_port)]
 
+        #TODO: flow entry의 존재 의미는 뭐지? inst는 언제 어떻게 실행되는지??
+        # 패킷이 들어오면 buffer id가 계속 증가할텐데, 거기서 내가 원하는 class대로 전송할 수 있나?
         # 들어온 패킷에 대해 해당하는 Match를 생성하고, flow entry에 추가하는 작업 (꼭 필요한 작업인가?, 내가 생성해야하는 플로우들만 flow entry에 추가해야하는가?)
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src)
@@ -244,6 +246,8 @@ class rl_switch(app_manager.RyuApp):
             data = msg.data
 
         #gcl을 참조하여 dealy 계산
+        #TODO: gcl이 끝날때까지 open이 안되면 다음 사이클의 gcl이 업데이트될때까지 기다려야 함...
+        #find('1')을 못하면 타임슬롯이 끝날때까지 다시 기다렸다가 gcl이 업데이트되면
         clk = self.ts_cnt
         delay = (self.gcl[switchid][clk - 1 :].find('1'))*self.timeslot_size
         time.sleep(delay/1000) #delay
