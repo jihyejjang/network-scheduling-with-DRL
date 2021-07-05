@@ -285,9 +285,13 @@ class rl_switch(app_manager.RyuApp):
         if self.terminal:
             self.logger.info("simulation terminated, duration %s.%s" % ((datetime.now() - self.start_time).seconds,
                                                                         (datetime.now() - self.start_time).microseconds / 100))
-            #sys.exit()
-            #os.exit()
-            exit()
+
+            self.exit_sdn()
+
+    def exit_sdn(self):
+        print ("control+c 눌러서 종료, 60초뒤 이어서 실행됨")
+        time.sleep(60)
+
 
     def cc_generator1(self):  # protocol을 추가?
         datapath = self.dp[1]
