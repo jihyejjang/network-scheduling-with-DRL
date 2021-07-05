@@ -16,6 +16,7 @@ import numpy as np
 
 # TODO: deadline 구현 -> Latency(flow 별 전송시간)구하기 : 모든 packet들이 다 전송되는 데 걸리는 시간
 # TODO: dqn model 연결
+# TODO: 모든 flow들이 다 전송되면 프로그램을 종료
 
 def addr_table():  # address table dictionary is created manually
     H = ['00:00:00:00:00:0' + str(h) for h in range(1, 9)]  # hosts
@@ -29,7 +30,7 @@ def addr_table():  # address table dictionary is created manually
 
     for s in range(1, 7):  # 6 switches
         mac_to_port.setdefault(s, {})
-        for h in range(len(H)):
+        for h in range(len(H)): #0~7
             mac_to_port[s][H[h]] = port[s - 1][h]
     return mac_to_port
 
@@ -68,7 +69,6 @@ class rl_switch(app_manager.RyuApp):
         self.audio = 8  # audio flow number (Even)
         self.ad_cnt = 0
         self.ad_cnt2 = 0
-# TODO: best effort도 구현해야함?
         # self.be_period = 3
         self.cc_period = 5  # to 80
         self.vd_period = 33
@@ -123,15 +123,18 @@ class rl_switch(app_manager.RyuApp):
             t.cancel()
             self.gcl_cycle() #Gcl update
 
+    #TODO: 맞는 지 확인 필요
     def gcl_cycle(self):
-        # queue_dp 딕셔너리를 통해 적절한 대기중인 packet의 수 관측 - 굳이 이렇게 안하고 그냥 port를 제거한 queue로 바로 state 구할수도있음
+        #대기중인 패킷 수
         for switch in range(len(self.state)):
-            for queue in range(len(self.state[0])):
+            for queue in range(len(self.state[0])): #switch 별 state : len(state[0]) = 4
                 self.state[switch][queue] = sum(self.queue[switch, :, queue])
 
-        for i in range(len(self.state)):#datapath 수만큼 반복
-            gcl = format(np.argmax(self.model.predict_one(self.state[i])), '010b')
-            self.gcl[i+1] = gcl
+        #TODO: model dqn 추가하면 이부분을 수정(아랫부분을 주석처리 하면 gcl은 FIFO역할을 하게 됨)
+        #for i in range(len(self.state)):#datapath 수만큼 반복
+            #gcl = format(np.argmax(self.model.predict_one(self.state[i])), '010b')  #model predict부분
+            #gcl =
+            #self.gcl[i+1] = gcl
 
         self.ts_cnt=0
         self.timeslot() #cycle재시작
@@ -209,7 +212,7 @@ class rl_switch(app_manager.RyuApp):
 
         # queue에 진입, ts_cnt와 GCl을 보고 대기
         # queue에서 대기(하고있다고 가정)중인 패킷 증가
-        self.queue[switchid -1][in_port -1][class_ -1] +=1
+        self.queue[switchid -1][in_port -1][class_ -1] += 1
 
         # mac table에 없는 source 추가
         if not (src in self.mac_to_port[switchid]):
@@ -242,15 +245,21 @@ class rl_switch(app_manager.RyuApp):
 
         #gcl을 참조하여 dealy 계산
         clk = self.ts_cnt
-        delay = (self.gcl[switchid][clk - 1 :].find('1'))*self.timeslot_size
+        
+        while True:
+            try:
+                delay = (self.gcl[switchid][class_][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
+                break
+            except:
+                print("다음 cycle까지 기다리기 : 현재 사이클에 OPEN예정이 없음")
+                time.sleep(self.timeslot_size/1000)
         time.sleep(delay/1000) #delay
-
         #flow가 match와 일치하면 match생성시에 지정해준 action으로 packet out한다.
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   in_port=in_port, actions=actions, data=data)
         datapath.send_msg(out)
 
-        self.queue[switchid][in_port][class_ -1] -=1
+        self.queue[switchid-1][in_port-1][class_-1] -= 1
 
     def cc_generator1(self):  # protocol을 추가?
         datapath = self.dp[1]
