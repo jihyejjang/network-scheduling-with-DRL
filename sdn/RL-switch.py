@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from threading import Timer
 #from model.dqn import DQN
 
@@ -42,7 +43,7 @@ class rl_switch(app_manager.RyuApp):
 
         #self.model = DQN(4,10)
         #self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
-        self.start_time=time.time()
+        self.start_time=datetime.now()
         self.first = True
         self.state=np.zeros((6,4))
         self.mac_to_port = addr_table()
@@ -55,7 +56,10 @@ class rl_switch(app_manager.RyuApp):
         self.gcl = {1: ['1111111111', '1111111111', '1111111111', '1111111111'],
                     2: ['1111111111', '1111111111', '1111111111', '1111111111'],
                     3: ['1111111111', '1111111111', '1111111111', '1111111111'],
-                    4: ['1111111111', '1111111111', '1111111111', '1111111111']} #스위치 첫 연결 시 action은 FIFO
+                    4: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    5: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    6: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    } #스위치 첫 연결 시 action은 FIFO
 
         # flow attribute
         #self.best_effort = 30  # best effort traffic (Even)
@@ -245,8 +249,8 @@ class rl_switch(app_manager.RyuApp):
 
         #gcl을 참조하여 dealy 계산
         clk = self.ts_cnt
-        self.logger.info("%s : 패킷 class %s,clk %s " % (time.time()-self.start_time,class_,clk))
-        delay=0
+        self.logger.info("%0.4f : 패킷 class %s,clk %s " % (datetime.now()-self.start_time,class_,clk))
+
         while True:
             #try:
             delay = (self.gcl[switchid][class_-1][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
