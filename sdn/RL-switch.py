@@ -1,5 +1,4 @@
-import os
-import sys
+
 import time
 from datetime import datetime
 from threading import Timer
@@ -46,7 +45,7 @@ class rl_switch(app_manager.RyuApp):
 
         #self.model = DQN(4,10)
         #self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
-        self.terminal = False
+        #self.terminal = False
         self.packet_log=pd.DataFrame()
         self.start_time=datetime.now()
         self.first = True
@@ -111,10 +110,11 @@ class rl_switch(app_manager.RyuApp):
         #switch가 모두 연결됨과 동시에 flow들을 주기마다 생성, queue state 요청 메세지
         #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
         if len(self.dp)==6:
-            #wait 5sec for pingALL
-            time.sleep(5)
+            #wait 10sec for pingALL
+            print("wait 10 seconds for pingAll")
+            time.sleep(10)
             #then controller starts timeslot
-            self.timeslot() #
+            self.timeslot()
             self.cc_generator1()
             self.ad_generator1()
             self.vd_generator1()
@@ -278,19 +278,20 @@ class rl_switch(app_manager.RyuApp):
         datapath.send_msg(out)
 
         self.queue[switchid-1][in_port-1][class_-1] -= 1
-        self.logger.info("%s.%s : 스위치 %s, 패킷 out class %s,clk %s " % \
-                         ((datetime.now() - self.start_time).seconds,
-                          (datetime.now() - self.start_time).microseconds / 100, switchid, class_, clk))
+        if class_ != 4:
+            self.logger.info("%s.%s : 스위치 %s, 패킷 out class %s,clk %s " % \
+                             ((datetime.now() - self.start_time).seconds,
+                              (datetime.now() - self.start_time).microseconds / 100, switchid, class_, clk))
+        #
+        # if self.terminal:
+        #     self.logger.info("simulation terminated, duration %s.%s" % ((datetime.now() - self.start_time).seconds,
+        #                                                                 (datetime.now() - self.start_time).microseconds / 100))
 
-        if self.terminal:
-            self.logger.info("simulation terminated, duration %s.%s" % ((datetime.now() - self.start_time).seconds,
-                                                                        (datetime.now() - self.start_time).microseconds / 100))
-
-            self.exit_sdn()
-
-    def exit_sdn(self):
-        print ("control+c 눌러서 종료, 60초뒤 이어서 실행됨")
-        time.sleep(60)
+    #         self.exit_sdn()
+    #
+    # def exit_sdn(self):
+    #     print ("control+c 눌러서 종료, 60초뒤 이어서 실행됨")
+    #     time.sleep(60)
 
 
     def cc_generator1(self):  # protocol을 추가?
