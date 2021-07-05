@@ -42,6 +42,7 @@ class rl_switch(app_manager.RyuApp):
         #self.model = DQN(4,10)
         #self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
 
+        self.first = True
         self.state=np.zeros((6,4))
         self.mac_to_port = addr_table()
         self.H = ['00:00:00:00:00:0' + str(h) for h in range(1, 9)]  # hosts
