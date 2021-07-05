@@ -23,7 +23,7 @@ class Agent(object):
         self.epsilon_min = 0.01
         self.step = 0
         self.test = False
-        self.step_decrease = 5000 #step_decrease마다 epsilon 감소, 전체 episode를 약 10번으로 나눠서 epsilon을 감소
+        self.step_decrease = 2500 #step_decrease마다 epsilon 감소, 전체 episode를 약 10번으로 나눠서 epsilon을 감소
         self.discount_factor = 0.8 #할인율. 1에 가까울 수록 미래에 받는 보상도 중요, 0에 가까울수록 즉각적인 보상이 중요
         self.memory = deque(maxlen=9999999999)
         #self.mse_loss = []

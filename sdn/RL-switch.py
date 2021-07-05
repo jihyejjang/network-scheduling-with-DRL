@@ -1,6 +1,6 @@
 import time
 from threading import Timer
-from model.dqn import DQN
+#from model.dqn import DQN
 
 from ryu.base import app_manager
 from ryu.controller import ofp_event
@@ -14,6 +14,8 @@ from ryu.lib.packet import ethernet
 from collections import deque
 import numpy as np
 
+# TODO: deadline 구현 -> Latency(flow 별 전송시간)구하기 : 모든 packet들이 다 전송되는 데 걸리는 시간
+# TODO: dqn model 연결
 
 def addr_table():  # address table dictionary is created manually
     H = ['00:00:00:00:00:0' + str(h) for h in range(1, 9)]  # hosts
@@ -37,8 +39,8 @@ class rl_switch(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         super(rl_switch, self).__init__(*args, **kwargs)
 
-        self.model = DQN(4,10)
-        self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
+        #self.model = DQN(4,10)
+        #self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
 
         self.state=np.zeros((6,4))
         self.mac_to_port = addr_table()
@@ -54,8 +56,8 @@ class rl_switch(app_manager.RyuApp):
                     4: ['1111111111', '1111111111', '1111111111', '1111111111']} #스위치 첫 연결 시 action은 FIFO
 
         # flow attribute
-        # self.best_effort = 30  # best effort traffic (Even)
-        # self.cnt1 = 0  # 전송된 flow 개수 카운트
+        #self.best_effort = 30  # best effort traffic (Even)
+        #self.cnt1 = 0  # 전송된 flow 개수 카운트
         self.command_control = 20  # c&c flow number (Even)
         self.cc_cnt = 0
         self.cc_cnt2 = 0
@@ -65,7 +67,7 @@ class rl_switch(app_manager.RyuApp):
         self.audio = 8  # audio flow number (Even)
         self.ad_cnt = 0
         self.ad_cnt2 = 0
-
+# TODO: best effort도 구현해야함?
         # self.be_period = 3
         self.cc_period = 5  # to 80
         self.vd_period = 33
@@ -80,7 +82,6 @@ class rl_switch(app_manager.RyuApp):
         msg = ev.msg
         datapath = msg.datapath
         self.dp[datapath.id]=datapath
-        #self.logger.info("%s"%(self.dp))
         self.logger.info("스위치 %s 연결" % datapath.id)
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -140,8 +141,6 @@ class rl_switch(app_manager.RyuApp):
     def add_flow(self, datapath, priority, class_, match, actions, buffer_id=None):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        #timeout = 0
-
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
 
@@ -155,7 +154,7 @@ class rl_switch(app_manager.RyuApp):
         # else:
         #     timeout = 10 #very loose timeout
 
-        # TODO: 바로 전송하지 못하면 buffer_id가 생기는데 이때는 패킷 전송을 안함. 그럼 언제하는가? 패킷 전송은 hanlder실행시만 되는거 아닌가?
+        # TODO: buffer_id가 없는 경우와 있는 경우의 차이? : 대기중인 flow들이 buffer에서 대기하는지?
         if buffer_id:
             mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id,
                                     priority=priority, match=match,
@@ -190,10 +189,7 @@ class rl_switch(app_manager.RyuApp):
 
         # flow generator check(debug)
         if (dst in self.H) and (src in self.H):
-            # self.logger.info("packet-in , 이더넷 %s" % (pkt_ethernet) )
-            self.logger.info("packet-in , 스위치 %s" % (switchid))
-            self.logger.info("packet-in, buffer_id %s" % (bufferid))
-            self.logger.info("스위치 %s에 source %s destination %s 패킷이 input port %s로 들어옴" % (switchid, src, dst, in_port))
+            self.logger.info("스위치 %s의 %s 버퍼에 source %s destination %s 패킷이 input port %s로 들어옴 클래스는" % (switchid,bufferid, src, dst, in_port))
 
         if eth.ethertype == ether_types.ETH_TYPE_LLDP:
             # ignore lldp packet
@@ -227,8 +223,6 @@ class rl_switch(app_manager.RyuApp):
         # mac address table에 따라 output port 지정
         actions = [parser.OFPActionOutput(out_port)]
 
-        #TODO: flow entry의 존재 의미는 뭐지? inst는 언제 어떻게 실행되는지??
-        # 패킷이 들어오면 buffer id가 계속 증가할텐데, 거기서 내가 원하는 class대로 전송할 수 있나?
         # 들어온 패킷에 대해 해당하는 Match를 생성하고, flow entry에 추가하는 작업 (꼭 필요한 작업인가?, 내가 생성해야하는 플로우들만 flow entry에 추가해야하는가?)
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src)
@@ -246,8 +240,6 @@ class rl_switch(app_manager.RyuApp):
             data = msg.data
 
         #gcl을 참조하여 dealy 계산
-        #TODO: gcl이 끝날때까지 open이 안되면 다음 사이클의 gcl이 업데이트될때까지 기다려야 함...
-        #find('1')을 못하면 타임슬롯이 끝날때까지 다시 기다렸다가 gcl이 업데이트되면
         clk = self.ts_cnt
         delay = (self.gcl[switchid][clk - 1 :].find('1'))*self.timeslot_size
         time.sleep(delay/1000) #delay
@@ -276,7 +268,7 @@ class rl_switch(app_manager.RyuApp):
         parser = datapath.ofproto_parser
 
         pkt.serialize()
-        self.logger.info("packet 정보", pkt)
+        #self.logger.info("packet 정보", pkt)
         self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
 
         data = pkt.data
