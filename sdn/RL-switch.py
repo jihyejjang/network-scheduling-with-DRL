@@ -1,3 +1,4 @@
+import sys
 import time
 from datetime import datetime
 from threading import Timer
@@ -44,7 +45,7 @@ class rl_switch(app_manager.RyuApp):
 
         #self.model = DQN(4,10)
         #self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
-
+        self.terminal = False
         self.packet_log=pd.DataFrame()
         self.start_time=datetime.now()
         self.first = True
@@ -90,7 +91,7 @@ class rl_switch(app_manager.RyuApp):
         msg = ev.msg
         datapath = msg.datapath
         self.dp[datapath.id]=datapath
-        self.logger.info("%s.%0.3f : 스위치 %s 연결" % ((datetime.now() - self.start_time).seconds, (datetime.now() - self.start_time).microseconds, datapath.id))
+        self.logger.info("%s.%s : 스위치 %s 연결" % ((datetime.now() - self.start_time).seconds, (datetime.now() - self.start_time).microseconds/100 , datapath.id))
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -203,21 +204,21 @@ class rl_switch(app_manager.RyuApp):
         src = eth.src
 
         # flow generator check(debug)
-        if (dst in self.H) and (src in self.H):
-            self.logger.info("스위치 %s의 %s 버퍼에 source %s destination %s 패킷이 input port %s로 들어옴 클래스는" % (switchid,bufferid, src, dst, in_port))
+        # if (dst in self.H) and (src in self.H):
+        #     self.logger.info("스위치 %s의 %s 버퍼에 source %s destination %s 패킷이 input port %s로 들어옴 클래스는" % (switchid,bufferid, src, dst, in_port))
 
         if eth.ethertype == ether_types.ETH_TYPE_LLDP:
             # ignore lldp packet
             return
         elif eth.ethertype == ether_types.ETH_TYPE_IEEE802_3:
             class_ = 1
-            self.logger.info("class %s packet" % (class_))
+            #self.logger.info("class %s packet" % (class_))
         elif eth.ethertype == ether_types.ETH_TYPE_8021AD:
             class_ = 2
-            self.logger.info("class %s packet" % (class_))
+            #self.logger.info("class %s packet" % (class_))
         elif eth.ethertype == ether_types.ETH_TYPE_8021AH:
             class_ = 3
-            self.logger.info("class %s packet" % (class_))
+            #self.logger.info("class %s packet" % (class_))
         else :
             class_ = 4 #best effort
 
@@ -258,8 +259,8 @@ class rl_switch(app_manager.RyuApp):
         clk = self.ts_cnt
 
         if class_ != 4:
-            self.logger.info("%s.%0.3f : 패킷 in class %s,clk %s " % ((datetime.now()-self.start_time).seconds,(datetime.now()-self.start_time).microseconds, class_,clk))
-
+            self.logger.info("%s.%s : 스위치 %s, 패킷 in class %s,clk %s " % \
+                             ((datetime.now()-self.start_time).seconds,(datetime.now()-self.start_time).microseconds/100,switchid, class_,clk))
 
         while True:
             try:
@@ -276,12 +277,20 @@ class rl_switch(app_manager.RyuApp):
         datapath.send_msg(out)
 
         self.queue[switchid-1][in_port-1][class_-1] -= 1
+        self.logger.info("%s.%s : 스위치 %s, 패킷 out class %s,clk %s " % \
+                         ((datetime.now() - self.start_time).seconds,
+                          (datetime.now() - self.start_time).microseconds / 100, switchid, class_, clk))
+
+        if self.terminal:
+            self.logger.info("simulation terminated, duration %s.%s" % ((datetime.now() - self.start_time).seconds,
+                                                                        (datetime.now() - self.start_time).microseconds / 100))
+            sys.exit()
 
     def cc_generator1(self):  # protocol을 추가?
         datapath = self.dp[1]
         #timer는 내부에서 실행해야 계속 재귀호출을 하면서 반복실행될 수 있음.
         self.cc_cnt += 1
-        self.logger.info("%s번째 cc1" % (self.cc_cnt))
+        #self.logger.info("%s번째 cc1" % (self.cc_cnt))
 
         priority = 1
 
@@ -295,7 +304,10 @@ class rl_switch(app_manager.RyuApp):
 
         pkt.serialize()
         #self.logger.info("packet 정보", pkt)
-        self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
+        #self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
+        self.logger.info("%s.%s : C&C1 %s, 스위치%s " % \
+                         ((datetime.now() - self.start_time).seconds,
+                          (datetime.now() - self.start_time).microseconds / 100, self.cc_cnt, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
@@ -313,11 +325,15 @@ class rl_switch(app_manager.RyuApp):
 
         if self.cc_cnt >= self.command_control:
             t.cancel()
+            if (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
+                    and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+                self.terminal = True
+
 
     def cc_generator2(self):  # protocol을 추가?
         datapath = self.dp[2]
         self.cc_cnt2 += 1
-        self.logger.info("%s번째 cc2" % (self.cc_cnt2))
+        #self.logger.info("%s번째 cc2" % (self.cc_cnt2))
 
         priority = 1
 
@@ -332,7 +348,10 @@ class rl_switch(app_manager.RyuApp):
 
         pkt.serialize()
 
-        self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
+        #self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
+        self.logger.info("%s.%s : C&C2 %s, 스위치%s " % \
+                         ((datetime.now() - self.start_time).seconds,
+                          (datetime.now() - self.start_time).microseconds / 100, self.cc_cnt2, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
@@ -348,14 +367,17 @@ class rl_switch(app_manager.RyuApp):
         t = Timer((self.cc_period/1000), self.cc_generator2)
         t.start()
 
-        if self.cc_cnt >= self.command_control:
+        if self.cc_cnt2 >= self.command_control:
             t.cancel()
+            if (self.cc_cnt >= self.command_control) and (self.ad_cnt >= self.audio) \
+                    and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+                self.terminal = True
 
     def ad_generator1(self):  # protocol을 추가?
         datapath = self.dp[1]
         # timer는 내부에서 실행해야 계속 재귀호출을 하면서 반복실행될 수 있음.
         self.ad_cnt += 1
-        self.logger.info("%s번째 ad1" % (self.ad_cnt))
+        #self.logger.info("%s번째 ad1" % (self.ad_cnt))
 
         priority = 2
 
@@ -369,7 +391,10 @@ class rl_switch(app_manager.RyuApp):
 
         pkt.serialize()
 
-        self.logger.info("audio 패킷 객체 생성, 스위치%s" % (datapath.id))
+        #self.logger.info("audio 패킷 객체 생성, 스위치%s" % (datapath.id))
+        self.logger.info("%s.%s : AD %s, 스위치%s " % \
+                         ((datetime.now() - self.start_time).seconds,
+                          (datetime.now() - self.start_time).microseconds / 100, self.ad_cnt, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
@@ -387,11 +412,14 @@ class rl_switch(app_manager.RyuApp):
 
         if self.ad_cnt >= self.audio:
             t.cancel()
+            if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) \
+                    and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+                self.terminal = True
 
     def ad_generator2(self):  # protocol을 추가?
         datapath = self.dp[2]
         self.ad_cnt2 += 1
-        self.logger.info("%s번째 ad2" % (self.ad_cnt2))
+        #self.logger.info("%s번째 ad2" % (self.ad_cnt2))
 
         priority = 2
 
@@ -406,7 +434,10 @@ class rl_switch(app_manager.RyuApp):
 
         pkt.serialize()
 
-        self.logger.info("audio 패킷 객체 생성, 스위치%s" % (datapath.id))
+        #self.logger.info("audio 패킷 객체 생성, 스위치%s" % (datapath.id))
+        self.logger.info("%s.%s : AD2 %s, 스위치%s " % \
+                         ((datetime.now() - self.start_time).seconds,
+                          (datetime.now() - self.start_time).microseconds / 100, self.ad_cnt2, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
@@ -422,14 +453,17 @@ class rl_switch(app_manager.RyuApp):
         t = Timer((self.ad_period / 1000), self.ad_generator2)
         t.start()
 
-        if self.ad_cnt >= self.audio:
+        if self.ad_cnt2 >= self.audio:
             t.cancel()
+            if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) \
+                    and (self.ad_cnt >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+                self.terminal = True
 
     def vd_generator1(self):  # protocol을 추가?
         datapath = self.dp[1]
         # timer는 내부에서 실행해야 계속 재귀호출을 하면서 반복실행될 수 있음.
         self.vd_cnt += 1
-        self.logger.info("%s번째 vd1" % (self.ad_cnt))
+        #self.logger.info("%s번째 vd1" % (self.ad_cnt))
 
         priority = 3
 
@@ -443,7 +477,10 @@ class rl_switch(app_manager.RyuApp):
 
         pkt.serialize()
 
-        self.logger.info("video 패킷 객체 생성, 스위치%s" % (datapath.id))
+        #self.logger.info("video 패킷 객체 생성, 스위치%s" % (datapath.id))
+        self.logger.info("%s.%s : VD %s, 스위치%s " % \
+                         ((datetime.now() - self.start_time).seconds,
+                          (datetime.now() - self.start_time).microseconds / 100, self.vd_cnt, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
@@ -461,11 +498,14 @@ class rl_switch(app_manager.RyuApp):
 
         if self.vd_cnt >= self.video:
             t.cancel()
+            if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) \
+                    and (self.ad_cnt >= self.audio) and (self.ad_cnt2 >= self.video) and (self.vd_cnt2 >= self.video):
+                self.terminal = True
 
     def vd_generator2(self):  # protocol을 추가?
         datapath = self.dp[2]
         self.vd_cnt2 += 1
-        self.logger.info("%s번째 vd2" % (self.vd_cnt2))
+        #self.logger.info("%s번째 vd2" % (self.vd_cnt2))
 
         priority = 3
 
@@ -480,7 +520,10 @@ class rl_switch(app_manager.RyuApp):
 
         pkt.serialize()
 
-        self.logger.info("video 패킷 객체 생성, 스위치%s" % (datapath.id))
+        #self.logger.info("video 패킷 객체 생성, 스위치%s" % (datapath.id))
+        self.logger.info("%s.%s : VD2 %s, 스위치%s " % \
+                         ((datetime.now() - self.start_time).seconds,
+                          (datetime.now() - self.start_time).microseconds / 100, self.vd_cnt2, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
@@ -496,5 +539,8 @@ class rl_switch(app_manager.RyuApp):
         t = Timer((self.vd_period / 1000), self.vd_generator2)
         t.start()
 
-        if self.vd_cnt >= self.video:
+        if self.vd_cnt2 >= self.video:
             t.cancel()
+            if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) \
+                    and (self.ad_cnt >= self.audio) and (self.ad_cnt2 >= self.video) and (self.vd_cnt >= self.video):
+                self.terminal = True
