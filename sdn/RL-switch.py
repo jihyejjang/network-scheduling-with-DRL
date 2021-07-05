@@ -246,7 +246,7 @@ class rl_switch(app_manager.RyuApp):
         #gcl을 참조하여 dealy 계산
         clk = self.ts_cnt
         print ("clk",clk)
-        print ("gcl",self.gcl[switchid][class_-1][clk-1])
+        print ("gcl",self.gcl[switchid][class_-1][clk-1:].indec('1'))
         delay = (self.gcl[switchid][class_-1][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
         # while True:
         #     try:
