@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 from datetime import datetime
@@ -284,7 +285,9 @@ class rl_switch(app_manager.RyuApp):
         if self.terminal:
             self.logger.info("simulation terminated, duration %s.%s" % ((datetime.now() - self.start_time).seconds,
                                                                         (datetime.now() - self.start_time).microseconds / 100))
-            sys.exit()
+            #sys.exit()
+            os.exit()
+            exit()
 
     def cc_generator1(self):  # protocol을 추가?
         datapath = self.dp[1]
