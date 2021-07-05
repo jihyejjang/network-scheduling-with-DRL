@@ -249,7 +249,7 @@ class rl_switch(app_manager.RyuApp):
 
         #gcl을 참조하여 dealy 계산
         clk = self.ts_cnt
-        self.logger.info("%0.4f : 패킷 class %s,clk %s " % (datetime.now()-self.start_time,class_,clk))
+        self.logger.info("%s.%0.3f : 패킷 class %s,clk %s " % ((datetime.now()-self.start_time).seconds,(datetime.now()-self.start_time).microseconds, class_,clk))
 
         while True:
             #try:
