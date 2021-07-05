@@ -209,7 +209,7 @@ class rl_switch(app_manager.RyuApp):
 
         # queue에 진입, ts_cnt와 GCl을 보고 대기
         # queue에서 대기(하고있다고 가정)중인 패킷 증가
-        self.queue[switchid][in_port][class_ -1] +=1
+        self.queue[switchid -1][in_port -1][class_ -1] +=1
 
         # mac table에 없는 source 추가
         if not (src in self.mac_to_port[switchid]):
