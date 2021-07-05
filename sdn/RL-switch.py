@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 from threading import Timer
+import pandas as pd
 #from model.dqn import DQN
 
 from ryu.base import app_manager
@@ -43,6 +44,8 @@ class rl_switch(app_manager.RyuApp):
 
         #self.model = DQN(4,10)
         #self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
+
+        self.packet_log=pd.DataFrame()
         self.start_time=datetime.now()
         self.first = True
         self.state=np.zeros((6,4))
@@ -87,7 +90,8 @@ class rl_switch(app_manager.RyuApp):
         msg = ev.msg
         datapath = msg.datapath
         self.dp[datapath.id]=datapath
-        self.logger.info("스위치 %s 연결" % datapath.id)
+        self.logger.info("%s.%0.3f : 스위치 %s 연결" % ((datetime.now() - self.start_time).seconds, (datetime.now() - self.start_time).microseconds, datapath.id))
+
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
@@ -105,7 +109,10 @@ class rl_switch(app_manager.RyuApp):
         #switch가 모두 연결됨과 동시에 flow들을 주기마다 생성, queue state 요청 메세지
         #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
         if len(self.dp)==6:
-            self.timeslot() #switch5개가 연결되면 timeslot 시작
+            #wait 5sec for pingALL
+            time.sleep(5)
+            #then controller starts timeslot
+            self.timeslot() #
             self.cc_generator1()
             self.ad_generator1()
             self.vd_generator1()
@@ -249,6 +256,7 @@ class rl_switch(app_manager.RyuApp):
 
         #gcl을 참조하여 dealy 계산
         clk = self.ts_cnt
+
         if class_ != 4:
             self.logger.info("%s.%0.3f : 패킷 in class %s,clk %s " % ((datetime.now()-self.start_time).seconds,(datetime.now()-self.start_time).microseconds, class_,clk))
 
