@@ -286,7 +286,7 @@ class rl_switch(app_manager.RyuApp):
             self.logger.info("simulation terminated, duration %s.%s" % ((datetime.now() - self.start_time).seconds,
                                                                         (datetime.now() - self.start_time).microseconds / 100))
             #sys.exit()
-            os.exit()
+            #os.exit()
             exit()
 
     def cc_generator1(self):  # protocol을 추가?
