@@ -91,7 +91,7 @@ class rl_switch(app_manager.RyuApp):
         msg = ev.msg
         datapath = msg.datapath
         self.dp[datapath.id]=datapath
-        self.logger.info("%s초 %0.1f : 스위치 %s 연결" % ((datetime.now() - self.start_time).seconds, (datetime.now() - self.start_time).microseconds/1000 , datapath.id))
+        self.logger.info("[연결] %s초 %f : 스위치 %s " % ((datetime.now() - self.start_time).seconds, int((datetime.now() - self.start_time).microseconds/1000) , datapath.id))
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -112,11 +112,11 @@ class rl_switch(app_manager.RyuApp):
         if len(self.dp)==6:
             self.timeslot()
             self.cc_generator1()
-            self.ad_generator1()
-            self.vd_generator1()
-            self.cc_generator2()
-            self.ad_generator2()
-            self.vd_generator2()
+            # self.ad_generator1()
+            # self.vd_generator1()
+            # self.cc_generator2()
+            # self.ad_generator2()
+            # self.vd_generator2()
 
     # self.queue 구현해서 대기중인 flow 구하고, gcl 함수호출로 실행, 스위치 첫연결시 gcl은 FIFO
     def timeslot(self):
@@ -124,6 +124,10 @@ class rl_switch(app_manager.RyuApp):
             self.first = False
 
         self.ts_cnt+=1
+
+        self.logger.info("[slot] %s초 f : 타임슬롯 %s " % (
+        (datetime.now() - self.start_time).seconds, int((datetime.now() - self.start_time).microseconds / 1000),
+        self.ts_cnt))
 
         t = Timer((self.timeslot_size / 1000), self.timeslot)  # timeslot
         t.start()
@@ -151,7 +155,7 @@ class rl_switch(app_manager.RyuApp):
 
 
     # flow table entry 업데이트 - timeout(설정)
-    def add_flow(self, datapath, priority, class_, match, actions, buffer_id=None):
+    def add_flow(self, datapath, priority_, match, actions, buffer_id=None):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
@@ -170,10 +174,10 @@ class rl_switch(app_manager.RyuApp):
         # TODO: buffer_id가 없는 경우와 있는 경우의 차이? : 대기중인 flow들이 buffer에서 대기하는지?
         if buffer_id:
             mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id,
-                                    priority=priority, match=match,
+                                    priority=priority_, match=match,
                                     instructions=inst)
         else:
-            mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
+            mod = parser.OFPFlowMod(datapath=datapath, priority=priority_,
                                     match=match, instructions=inst)
         datapath.send_msg(mod)
 
@@ -242,10 +246,10 @@ class rl_switch(app_manager.RyuApp):
             # verify if we have a valid buffer_id, if yes avoid to send both
             # flow_mod & packet_out
             if msg.buffer_id != ofproto.OFP_NO_BUFFER:  # 버퍼가 존재하는 패킷이면 return? 전송하지 않음..?
-                self.add_flow(datapath, 1, class_, match, actions, msg.buffer_id)
+                self.add_flow(datapath, 1, match, actions, msg.buffer_id)
                 return
             else:
-                self.add_flow(datapath, 1, class_, match, actions)
+                self.add_flow(datapath, 1, match, actions)
 
         # 왜 buffer가 존재하는 flood는 왜 data를 none으로 할까?
         data = None
@@ -256,8 +260,8 @@ class rl_switch(app_manager.RyuApp):
         clk = self.ts_cnt
 
         if class_ != 4:
-            self.logger.info("%s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s " % \
-                             ((datetime.now()-self.start_time).seconds,(datetime.now()-self.start_time).microseconds/1000,switchid, class_,clk))
+            self.logger.info("[in] %s초 %f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
+                             ((datetime.now()-self.start_time).seconds,int((datetime.now()-self.start_time).microseconds/1000),switchid, class_,clk,bufferid))
 
         while True:
             try:
@@ -275,9 +279,9 @@ class rl_switch(app_manager.RyuApp):
 
         self.queue[switchid-1][in_port-1][class_-1] -= 1
         if class_ != 4:
-            self.logger.info("%s초 %0.1f : 스위치 %s, 패킷 out class %s,clk %s " % \
+            self.logger.info("%s초 %f : 스위치 %s, 패킷 out class %s,clk %s " % \
                              ((datetime.now() - self.start_time).seconds,
-                              (datetime.now() - self.start_time).microseconds /1000, switchid, class_, clk))
+                              int((datetime.now() - self.start_time).microseconds /1000), switchid, class_, clk))
 
         self._request_stats(datapath)
         # if self.terminal:
