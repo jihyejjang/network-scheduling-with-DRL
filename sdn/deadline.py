@@ -45,7 +45,7 @@ class rl_switch(app_manager.RyuApp):
 
         #self.model = DQN(4,10)
         #self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
-        #self.terminal = False
+        self.terminal = False
         self.packet_log=pd.DataFrame()
         self.start_time=datetime.now()
         self.first = True
