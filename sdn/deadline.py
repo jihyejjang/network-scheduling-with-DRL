@@ -278,7 +278,8 @@ class rl_switch(app_manager.RyuApp):
             self.logger.info("%s초 %0.1f : 스위치 %s, 패킷 out class %s,clk %s " % \
                              ((datetime.now() - self.start_time).seconds,
                               (datetime.now() - self.start_time).microseconds /1000, switchid, class_, clk))
-        #
+
+        self._request_stats(datapath)
         # if self.terminal:
         #     self.logger.info("simulation terminated, duration %s.%s" % ((datetime.now() - self.start_time).seconds,
         #                                                                 (datetime.now() - self.start_time).microseconds / 100))
