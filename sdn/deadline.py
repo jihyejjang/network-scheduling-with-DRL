@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 from threading import Timer
 import pandas as pd
+import math
 #from model.dqn import DQN
 
 from ryu.base import app_manager
@@ -82,6 +83,8 @@ class rl_switch(app_manager.RyuApp):
         self.vd_period = 33
         self.ad_period = 1  # milliseconds
 
+        self.timeslot_start=0
+
         # switch address도 알아야 하는지? / mininet에서 항상 고정형 mac주소를 구현하는 방법?(autoMac=True 하면 됨)
         # 패킷을 생성해도 address table이 완성되지 않으면 flooding하는건가..?
 
@@ -91,7 +94,7 @@ class rl_switch(app_manager.RyuApp):
         msg = ev.msg
         datapath = msg.datapath
         self.dp[datapath.id]=datapath
-        self.logger.info("[연결] %s초 %f : 스위치 %s " % ((datetime.now() - self.start_time).seconds, int((datetime.now() - self.start_time).microseconds/1000) , datapath.id))
+        self.logger.info("[연결] %s초 %s : 스위치 %s " % ((datetime.now() - self.start_time).seconds, int((datetime.now() - self.start_time).microseconds/1000) , datapath.id))
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -110,7 +113,8 @@ class rl_switch(app_manager.RyuApp):
         #switch가 모두 연결됨과 동시에 flow들을 주기마다 생성, queue state 요청 메세지
         #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
         if len(self.dp)==6:
-            self.timeslot()
+            self.timeslot_start = datetime.now()
+            self.first = False
             self.cc_generator1()
             # self.ad_generator1()
             # self.vd_generator1()
@@ -119,22 +123,25 @@ class rl_switch(app_manager.RyuApp):
             # self.vd_generator2()
 
     # self.queue 구현해서 대기중인 flow 구하고, gcl 함수호출로 실행, 스위치 첫연결시 gcl은 FIFO
-    def timeslot(self):
-        if self.first: #스위치 첫 연결시 action
-            self.first = False
-
-        self.ts_cnt+=1
-
-        self.logger.info("[slot] %s초 f : 타임슬롯 %s " % (
-        (datetime.now() - self.start_time).seconds, int((datetime.now() - self.start_time).microseconds / 1000),
-        self.ts_cnt))
-
-        t = Timer((self.timeslot_size / 1000), self.timeslot)  # timeslot
-        t.start()
-
-        if self.ts_cnt >= self.cycle:
-            t.cancel()
-            self.gcl_cycle() #Gcl update
+    #TODO : 0.5밀리초마다 타임슬롯 함수를 실행하는게 아니라 절대시간을 보고 몇번째 timeslot인지 계산한다. gcl도 마찬가지로,0.5ms*9에 갱신한다.
+    def timeslot(self,time): #timeslot 진행 횟수를 알려주는 함수
+        sec = (time - self.timeslot_start).seconds
+        ms = round((time - self.timeslot_start).microseconds /1000,1) #소수점 첫째자리까지 출력
+        slots = int((sec + 0.001 * ms)/(0.001 * self.timeslot_size))
+        cyc = int(slots/self.cycle) #몇번째 cycle인지
+        clk = cyc % self.cycle #몇번째 timeslot인지
+        return cyc, clk
+        #
+        # self.logger.info("[slot] %s초 %s : 타임슬롯 %s " % (
+        # (datetime.now() - self.start_time).seconds, int((datetime.now() - self.start_time).microseconds / 1000),
+        # self.ts_cnt))
+        #
+        # t = Timer((self.timeslot_size / 1000), self.timeslot)  # timeslot
+        # t.start()
+        #
+        # if self.ts_cnt >= self.cycle:
+        #     t.cancel()
+        #     self.gcl_cycle() #Gcl update
 
     #TODO: 맞는 지 확인 필요
     def gcl_cycle(self):
@@ -149,8 +156,10 @@ class rl_switch(app_manager.RyuApp):
             #gcl =
             #self.gcl[i+1] = gcl
 
-        self.ts_cnt=0
-        self.timeslot() #cycle재시작
+        # if
+
+        # self.ts_cnt=0
+        # self.timeslot() #cycle재시작
 
 
 
@@ -184,7 +193,6 @@ class rl_switch(app_manager.RyuApp):
     # packet-in handler에서는 gcl의 Open정보와 현재 timeslot cnt를 비교하여 delay후 전송한다.
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
-        class_ = 0
         # 에러 발생 감지
         if ev.msg.msg_len < ev.msg.total_len:
             self.logger.debug("packet truncated: only %s of %s bytes",
@@ -251,16 +259,15 @@ class rl_switch(app_manager.RyuApp):
             else:
                 self.add_flow(datapath, 1, match, actions)
 
-        # 왜 buffer가 존재하는 flood는 왜 data를 none으로 할까?
         data = None
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             data = msg.data
 
         #gcl을 참조하여 dealy 계산
-        clk = self.ts_cnt
+        clk = self.timeslot(datetime.now())
 
-        if class_ != 4:
-            self.logger.info("[in] %s초 %f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
+        #if class_ != 4:
+        self.logger.info("[in] %s초 %f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
                              ((datetime.now()-self.start_time).seconds,int((datetime.now()-self.start_time).microseconds/1000),switchid, class_,clk,bufferid))
 
         while True:
@@ -279,7 +286,7 @@ class rl_switch(app_manager.RyuApp):
 
         self.queue[switchid-1][in_port-1][class_-1] -= 1
         if class_ != 4:
-            self.logger.info("%s초 %f : 스위치 %s, 패킷 out class %s,clk %s " % \
+            self.logger.info("%s초 %s : 스위치 %s, 패킷 out class %s,clk %s " % \
                              ((datetime.now() - self.start_time).seconds,
                               int((datetime.now() - self.start_time).microseconds /1000), switchid, class_, clk))
 
@@ -353,12 +360,12 @@ class rl_switch(app_manager.RyuApp):
         #self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
         self.logger.info("%s.%s : C&C1 %s, 스위치%s " % \
                          ((datetime.now() - self.start_time).seconds,
-                          (datetime.now() - self.start_time).microseconds / 100, self.cc_cnt, datapath.id))
+                          int((datetime.now() - self.start_time).microseconds / 1000), self.cc_cnt, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
         out = parser.OFPPacketOut(datapath=datapath,
-                                 buffer_id=ofproto.OFP_NO_BUFFER,  # buffer id?
+                                 buffer_id=100+self.cc_cnt,  # buffer id? : no buffer가 아닌 버퍼 할당으로 전달해보게씀
                                  in_port=ofproto.OFPP_CONTROLLER,
                                  # controller에서 들어온 패킷 (생성된 패킷이기 때문에? host자체에서 생성은 하지 못하는듯)
                                  actions=actions,
@@ -396,12 +403,12 @@ class rl_switch(app_manager.RyuApp):
         #self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
         self.logger.info("%s.%s : C&C2 %s, 스위치%s " % \
                          ((datetime.now() - self.start_time).seconds,
-                          (datetime.now() - self.start_time).microseconds / 100, self.cc_cnt2, datapath.id))
+                          int((datetime.now() - self.start_time).microseconds / 1000), self.cc_cnt2, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
         out = parser.OFPPacketOut(datapath=datapath,
-                                 buffer_id=ofproto.OFP_NO_BUFFER,  # buffer id?
+                                 buffer_id=200+self.cc_cnt2,  # buffer id?
                                  in_port=ofproto.OFPP_CONTROLLER,
                                  # controller에서 들어온 패킷 (생성된 패킷이기 때문에? host자체에서 생성은 하지 못하는듯)
                                  actions=actions,
