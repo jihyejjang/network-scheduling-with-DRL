@@ -11,7 +11,7 @@ from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 
-from ryu.ofproto import ofproto_v1_5
+from ryu.ofproto import ofproto_v1_3
 
 from ryu.lib.packet import packet, ether_types
 from ryu.lib.packet import ethernet
@@ -39,7 +39,7 @@ def addr_table():  # address table dictionary is created manually
     return mac_to_port
 
 class rl_switch(app_manager.RyuApp):
-    OFP_VERSIONS = [ofproto_v1_5.OFP_VERSION]
+    OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
     def __init__(self, *args, **kwargs):
         super(rl_switch, self).__init__(*args, **kwargs)
@@ -235,7 +235,6 @@ class rl_switch(app_manager.RyuApp):
         # queue에서 대기(하고있다고 가정)중인 패킷 증가
         self.queue[switchid -1][in_port -1][class_ -1] += 1
 
-        match=0
         # mac table에 없는 source 추가
         if not (src in self.mac_to_port[switchid]):
             self.mac_to_port[switchid][src] = in_port
@@ -260,8 +259,9 @@ class rl_switch(app_manager.RyuApp):
             else:
                 self.add_flow(datapath, 1, match, actions)
 
-        # if msg.buffer_id == ofproto.OFP_NO_BUFFER:
-        #    data = msg.data
+        data = None
+        if msg.buffer_id == ofproto.OFP_NO_BUFFER:
+           data = msg.data
 
         #gcl을 참조하여 dealy 계산
         _,clk = self.timeslot(datetime.now())
@@ -283,7 +283,7 @@ class rl_switch(app_manager.RyuApp):
         time.sleep(delay/1000) #delay
         #flow가 match와 일치하면 match생성시에 지정해준 action으로 packet out한다.
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
-                                  match=match ,actions=actions)
+                                  in_port=in_port, actions=actions, data=data)
         datapath.send_msg(out)
 
         self.queue[switchid-1][in_port-1][class_-1] -= 1
@@ -293,9 +293,9 @@ class rl_switch(app_manager.RyuApp):
                               int((datetime.now() - self.start_time).microseconds /1000), switchid, class_, clk))
 
 
-        # if (self.terminal==True) and (class_ != 4):
-        #     for d in self.dp:
-        #         self._request_stats(d)
+        if (self.terminal==True) and (class_ != 4):
+            for d in self.dp:
+                self._request_stats(d)
         #     self.logger.info("simulation terminated, duration %s.%s" % ((datetime.now() - self.start_time).seconds,
         #                                                                 (datetime.now() - self.start_time).microseconds / 100))
 
@@ -307,38 +307,38 @@ class rl_switch(app_manager.RyuApp):
 
     # def deadline(self):
 
-    # def _request_stats(self, datapath):
-    #     self.logger.debug('send stats request: %016x', datapath.id)
-    #     ofproto = datapath.ofproto
-    #     parser = datapath.ofproto_parser
-    #
-    #     req = parser.OFPFlowStatsRequest(datapath)
-    #     datapath.send_msg(req)
-    #
-    #     req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
-    #     datapath.send_msg(req)
-    #
-    # @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
-    # def _flow_stats_reply_handler(self, ev):
-    #     body = ev.msg.body
-    #
-    #     self.logger.info('datapath         '
-    #                      'in-port  eth-dst           '
-    #                      'out-port packets  bytes')
-    #     self.logger.info('---------------- '
-    #                      '-------- ----------------- '
-    #                      '-------- -------- --------')
-    #     for stat in sorted([flow for flow in body if flow.priority == 1],
-    #                        key=lambda flow: (flow.match['in_port'],
-    #                                          flow.match['eth_dst'],
-    #                                          flow.duration_nsec,
-    #                                          flow.duration_sec)):
-    #         self.logger.info('duration_nsec : %s switch : %016x %8x %17s %8x %8d %8d',
-    #                          stat.duration_nsec,
-    #                          ev.msg.datapath.id,
-    #                          stat.match['in_port'], stat.match['eth_dst'],
-    #                          stat.instructions[0].actions[0].port,
-    #                          stat.packet_count, stat.byte_count)
+    def _request_stats(self, datapath):
+        self.logger.debug('send stats request: %016x', datapath.id)
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+
+        req = parser.OFPFlowStatsRequest(datapath)
+        datapath.send_msg(req)
+
+        req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
+        datapath.send_msg(req)
+
+    @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
+    def _flow_stats_reply_handler(self, ev):
+        body = ev.msg.body
+
+        self.logger.info('datapath         '
+                         'in-port  eth-dst           '
+                         'out-port packets  bytes')
+        self.logger.info('---------------- '
+                         '-------- ----------------- '
+                         '-------- -------- --------')
+        for stat in sorted([flow for flow in body if flow.priority == 1],
+                           key=lambda flow: (flow.match['in_port'],
+                                             flow.match['eth_dst'],
+                                             flow.duration_nsec,
+                                             flow.duration_sec)):
+            self.logger.info('duration_nsec : %s switch : %016x %8x %17s %8x %8d %8d',
+                             stat.duration_nsec,
+                             ev.msg.datapath.id,
+                             stat.match['in_port'], stat.match['eth_dst'],
+                             stat.instructions[0].actions[0].port,
+                             stat.packet_count, stat.byte_count)
 
 
     def cc_generator1(self):  # protocol을 추가?
