@@ -235,6 +235,7 @@ class rl_switch(app_manager.RyuApp):
         # queue에서 대기(하고있다고 가정)중인 패킷 증가
         self.queue[switchid -1][in_port -1][class_ -1] += 1
 
+        match=0
         # mac table에 없는 source 추가
         if not (src in self.mac_to_port[switchid]):
             self.mac_to_port[switchid][src] = in_port
@@ -263,13 +264,13 @@ class rl_switch(app_manager.RyuApp):
         #    data = msg.data
 
         #gcl을 참조하여 dealy 계산
-        clk = self.timeslot(datetime.now())
+        _,clk = self.timeslot(datetime.now())
 
         #if class_ != 4:
         self.logger.info("[in] %s초 %f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
                              ((datetime.now()-self.start_time).seconds,int((datetime.now()-self.start_time).microseconds/1000),switchid, class_,clk,bufferid))
 
-        _,delay = (self.gcl[switchid][class_ - 1][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
+        delay = (self.gcl[switchid][class_ - 1][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
 
         # while True:
         #     try:
