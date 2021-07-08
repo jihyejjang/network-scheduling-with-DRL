@@ -259,7 +259,6 @@ class rl_switch(app_manager.RyuApp):
             else:
                 self.add_flow(datapath, 1, match, actions)
 
-        data = None
         # if msg.buffer_id == ofproto.OFP_NO_BUFFER:
         #    data = msg.data
 
@@ -270,7 +269,7 @@ class rl_switch(app_manager.RyuApp):
         self.logger.info("[in] %s초 %f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
                              ((datetime.now()-self.start_time).seconds,int((datetime.now()-self.start_time).microseconds/1000),switchid, class_,clk,bufferid))
 
-        delay = (self.gcl[switchid][class_ - 1][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
+        _,delay = (self.gcl[switchid][class_ - 1][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
 
         # while True:
         #     try:
@@ -283,7 +282,7 @@ class rl_switch(app_manager.RyuApp):
         time.sleep(delay/1000) #delay
         #flow가 match와 일치하면 match생성시에 지정해준 action으로 packet out한다.
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
-                                  in_port=in_port, actions=actions, data=data)
+                                  match=match ,actions=actions)
         datapath.send_msg(out)
 
         self.queue[switchid-1][in_port-1][class_-1] -= 1
