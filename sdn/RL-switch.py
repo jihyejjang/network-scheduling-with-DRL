@@ -113,11 +113,11 @@ class rl_switch(app_manager.RyuApp):
             self.timeslot_start = datetime.now()
             self.first = False
             self.cc_generator1()
-            self.ad_generator1()
-            self.vd_generator1()
-            self.cc_generator2()
-            self.ad_generator2()
-            self.vd_generator2()
+            #self.ad_generator1()
+            #self.vd_generator1()
+            #self.cc_generator2()
+            #self.ad_generator2()
+            #self.vd_generator2()
 
     # self.queue 구현해서 대기중인 flow 구하고, gcl 함수호출로 실행, 스위치 첫연결시 gcl은 FIFO
     # TODO : 0.5밀리초마다 타임슬롯 함수를 실행하는게 아니라 절대시간을 보고 몇번째 timeslot인지 계산한다. gcl도 마찬가지로,0.5ms*9에 갱신한다.
