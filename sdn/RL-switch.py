@@ -318,15 +318,14 @@ class rl_switch(app_manager.RyuApp):
         self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
                          ((datetime.now() - self.start_time).seconds,
                           (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
-
+        match = parser.OFPMatch(in_port=ofproto.OFPP_CONTROLLER, eth_dst=self.H[5], eth_src=self.H[1])
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
         out = parser.OFPPacketOut(datapath=datapath,
-                                 buffer_id= (1000+self.cc_cnt),  # buffer id?
-                                 in_port=ofproto.OFPP_CONTROLLER,
+                                 buffer_id= (1000+self.cc_cnt),
+                                 match=match, # buffer id?
                                  # controller에서 들어온 패킷 (생성된 패킷이기 때문에? host자체에서 생성은 하지 못하는듯)
-                                 actions=actions,
-                                 data=data)
+                                 actions=actions)
 
         datapath.send_msg(out)
 
