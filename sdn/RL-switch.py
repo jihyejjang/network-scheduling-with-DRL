@@ -243,10 +243,10 @@ class rl_switch(app_manager.RyuApp):
 
         # mac address table에 따라 output port 지정
         actions = [parser.OFPActionOutput(out_port)]
-        match = None
+        match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src)
         # 들어온 패킷에 대해 해당하는 Match를 생성하고, flow entry에 추가하는 작업 (꼭 필요한 작업인가?, 내가 생성해야하는 플로우들만 flow entry에 추가해야하는가?)
         if out_port != ofproto.OFPP_FLOOD:
-            match = parser.OFPMatch(eth_dst=dst, eth_src=src)
+            match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src)
             # verify if we have a valid buffer_id, if yes avoid to send both
             # flow_mod & packet_out
             if msg.buffer_id != ofproto.OFP_NO_BUFFER:  # 버퍼가 존재하는 패킷이면 return? 전송하지 않음..?
