@@ -10,7 +10,7 @@ from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 
-from ryu.ofproto import ofproto_v1_3
+from ryu.ofproto import ofproto_v1_5
 
 from ryu.lib.packet import packet, ether_types
 from ryu.lib.packet import ethernet
@@ -19,6 +19,7 @@ import numpy as np
 
 # TODO: deadline 구현 -> Latency(flow 별 전송시간)구하기 : 모든 packet들이 다 전송되는 데 걸리는 시간
 # TODO: dqn model 연결
+# TODO: openflow 1.3 -> 1.5 : buffer 미지원
 # TODO: 모든 flow들이 다 전송되면 프로그램을 종료
 
 def addr_table():  # address table dictionary is created manually
@@ -38,14 +39,14 @@ def addr_table():  # address table dictionary is created manually
     return mac_to_port
 
 class rl_switch(app_manager.RyuApp):
-    OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
+    OFP_VERSIONS = [ofproto_v1_5.OFP_VERSION]
 
     def __init__(self, *args, **kwargs):
         super(rl_switch, self).__init__(*args, **kwargs)
 
         #self.model = DQN(4,10)
         #self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
-        #self.terminal = False
+        self.terminal = False
         self.packet_log=pd.DataFrame() 
         self.start_time=datetime.now()
         self.first = True
@@ -82,8 +83,7 @@ class rl_switch(app_manager.RyuApp):
         self.vd_period = 33
         self.ad_period = 1  # milliseconds
 
-        # switch address도 알아야 하는지? / mininet에서 항상 고정형 mac주소를 구현하는 방법?(autoMac=True 하면 됨)
-        # 패킷을 생성해도 address table이 완성되지 않으면 flooding하는건가..?
+        self.timeslot_start = 0
 
     # 스위치 최초연결시 : flow modify
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
@@ -110,7 +110,8 @@ class rl_switch(app_manager.RyuApp):
         #switch가 모두 연결됨과 동시에 flow들을 주기마다 생성, queue state 요청 메세지
         #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
         if len(self.dp)==6:
-            self.timeslot()
+            self.timeslot_start = datetime.now()
+            self.first = False
             self.cc_generator1()
             self.ad_generator1()
             self.vd_generator1()
@@ -119,20 +120,27 @@ class rl_switch(app_manager.RyuApp):
             self.vd_generator2()
 
     # self.queue 구현해서 대기중인 flow 구하고, gcl 함수호출로 실행, 스위치 첫연결시 gcl은 FIFO
-    def timeslot(self):
-        if self.first: #스위치 첫 연결시 action
-            self.first = False
+    # TODO : 0.5밀리초마다 타임슬롯 함수를 실행하는게 아니라 절대시간을 보고 몇번째 timeslot인지 계산한다. gcl도 마찬가지로,0.5ms*9에 갱신한다.
+    def timeslot(self, time):  # timeslot 진행 횟수를 알려주는 함수
+        sec = (time - self.timeslot_start).seconds
+        ms = round((time - self.timeslot_start).microseconds / 1000, 1)  # 소수점 첫째자리까지 출력
+        slots = int((sec + 0.001 * ms) / (0.001 * self.timeslot_size))
+        cyc = int(slots / self.cycle)  # 몇번째 cycle인지
+        clk = cyc % self.cycle  # 몇번째 timeslot인지
+        return cyc, clk
 
-        self.ts_cnt+=1
+        # if self.first: #스위치 첫 연결시 action
+        #     self.first = False
+        #
+        # self.ts_cnt+=1
+        #
+        # t = Timer((self.timeslot_size / 1000), self.timeslot)  # timeslot
+        # t.start()
+        #
+        # if self.ts_cnt >= self.cycle:
+        #     t.cancel()
+        #     self.gcl_cycle() #Gcl update
 
-        t = Timer((self.timeslot_size / 1000), self.timeslot)  # timeslot
-        t.start()
-
-        if self.ts_cnt >= self.cycle:
-            t.cancel()
-            self.gcl_cycle() #Gcl update
-
-    #TODO: 맞는 지 확인 필요
     def gcl_cycle(self):
         #대기중인 패킷 수
         for switch in range(len(self.state)):
@@ -144,14 +152,14 @@ class rl_switch(app_manager.RyuApp):
             #gcl = format(np.argmax(self.model.predict_one(self.state[i])), '010b')  #model predict부분
             #gcl =
             #self.gcl[i+1] = gcl
-
-        self.ts_cnt=0
-        self.timeslot() #cycle재시작
+        #
+        # self.ts_cnt=0
+        # self.timeslot() #cycle재시작
 
 
 
     # flow table entry 업데이트 - timeout(설정)
-    def add_flow(self, datapath, priority, class_, match, actions, buffer_id=None):
+    def add_flow(self, datapath, priority, match, actions, buffer_id=None):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
@@ -242,22 +250,24 @@ class rl_switch(app_manager.RyuApp):
             # verify if we have a valid buffer_id, if yes avoid to send both
             # flow_mod & packet_out
             if msg.buffer_id != ofproto.OFP_NO_BUFFER:  # 버퍼가 존재하는 패킷이면 return? 전송하지 않음..?
-                self.add_flow(datapath, 1, class_, match, actions, msg.buffer_id)
-                return
+                self.add_flow(datapath, 1, match, actions, msg.buffer_id)
+                self.logger.info("buffer가 존재합니다.")
+                #return
             else:
-                self.add_flow(datapath, 1, class_, match, actions)
+                self.add_flow(datapath, 1, match, actions)
 
-        # 왜 buffer가 존재하는 flood는 왜 data를 none으로 할까?
         data = None
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             data = msg.data
 
         #gcl을 참조하여 dealy 계산
-        clk = self.ts_cnt
+        _,clk = self.timeslot(datetime.now())
 
         if class_ != 4:
-            self.logger.info("%s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s " % \
-                             ((datetime.now()-self.start_time).seconds,(datetime.now()-self.start_time).microseconds/1000,switchid, class_,clk))
+            self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
+                             ((datetime.now() - self.start_time).seconds,
+                              (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk,
+                              bufferid))
 
         while True:
             try:
@@ -270,30 +280,24 @@ class rl_switch(app_manager.RyuApp):
         time.sleep(delay/1000) #delay
         #flow가 match와 일치하면 match생성시에 지정해준 action으로 packet out한다.
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
-                                  in_port=in_port, actions=actions, data=data)
+                                  match=match, actions=actions)
         datapath.send_msg(out)
 
         self.queue[switchid-1][in_port-1][class_-1] -= 1
+
         if class_ != 4:
             self.logger.info("%s초 %0.1f : 스위치 %s, 패킷 out class %s,clk %s " % \
                              ((datetime.now() - self.start_time).seconds,
-                              (datetime.now() - self.start_time).microseconds /1000, switchid, class_, clk))
-        #
-        # if self.terminal:
-        #     self.logger.info("simulation terminated, duration %s.%s" % ((datetime.now() - self.start_time).seconds,
-        #                                                                 (datetime.now() - self.start_time).microseconds / 100))
+                              (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk))
 
-    #         self.exit_sdn()
-    #
-    # def exit_sdn(self):
-    #     print ("control+c 눌러서 종료, 60초뒤 이어서 실행됨")
-    #     time.sleep(60)
-
-    # def deadline(self):
-
+        if (self.terminal == True) and (class_ != 4):
+            # for d in self.dp:
+            #     self._request_stats(d)
+            self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,
+                                                                           (datetime.now() - self.start_time).microseconds / 1000))
 
     def cc_generator1(self):  # protocol을 추가?
-        datapath = self.dp[1]
+        datapath = self.dp[2]
         #timer는 내부에서 실행해야 계속 재귀호출을 하면서 반복실행될 수 있음.
         self.cc_cnt += 1
         #self.logger.info("%s번째 cc1" % (self.cc_cnt))
@@ -311,9 +315,9 @@ class rl_switch(app_manager.RyuApp):
         pkt.serialize()
         #self.logger.info("packet 정보", pkt)
         #self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
-        self.logger.info("%s.%s : C&C1 %s, 스위치%s " % \
+        self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
                          ((datetime.now() - self.start_time).seconds,
-                          (datetime.now() - self.start_time).microseconds / 100, self.cc_cnt, datapath.id))
+                          (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
@@ -337,7 +341,7 @@ class rl_switch(app_manager.RyuApp):
 
 
     def cc_generator2(self):  # protocol을 추가?
-        datapath = self.dp[2]
+        datapath = self.dp[3]
         self.cc_cnt2 += 1
         #self.logger.info("%s번째 cc2" % (self.cc_cnt2))
 
@@ -355,9 +359,9 @@ class rl_switch(app_manager.RyuApp):
         pkt.serialize()
 
         #self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
-        self.logger.info("%s.%s : C&C2 %s, 스위치%s " % \
+        self.logger.info("%s.%0.1f : C&C2 generated %s, 스위치%s " % \
                          ((datetime.now() - self.start_time).seconds,
-                          (datetime.now() - self.start_time).microseconds / 100, self.cc_cnt2, datapath.id))
+                          (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt2, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
@@ -398,9 +402,9 @@ class rl_switch(app_manager.RyuApp):
         pkt.serialize()
 
         #self.logger.info("audio 패킷 객체 생성, 스위치%s" % (datapath.id))
-        self.logger.info("%s.%s : AD %s, 스위치%s " % \
+        self.logger.info("%s.%0.1f : AD1 generated %s, 스위치%s " % \
                          ((datetime.now() - self.start_time).seconds,
-                          (datetime.now() - self.start_time).microseconds / 100, self.ad_cnt, datapath.id))
+                          (datetime.now() - self.start_time).microseconds / 1000, self.ad_cnt, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
@@ -423,7 +427,7 @@ class rl_switch(app_manager.RyuApp):
                 self.terminal = True
 
     def ad_generator2(self):  # protocol을 추가?
-        datapath = self.dp[2]
+        datapath = self.dp[4]
         self.ad_cnt2 += 1
         #self.logger.info("%s번째 ad2" % (self.ad_cnt2))
 
@@ -441,9 +445,9 @@ class rl_switch(app_manager.RyuApp):
         pkt.serialize()
 
         #self.logger.info("audio 패킷 객체 생성, 스위치%s" % (datapath.id))
-        self.logger.info("%s.%s : AD2 %s, 스위치%s " % \
+        self.logger.info("%s.%0.1f : AD2 generated %s, 스위치%s " % \
                          ((datetime.now() - self.start_time).seconds,
-                          (datetime.now() - self.start_time).microseconds / 100, self.ad_cnt2, datapath.id))
+                          (datetime.now() - self.start_time).microseconds / 1000, self.ad_cnt2, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
@@ -484,9 +488,9 @@ class rl_switch(app_manager.RyuApp):
         pkt.serialize()
 
         #self.logger.info("video 패킷 객체 생성, 스위치%s" % (datapath.id))
-        self.logger.info("%s.%s : VD %s, 스위치%s " % \
+        self.logger.info("%s.%0.1f : VD1 generated %s, 스위치%s " % \
                          ((datetime.now() - self.start_time).seconds,
-                          (datetime.now() - self.start_time).microseconds / 100, self.vd_cnt, datapath.id))
+                          (datetime.now() - self.start_time).microseconds / 1000, self.vd_cnt, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
@@ -509,7 +513,7 @@ class rl_switch(app_manager.RyuApp):
                 self.terminal = True
 
     def vd_generator2(self):  # protocol을 추가?
-        datapath = self.dp[2]
+        datapath = self.dp[4]
         self.vd_cnt2 += 1
         #self.logger.info("%s번째 vd2" % (self.vd_cnt2))
 
@@ -527,9 +531,9 @@ class rl_switch(app_manager.RyuApp):
         pkt.serialize()
 
         #self.logger.info("video 패킷 객체 생성, 스위치%s" % (datapath.id))
-        self.logger.info("%s.%s : VD2 %s, 스위치%s " % \
+        self.logger.info("%s.%0.1f : VD2 generated %s, 스위치%s " % \
                          ((datetime.now() - self.start_time).seconds,
-                          (datetime.now() - self.start_time).microseconds / 100, self.vd_cnt2, datapath.id))
+                          (datetime.now() - self.start_time).microseconds / 1000, self.vd_cnt2, datapath.id))
 
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에

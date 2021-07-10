@@ -288,16 +288,16 @@ class rl_switch(app_manager.RyuApp):
 
         self.queue[switchid-1][in_port-1][class_-1] -= 1
         if class_ != 4:
-            self.logger.info("%s초 %s : 스위치 %s, 패킷 out class %s,clk %s " % \
+            self.logger.info("%s초 %0.1f : 스위치 %s, 패킷 out class %s,clk %s " % \
                              ((datetime.now() - self.start_time).seconds,
-                              int((datetime.now() - self.start_time).microseconds /1000), switchid, class_, clk))
+                              (datetime.now() - self.start_time).microseconds /1000, switchid, class_, clk))
 
 
         if (self.terminal==True) and (class_ != 4):
-            for d in self.dp:
-                self._request_stats(d)
-        #     self.logger.info("simulation terminated, duration %s.%s" % ((datetime.now() - self.start_time).seconds,
-        #                                                                 (datetime.now() - self.start_time).microseconds / 100))
+            # for d in self.dp:
+            #     self._request_stats(d)
+            self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,
+                                                                         (datetime.now() - self.start_time).microseconds / 1000))
 
     #         self.exit_sdn()
     #
@@ -306,39 +306,39 @@ class rl_switch(app_manager.RyuApp):
     #     time.sleep(60)
 
     # def deadline(self):
-
-    def _request_stats(self, datapath):
-        self.logger.debug('send stats request: %016x', datapath.id)
-        ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
-
-        req = parser.OFPFlowStatsRequest(datapath)
-        datapath.send_msg(req)
-
-        req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
-        datapath.send_msg(req)
-
-    @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
-    def _flow_stats_reply_handler(self, ev):
-        body = ev.msg.body
-
-        self.logger.info('datapath         '
-                         'in-port  eth-dst           '
-                         'out-port packets  bytes')
-        self.logger.info('---------------- '
-                         '-------- ----------------- '
-                         '-------- -------- --------')
-        for stat in sorted([flow for flow in body if flow.priority == 1],
-                           key=lambda flow: (flow.match['in_port'],
-                                             flow.match['eth_dst'],
-                                             flow.duration_nsec,
-                                             flow.duration_sec)):
-            self.logger.info('duration_nsec : %s switch : %016x %8x %17s %8x %8d %8d',
-                             stat.duration_nsec,
-                             ev.msg.datapath.id,
-                             stat.match['in_port'], stat.match['eth_dst'],
-                             stat.instructions[0].actions[0].port,
-                             stat.packet_count, stat.byte_count)
+    #
+    # def _request_stats(self, datapath):
+    #     self.logger.debug('send stats request: %016x', datapath.id)
+    #     ofproto = datapath.ofproto
+    #     parser = datapath.ofproto_parser
+    #
+    #     req = parser.OFPFlowStatsRequest(datapath)
+    #     datapath.send_msg(req)
+    #
+    #     req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
+    #     datapath.send_msg(req)
+    #
+    # @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
+    # def _flow_stats_reply_handler(self, ev):
+    #     body = ev.msg.body
+    #
+    #     self.logger.info('datapath         '
+    #                      'in-port  eth-dst           '
+    #                      'out-port packets  bytes')
+    #     self.logger.info('---------------- '
+    #                      '-------- ----------------- '
+    #                      '-------- -------- --------')
+    #     for stat in sorted([flow for flow in body if flow.priority == 1],
+    #                        key=lambda flow: (flow.match['in_port'],
+    #                                          flow.match['eth_dst'],
+    #                                          flow.duration_nsec,
+    #                                          flow.duration_sec)):
+    #         self.logger.info('duration_nsec : %s switch : %016x %8x %17s %8x %8d %8d',
+    #                          stat.duration_nsec,
+    #                          ev.msg.datapath.id,
+    #                          stat.match['in_port'], stat.match['eth_dst'],
+    #                          stat.instructions[0].actions[0].port,
+    #                          stat.packet_count, stat.byte_count)
 
 
     def cc_generator1(self):  # protocol을 추가?
