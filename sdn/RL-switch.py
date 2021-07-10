@@ -243,7 +243,7 @@ class rl_switch(app_manager.RyuApp):
 
         # mac address table에 따라 output port 지정
         actions = [parser.OFPActionOutput(out_port)]
-
+        match = None
         # 들어온 패킷에 대해 해당하는 Match를 생성하고, flow entry에 추가하는 작업 (꼭 필요한 작업인가?, 내가 생성해야하는 플로우들만 flow entry에 추가해야하는가?)
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src)
