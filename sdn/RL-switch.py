@@ -306,7 +306,6 @@ class rl_switch(app_manager.RyuApp):
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
         out = parser.OFPPacketOut(datapath=datapath,
-                                 buffer_id= (1000+self.cc_cnt),
                                  match=match, # buffer id?
                                  # controller에서 들어온 패킷 (생성된 패킷이기 때문에? host자체에서 생성은 하지 못하는듯)
                                  actions=actions)
