@@ -91,6 +91,7 @@ class rl_switch(app_manager.RyuApp):
         msg = ev.msg
         datapath = msg.datapath
         self.dp[datapath.id]=datapath
+        print("datapath, id", datapath,datapath.id)
         self.logger.info("%s초 %0.1f : 스위치 %s 연결" % ((datetime.now() - self.start_time).seconds, (datetime.now() - self.start_time).microseconds/1000 , datapath.id))
 
         ofproto = datapath.ofproto
@@ -202,7 +203,7 @@ class rl_switch(app_manager.RyuApp):
         else :
             class_ = 4 #best effort
 
-        self.logger.info("class : %d", class_)
+        # self.logger.info("class : %d", class_)
 
         if class_ != 4:
             self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
@@ -224,7 +225,6 @@ class rl_switch(app_manager.RyuApp):
         else:
             out_port = ofproto.OFPP_FLOOD
 
-        self.logger.info("out_port: %d",out_port)
         # mac address table에 따라 output port 지정
         actions = [parser.OFPActionOutput(out_port)]
         # 들어온 패킷에 대해 해당하는 Match를 생성하고, flow entry에 추가하는 작업 (꼭 필요한 작업인가?, 내가 생성해야하는 플로우들만 flow entry에 추가해야하는가?)
@@ -255,7 +255,7 @@ class rl_switch(app_manager.RyuApp):
                 time.sleep(self.timeslot_size/1000)
 
         time.sleep(delay/1000) #delay
-        self.logger.info("sleep")
+        # self.logger.info("sleep")
         match = parser.OFPMatch(in_port = in_port)
         #flow가 match와 일치하면 match생성시에 지정해준 action으로 packet out한다.
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
@@ -296,9 +296,11 @@ class rl_switch(app_manager.RyuApp):
         pkt.serialize()
         #self.logger.info("packet 정보", pkt)
         #self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
-        match = parser.OFPMatch(in_port=ofproto.OFPP_CONTROLLER, eth_dst=self.H[5], eth_src=self.H[1])
-        data = pkt.data
+        match = parser.OFPMatch(in_port=ofproto.OFPP_CONTROLLER, eth_dst=self.H[5])
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
+        self.add_flow(datapath, 1,match,actions)
+
+        data = pkt.data
         out = parser.OFPPacketOut(datapath=datapath,
                                  match=match, # buffer id?
                                  buffer_id = ofproto.OFP_NO_BUFFER,
