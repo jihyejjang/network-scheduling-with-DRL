@@ -44,10 +44,11 @@ class rl_switch(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         super(rl_switch, self).__init__(*args, **kwargs)
 
+        self.switch_log = pd.DataFrame({'switch','class','arrival time'})
+
         #self.model = DQN(4,10)
         #self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
         self.terminal = False
-        self.packet_log=pd.DataFrame() 
         self.start_time=datetime.now()
         self.first = True
         self.state=np.zeros((6,4))
@@ -227,6 +228,12 @@ class rl_switch(app_manager.RyuApp):
         else :
             class_ = 4 #best effort
 
+        if class_ != 4:
+            self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
+                             ((datetime.now() - self.start_time).seconds,
+                              (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk,
+                              bufferid))
+
         # queue에 진입, ts_cnt와 GCl을 보고 대기
         # queue에서 대기(하고있다고 가정)중인 패킷 증가
         self.queue[switchid -1][in_port -1][class_ -1] += 1
@@ -247,27 +254,23 @@ class rl_switch(app_manager.RyuApp):
         # 들어온 패킷에 대해 해당하는 Match를 생성하고, flow entry에 추가하는 작업 (꼭 필요한 작업인가?, 내가 생성해야하는 플로우들만 flow entry에 추가해야하는가?)
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src)
-            # verify if we have a valid buffer_id, if yes avoid to send both
-            # flow_mod & packet_out
-            if msg.buffer_id != ofproto.OFP_NO_BUFFER:  # 버퍼가 존재하는 패킷이면 return? 전송하지 않음..?
-                self.add_flow(datapath, 1, match, actions, msg.buffer_id)
-                self.logger.info("buffer가 존재합니다.")
-                #return
-            else:
-                self.add_flow(datapath, 1, match, actions)
+            self.add_flow(datapath, 1,match, actions)
+            # # verify if we have a valid buffer_id, if yes avoid to send both
+            # # flow_mod & packet_out
+            # if msg.buffer_id != ofproto.OFP_NO_BUFFER:  # 버퍼가 존재하는 패킷이면 return? 전송하지 않음..?
+            #     self.add_flow(datapath, 1, match, actions, msg.buffer_id)
+            #     self.logger.info("buffer가 존재합니다.")
+            #     #return
+            # else:
+            #     self.add_flow(datapath, 1, match, actions)
 
-        data = None
+        data = None #buffer 존재하면 data는 None이어야 함 (이유는 모름..)
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
-            data = msg.data
+            data = msg.data #buffer가 없으면 data를 할당받음
+        #뇌피셜 : buffer가 있으면 data를 보낼 수 없으니 데이터는 전송하지 않고 플로우 정보만 전송해주는것이 아닐까 하는 생각
 
         #gcl을 참조하여 dealy 계산
         _,clk = self.timeslot(datetime.now())
-
-        if class_ != 4:
-            self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
-                             ((datetime.now() - self.start_time).seconds,
-                              (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk,
-                              bufferid))
 
         while True:
             try:
@@ -284,6 +287,7 @@ class rl_switch(app_manager.RyuApp):
         datapath.send_msg(out)
 
         self.queue[switchid-1][in_port-1][class_-1] -= 1
+        self.switch_log.append({'switch': switchid, 'class': class_, 'arrival time': datetime.now() - self.start_time})
 
         if class_ != 4:
             self.logger.info("%s초 %0.1f : 스위치 %s, 패킷 out class %s,clk %s " % \
@@ -295,6 +299,7 @@ class rl_switch(app_manager.RyuApp):
             #     self._request_stats(d)
             self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,
                                                                            (datetime.now() - self.start_time).microseconds / 1000))
+            self.switch_log.to_csv('switchlog0713_1.csv')
 
     def cc_generator1(self):  # protocol을 추가?
         datapath = self.dp[2]
