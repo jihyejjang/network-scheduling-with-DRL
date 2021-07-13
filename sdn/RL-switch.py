@@ -308,7 +308,7 @@ class rl_switch(app_manager.RyuApp):
         out = parser.OFPPacketOut(datapath=datapath,
                                  match=match, # buffer id?
                                  # controller에서 들어온 패킷 (생성된 패킷이기 때문에? host자체에서 생성은 하지 못하는듯)
-                                 actions=actions)
+                                 actions=actions, data=data)
 
         datapath.send_msg(out)
 
