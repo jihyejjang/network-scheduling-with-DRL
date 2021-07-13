@@ -283,13 +283,12 @@ class rl_switch(app_manager.RyuApp):
         self.cc_cnt += 1
 
         pkt = packet.Packet()
-        pkt = pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
+        pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
                                            dst=self.H[5],
                                            src=self.H[1]))  # 패킷 생성 매커니즘, ethertype을 내가 설정해주어야 할듯
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-
         pkt.serialize()
         #self.logger.info("packet 정보", pkt)
         #self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
