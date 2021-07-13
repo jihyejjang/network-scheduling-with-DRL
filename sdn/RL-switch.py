@@ -14,6 +14,7 @@ from ryu.ofproto import ofproto_v1_5
 
 from ryu.lib.packet import packet, ether_types
 from ryu.lib.packet import ethernet
+from collections import deque
 import numpy as np
 
 # TODO: deadline 구현 -> Latency(flow 별 전송시간)구하기 : 모든 packet들이 다 전송되는 데 걸리는 시간
@@ -167,9 +168,9 @@ class rl_switch(app_manager.RyuApp):
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         class_ = 0
+
         #gcl을 참조하여 dealy 계산
         _,clk = self.timeslot(datetime.now())
-
         msg = ev.msg
         datapath = msg.datapath
         ofproto = datapath.ofproto
