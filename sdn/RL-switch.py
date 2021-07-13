@@ -168,7 +168,7 @@ class rl_switch(app_manager.RyuApp):
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         class_ = 0
-
+        self.logger.info("packet in!!!!!!")
         #gcl을 참조하여 dealy 계산
         _,clk = self.timeslot(datetime.now())
         msg = ev.msg
@@ -294,9 +294,6 @@ class rl_switch(app_manager.RyuApp):
         pkt.serialize()
         #self.logger.info("packet 정보", pkt)
         #self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
-        self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
-                         ((datetime.now() - self.start_time).seconds,
-                          (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
         match = parser.OFPMatch(in_port=ofproto.OFPP_CONTROLLER, eth_dst=self.H[5], eth_src=self.H[1])
         data = pkt.data
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
@@ -307,6 +304,9 @@ class rl_switch(app_manager.RyuApp):
                                  actions=actions, data=data)
 
         datapath.send_msg(out)
+        self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
+                         ((datetime.now() - self.start_time).seconds,
+                          (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
 
         t = Timer((self.cc_period/1000), self.cc_generator1)
         t.start()
