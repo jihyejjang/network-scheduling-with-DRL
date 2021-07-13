@@ -283,7 +283,7 @@ class rl_switch(app_manager.RyuApp):
         time.sleep(delay/1000) #delay
         #flow가 match와 일치하면 match생성시에 지정해준 action으로 packet out한다.
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
-                                  match=match, actions=actions)
+                                  match=match, actions=actions, data=data)
         datapath.send_msg(out)
 
         self.queue[switchid-1][in_port-1][class_-1] -= 1
@@ -302,7 +302,7 @@ class rl_switch(app_manager.RyuApp):
             self.switch_log.to_csv('switchlog0713_1.csv')
 
     def cc_generator1(self):  # protocol을 추가?
-        datapath = self.dp[2]
+        datapath = self.dp[1]
         #timer는 내부에서 실행해야 계속 재귀호출을 하면서 반복실행될 수 있음.
         self.cc_cnt += 1
         #self.logger.info("%s번째 cc1" % (self.cc_cnt))
