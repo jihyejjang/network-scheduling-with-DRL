@@ -14,7 +14,6 @@ from ryu.ofproto import ofproto_v1_5
 
 from ryu.lib.packet import packet, ether_types
 from ryu.lib.packet import ethernet
-from collections import deque
 import numpy as np
 
 # TODO: deadline 구현 -> Latency(flow 별 전송시간)구하기 : 모든 packet들이 다 전송되는 데 걸리는 시간
@@ -96,16 +95,11 @@ class rl_switch(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
+        match = parser.OFPMatch()
         # controller에 전송하고 flow entry modify하는 명령 : 빈 매치를 modify해서 flow-miss를 controller로 보내는 명령
         actions = [parser.OFPActionOutput(port=ofproto.OFPP_CONTROLLER,
                                           max_len=ofproto.OFPCML_NO_BUFFER)]
-        inst = [parser.OFPInstructionActions(type_=ofproto.OFPIT_APPLY_ACTIONS,
-                                             actions=actions)]
-        mod = parser.OFPFlowMod(datapath=datapath,
-                                priority=0,
-                                match=parser.OFPMatch(),
-                                instructions=inst)
-        datapath.send_msg(mod)
+        self.add_flow(datapath,0,match,actions)
 
         #switch가 모두 연결됨과 동시에 flow들을 주기마다 생성, queue state 요청 메세지
         #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
@@ -173,6 +167,8 @@ class rl_switch(app_manager.RyuApp):
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         class_ = 0
+        #gcl을 참조하여 dealy 계산
+        _,clk = self.timeslot(datetime.now())
 
         msg = ev.msg
         datapath = msg.datapath
@@ -248,8 +244,6 @@ class rl_switch(app_manager.RyuApp):
             data = msg.data #buffer가 없으면 data를 할당받음
         #뇌피셜 : buffer가 있으면 data를 보낼 수 없으니 데이터는 전송하지 않고 플로우 정보만 전송해주는것이 아닐까 하는 생각
 
-        #gcl을 참조하여 dealy 계산
-        _,clk = self.timeslot(datetime.now())
 
         while True:
             try:
@@ -307,6 +301,7 @@ class rl_switch(app_manager.RyuApp):
         actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
         out = parser.OFPPacketOut(datapath=datapath,
                                  match=match, # buffer id?
+                                 buffer_id = ofproto.OFP_NO_BUFFER,
                                  # controller에서 들어온 패킷 (생성된 패킷이기 때문에? host자체에서 생성은 하지 못하는듯)
                                  actions=actions, data=data)
 
