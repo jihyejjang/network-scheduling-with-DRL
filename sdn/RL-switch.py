@@ -86,7 +86,6 @@ class rl_switch(app_manager.RyuApp):
 
         self.timeslot_start = 0
 
-    # 스위치 최초연결시 : flow modify
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def _switch_features_handler(self, ev):
         msg = ev.msg
@@ -160,29 +159,13 @@ class rl_switch(app_manager.RyuApp):
 
 
     # flow table entry 업데이트 - timeout(설정)
-    def add_flow(self, datapath, priority, match, actions, buffer_id=None):
+    def add_flow(self, datapath, priority, match, actions):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
 
-        # TODO: timeout이 아닌 실제 전송시간으로 Deadline내에 전송하는 지 확인하는 코드가 필요함 - timeout은 초단위이고, 스위치별로 존재하기 때문
-        # if class_ == 1 : #c&c flow
-        #     timeout = 5
-        # elif class_ == 2 : #audio flow
-        #     timeout = 4
-        # elif class_ == 3 : #video flow
-        #     timeout = 30
-        # else:
-        #     timeout = 10 #very loose timeout
-
-        # TODO: buffer_id가 없는 경우와 있는 경우의 차이? : 대기중인 flow들이 buffer에서 대기하는지?
-        if buffer_id:
-            mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id,
-                                    priority=priority, match=match,
-                                    instructions=inst)
-        else:
-            mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
+        mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
                                     match=match, instructions=inst)
         datapath.send_msg(mod)
 
@@ -190,17 +173,13 @@ class rl_switch(app_manager.RyuApp):
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         class_ = 0
-        # 에러 발생 감지
-        if ev.msg.msg_len < ev.msg.total_len:
-            self.logger.debug("packet truncated: only %s of %s bytes",
-                              ev.msg.msg_len, ev.msg.total_len)
 
         msg = ev.msg
         datapath = msg.datapath
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-
         in_port = msg.match['in_port']
+
         switchid = datapath.id
         bufferid = msg.buffer_id
 
