@@ -168,7 +168,6 @@ class rl_switch(app_manager.RyuApp):
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         class_ = 0
-        self.logger.info("packet in!!!!!!")
         #gcl을 참조하여 dealy 계산
         _,clk = self.timeslot(datetime.now())
         msg = ev.msg
@@ -180,7 +179,7 @@ class rl_switch(app_manager.RyuApp):
         switchid = datapath.id
         bufferid = msg.buffer_id
 
-        pkt = packet.Packet(data=msg.data)
+        pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         dst = eth.dst
         src = eth.src
@@ -203,7 +202,7 @@ class rl_switch(app_manager.RyuApp):
             #self.logger.info("class %s packet" % (class_))
         else :
             class_ = 4 #best effort
-
+        self.logger.info("class :",class_)
         if class_ != 4:
             self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
                              ((datetime.now() - self.start_time).seconds,
@@ -223,13 +222,12 @@ class rl_switch(app_manager.RyuApp):
             out_port = self.mac_to_port[switchid][dst]
         else:
             out_port = ofproto.OFPP_FLOOD
-
+        self.logger.info("out_port:",out_port)
         # mac address table에 따라 output port 지정
         actions = [parser.OFPActionOutput(out_port)]
-        match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src)
         # 들어온 패킷에 대해 해당하는 Match를 생성하고, flow entry에 추가하는 작업 (꼭 필요한 작업인가?, 내가 생성해야하는 플로우들만 flow entry에 추가해야하는가?)
         if out_port != ofproto.OFPP_FLOOD:
-            match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src)
+            match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
             self.add_flow(datapath, 1,match, actions)
             # # verify if we have a valid buffer_id, if yes avoid to send both
             # # flow_mod & packet_out
@@ -243,8 +241,8 @@ class rl_switch(app_manager.RyuApp):
         data = None #buffer 존재하면 data는 None이어야 함 (이유는 모름..)
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             data = msg.data #buffer가 없으면 data를 할당받음
+            self.logger.info("No buffer")
         #뇌피셜 : buffer가 있으면 data를 보낼 수 없으니 데이터는 전송하지 않고 플로우 정보만 전송해주는것이 아닐까 하는 생각
-
 
         while True:
             try:
@@ -255,6 +253,8 @@ class rl_switch(app_manager.RyuApp):
                 time.sleep(self.timeslot_size/1000)
 
         time.sleep(delay/1000) #delay
+        self.logger.info("sleep")
+        match = parser.OFPMatch(in_port = in_port)
         #flow가 match와 일치하면 match생성시에 지정해준 action으로 packet out한다.
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   match=match, actions=actions, data=data)
