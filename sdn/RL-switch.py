@@ -298,7 +298,7 @@ class rl_switch(app_manager.RyuApp):
         match = parser.OFPMatch(in_port = 1)
         data = pkt.data
         out = parser.OFPPacketOut(datapath=datapath,
-                                 buffer_id = ofproto.OFP_NO_BUFFER,
+                                 buffer_id = 1000+self.cc_cnt,
                                  match=match,
                                  actions=actions, data=data)
 
