@@ -183,23 +183,22 @@ class rl_switch(app_manager.RyuApp):
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         dst = eth.dst
         src = eth.src
-
-        # flow generator check(debug)
-        # if (dst in self.H) and (src in self.H):
-        #     self.logger.info("스위치 %s의 %s 버퍼에 source %s destination %s 패킷이 input port %s로 들어옴 클래스는" % (switchid,bufferid, src, dst, in_port))
-        class_ = 0
+        class_=0
         if eth.ethertype == ether_types.ETH_TYPE_LLDP:
             # ignore lldp packet
             return
-        elif eth.ethertype == ether_types.ETH_TYPE_IEEE802_3:
-            class_ = 1
-            #self.logger.info("class %s packet" % (class_))
-        elif eth.ethertype == ether_types.ETH_TYPE_8021AD:
-            class_ = 2
-            #self.logger.info("class %s packet" % (class_))
-        elif eth.ethertype == ether_types.ETH_TYPE_8021AH:
-            class_ = 3
-            #self.logger.info("class %s packet" % (class_))
+        # flow generator check(debug)
+        if (dst in self.H) and (src in self.H):
+
+            if eth.ethertype == ether_types.ETH_TYPE_IEEE802_3:
+                class_ = 1
+                #self.logger.info("class %s packet" % (class_))
+            elif eth.ethertype == ether_types.ETH_TYPE_8021AD:
+                class_ = 2
+                #self.logger.info("class %s packet" % (class_))
+            elif eth.ethertype == ether_types.ETH_TYPE_8021AH:
+                class_ = 3
+                #self.logger.info("class %s packet" % (class_))
         else :
             class_ = 4 #best effort
 
@@ -298,7 +297,7 @@ class rl_switch(app_manager.RyuApp):
         match = parser.OFPMatch(in_port = 1)
         data = pkt.data
         out = parser.OFPPacketOut(datapath=datapath,
-                                 buffer_id = 1000+self.cc_cnt,
+                                 buffer_id = ofproto.OFP_NO_BUFFER,
                                  match=match,
                                  actions=actions, data=data)
 
