@@ -243,7 +243,7 @@ class rl_switch(app_manager.RyuApp):
         data = None #buffer 존재하면 data는 None이어야 함 (이유는 모름..)
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             data = msg.data #buffer가 없으면 data를 할당받음
-            self.logger.info("No buffer")
+            #self.logger.info("No buffer")
         #뇌피셜 : buffer가 있으면 data를 보낼 수 없으니 데이터는 전송하지 않고 플로우 정보만 전송해주는것이 아닐까 하는 생각
 
         while True:
@@ -281,12 +281,9 @@ class rl_switch(app_manager.RyuApp):
         datapath = self.dp[1]
         #timer는 내부에서 실행해야 계속 재귀호출을 하면서 반복실행될 수 있음.
         self.cc_cnt += 1
-        #self.logger.info("%s번째 cc1" % (self.cc_cnt))
-
-        priority = 1
 
         pkt = packet.Packet()
-        pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
+        pkt = pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
                                            dst=self.H[5],
                                            src=self.H[1]))  # 패킷 생성 매커니즘, ethertype을 내가 설정해주어야 할듯
 
@@ -296,15 +293,14 @@ class rl_switch(app_manager.RyuApp):
         pkt.serialize()
         #self.logger.info("packet 정보", pkt)
         #self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
-        match = parser.OFPMatch(in_port=ofproto.OFPP_CONTROLLER, eth_dst=self.H[5])
-        actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
-        self.add_flow(datapath, 1,match,actions)
-
+        match = parser.OFPMatch(in_port = 1, eth_dst=self.H[5])
+        actions = [parser.OFPActionOutput(3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
+        self.add_flow(datapath, 1, match, actions)
+        match = parser.OFPMatch(in_port = 1)
         data = pkt.data
         out = parser.OFPPacketOut(datapath=datapath,
-                                 match=match, # buffer id?
                                  buffer_id = ofproto.OFP_NO_BUFFER,
-                                 # controller에서 들어온 패킷 (생성된 패킷이기 때문에? host자체에서 생성은 하지 못하는듯)
+                                 match=match,
                                  actions=actions, data=data)
 
         datapath.send_msg(out)
