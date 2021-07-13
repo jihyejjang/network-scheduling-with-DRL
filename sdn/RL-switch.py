@@ -167,7 +167,6 @@ class rl_switch(app_manager.RyuApp):
     # packet-in handler에서는 gcl의 Open정보와 현재 timeslot cnt를 비교하여 delay후 전송한다.
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
-        class_ = 0
         #gcl을 참조하여 dealy 계산
         _,clk = self.timeslot(datetime.now())
         msg = ev.msg
@@ -187,7 +186,7 @@ class rl_switch(app_manager.RyuApp):
         # flow generator check(debug)
         # if (dst in self.H) and (src in self.H):
         #     self.logger.info("스위치 %s의 %s 버퍼에 source %s destination %s 패킷이 input port %s로 들어옴 클래스는" % (switchid,bufferid, src, dst, in_port))
-
+        class_ = 0
         if eth.ethertype == ether_types.ETH_TYPE_LLDP:
             # ignore lldp packet
             return
@@ -202,7 +201,9 @@ class rl_switch(app_manager.RyuApp):
             #self.logger.info("class %s packet" % (class_))
         else :
             class_ = 4 #best effort
-        self.logger.info("class :",class_)
+
+        self.logger.info("class : %d", class_)
+
         if class_ != 4:
             self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
                              ((datetime.now() - self.start_time).seconds,
@@ -222,7 +223,8 @@ class rl_switch(app_manager.RyuApp):
             out_port = self.mac_to_port[switchid][dst]
         else:
             out_port = ofproto.OFPP_FLOOD
-        self.logger.info("out_port:",out_port)
+
+        self.logger.info("out_port: %d",out_port)
         # mac address table에 따라 output port 지정
         actions = [parser.OFPActionOutput(out_port)]
         # 들어온 패킷에 대해 해당하는 Match를 생성하고, flow entry에 추가하는 작업 (꼭 필요한 작업인가?, 내가 생성해야하는 플로우들만 flow entry에 추가해야하는가?)
