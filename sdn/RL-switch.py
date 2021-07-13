@@ -287,7 +287,7 @@ class rl_switch(app_manager.RyuApp):
         datapath.send_msg(out)
 
         self.queue[switchid-1][in_port-1][class_-1] -= 1
-        self.switch_log.append({'switch': switchid, 'class': class_, 'arrival time': datetime.now() - self.start_time})
+        self.switch_log.append([switchid, class_, datetime.now()-self.start_time])
 
         if class_ != 4:
             self.logger.info("%s초 %0.1f : 스위치 %s, 패킷 out class %s,clk %s " % \
@@ -345,7 +345,7 @@ class rl_switch(app_manager.RyuApp):
 
     #
     # def cc_generator2(self):  # protocol을 추가?
-    #     datapath = self.dp[3]
+    #     datapath = self.dp[2]
     #     self.cc_cnt2 += 1
     #     #self.logger.info("%s번째 cc2" % (self.cc_cnt2))
     #
@@ -431,7 +431,7 @@ class rl_switch(app_manager.RyuApp):
     #             self.terminal = True
     #
     # def ad_generator2(self):  # protocol을 추가?
-    #     datapath = self.dp[4]
+    #     datapath = self.dp[2]
     #     self.ad_cnt2 += 1
     #     #self.logger.info("%s번째 ad2" % (self.ad_cnt2))
     #
@@ -517,7 +517,7 @@ class rl_switch(app_manager.RyuApp):
     #             self.terminal = True
     #
     # def vd_generator2(self):  # protocol을 추가?
-    #     datapath = self.dp[4]
+    #     datapath = self.dp[2]
     #     self.vd_cnt2 += 1
     #     #self.logger.info("%s번째 vd2" % (self.vd_cnt2))
     #
