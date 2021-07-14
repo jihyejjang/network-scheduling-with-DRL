@@ -269,38 +269,51 @@ class rl_switch(app_manager.RyuApp):
 
         if self.terminal == True:
             for d in range(len(self.dp)):
-                self._request_stats(self.dp[d+1])
+                self.send_flow_stats_request(self.dp[d+1])
             self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,                                                               (datetime.now() - self.start_time).microseconds / 1000))
             self.switch_log.to_csv('switchlog0713_1.csv')
             self.terminal = False
 
         # traffic monitoring
-    def _request_stats(self, datapath):
-        self.logger.debug('send stats request: %016x', datapath.id)
-        ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
+    # def _request_stats(self, datapath):
+    #     self.logger.debug('send stats request: %016x', datapath.id)
+    #     ofproto = datapath.ofproto
+    #     parser = datapath.ofproto_parser
+    #
+    #     req = parser.OFPFlowStatsRequest(datapath)
+    #     datapath.send_msg(req)
 
-        req = parser.OFPFlowStatsRequest(datapath)
+    def send_flow_stats_request(self, datapath):
+        ofp = datapath.ofproto
+        ofp_parser = datapath.ofproto_parser
+
+        cookie = cookie_mask = 0
+        match = ofp_parser.OFPMatch(eth_dst = self.H[5]) #TODO : ?
+        req = ofp_parser.OFPFlowStatsRequest(datapath, 0,
+                                             ofp.OFPTT_ALL,
+                                             ofp.OFPP_ANY, ofp.OFPG_ANY,
+                                             cookie, cookie_mask,
+                                             match)
         datapath.send_msg(req)
-
-        #req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
-        #datapath.send_msg(req)
-
-    @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
-    def _port_stats_reply_handler(self, ev):
-        body = ev.msg.body
-        self.logger.info('port stats : dp %s', ev.msg.datapath.id)
-        self.logger.info('datapath         port     '
-                         'rx-pkts  rx-bytes rx-error '
-                         'tx-pkts  tx-bytes tx-error')
-        self.logger.info('---------------- -------- '
-                         '-------- -------- -------- '
-                         '-------- -------- --------')
-        for stat in sorted(body, key=attrgetter('port_no')):
-            self.logger.info('%016x %8x %8d %8d %8d %8d %8d %8d',
-                             ev.msg.datapath.id, stat.port_no,
-                             stat.rx_packets, stat.rx_bytes, stat.rx_errors,
-                             stat.tx_packets, stat.tx_bytes, stat.tx_errors)
+    #
+    #     #req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
+    #     #datapath.send_msg(req)
+    #
+    # @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
+    # def _port_stats_reply_handler(self, ev):
+    #     body = ev.msg.body
+    #     self.logger.info('port stats : dp %s', ev.msg.datapath.id)
+    #     self.logger.info('datapath         port     '
+    #                      'rx-pkts  rx-bytes rx-error '
+    #                      'tx-pkts  tx-bytes tx-error')
+    #     self.logger.info('---------------- -------- '
+    #                      '-------- -------- -------- '
+    #                      '-------- -------- --------')
+    #     for stat in sorted(body, key=attrgetter('port_no')):
+    #         self.logger.info('%016x %8x %8d %8d %8d %8d %8d %8d',
+    #                          ev.msg.datapath.id, stat.port_no,
+    #                          stat.rx_packets, stat.rx_bytes, stat.rx_errors,
+    #                          stat.tx_packets, stat.tx_bytes, stat.tx_errors)
 
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def _flow_stats_reply_handler(self, ev):
