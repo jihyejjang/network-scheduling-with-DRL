@@ -295,7 +295,7 @@ class rl_switch(app_manager.RyuApp):
                          'match=%s stats=%s' %
                          (stat.table_id, stat.reason, stat.priority,
                           stat.match, stat.stats))
-        self.logger.debug('FlowStats: %s', flows)
+        self.logger.info('FlowStats: %s', flows)
 
     def cc_generator1(self):  # protocol을 추가?
         datapath = self.dp[1]
