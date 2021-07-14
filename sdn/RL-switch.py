@@ -286,7 +286,7 @@ class rl_switch(app_manager.RyuApp):
     def send_flow_stats_request(self, datapath):
         ofp = datapath.ofproto
         ofp_parser = datapath.ofproto_parser
-
+        self.logger.info("send flow status message")
         cookie = cookie_mask = 0
         match = ofp_parser.OFPMatch(eth_dst = self.H[5]) #TODO : ?
         req = ofp_parser.OFPFlowStatsRequest(datapath, 0,
