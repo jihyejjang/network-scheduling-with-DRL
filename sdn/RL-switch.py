@@ -279,7 +279,7 @@ class rl_switch(app_manager.RyuApp):
         ofp_parser = datapath.ofproto_parser
 
         cookie = cookie_mask = 0
-        match = ofp_parser.OFPMatch(eth_dst = self.H[5]) #TODO : ?
+        match = ofp_parser.OFPMatch(in_port=1) #TODO : ?
         req = ofp_parser.OFPFlowStatsRequest(datapath, 0,
                                              ofp.OFPTT_ALL,
                                              ofp.OFPP_ANY, ofp.OFPG_ANY,
@@ -289,6 +289,7 @@ class rl_switch(app_manager.RyuApp):
 
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def flow_stats_reply_handler(self, ev):
+        self.logger.info('reply')
         flows = []
         for stat in ev.msg.body:
             flows.append('table_id=%s reason=%d priority=%d '
