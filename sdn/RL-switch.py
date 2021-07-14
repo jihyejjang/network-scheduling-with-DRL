@@ -1,4 +1,4 @@
-
+from operator import attrgetter
 import time
 from datetime import datetime
 from threading import Timer
@@ -155,14 +155,14 @@ class rl_switch(app_manager.RyuApp):
 
 
     # flow table entry 업데이트 - timeout(설정)
-    def add_flow(self, datapath, priority, match, actions):
+    def add_flow(self, datapath, priority, match, actions,buffer_id=None):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
 
         mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
-                                    match=match, instructions=inst)
+                                    match=match, instructions=inst,buffer_id=buffer_id)
         datapath.send_msg(mod)
 
     # packet-in handler에서는 gcl의 Open정보와 현재 timeslot cnt를 비교하여 delay후 전송한다.
@@ -183,7 +183,7 @@ class rl_switch(app_manager.RyuApp):
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         dst = eth.dst
         src = eth.src
-        class_=0
+        class_ = 4 #best effort
         if eth.ethertype == ether_types.ETH_TYPE_LLDP:
             # ignore lldp packet
             return
@@ -199,8 +199,7 @@ class rl_switch(app_manager.RyuApp):
             elif eth.ethertype == ether_types.ETH_TYPE_8021AH:
                 class_ = 3
                 #self.logger.info("class %s packet" % (class_))
-        else :
-            class_ = 4 #best effort
+
 
         # self.logger.info("class : %d", class_)
 
@@ -232,10 +231,10 @@ class rl_switch(app_manager.RyuApp):
             self.add_flow(datapath, 1,match, actions)
             # # verify if we have a valid buffer_id, if yes avoid to send both
             # # flow_mod & packet_out
-            # if msg.buffer_id != ofproto.OFP_NO_BUFFER:  # 버퍼가 존재하는 패킷이면 return? 전송하지 않음..?
-            #     self.add_flow(datapath, 1, match, actions, msg.buffer_id)
-            #     self.logger.info("buffer가 존재합니다.")
-            #     #return
+            if msg.buffer_id != ofproto.OFP_NO_BUFFER:  # 버퍼가 존재하는 패킷이면 return? 전송하지 않음..?
+                self.add_flow(datapath, 1, match, actions, msg.buffer_id)
+                self.logger.info("buffer가 존재합니다.")
+                #return
             # else:
             #     self.add_flow(datapath, 1, match, actions)
 
@@ -269,12 +268,61 @@ class rl_switch(app_manager.RyuApp):
                              ((datetime.now() - self.start_time).seconds,
                               (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk))
 
-        if (self.terminal == True) and (class_ != 4):
-            # for d in self.dp:
-            #     self._request_stats(d)
-            self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,
-                                                                           (datetime.now() - self.start_time).microseconds / 1000))
+        if self.terminal == True:
+            for d in self.dp:
+                self._request_stats(d)
+            self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,                                                               (datetime.now() - self.start_time).microseconds / 1000))
             self.switch_log.to_csv('switchlog0713_1.csv')
+            self.terminal = False
+
+        # traffic monitoring
+    def _request_stats(self, datapath):
+        self.logger.debug('send stats request: %016x', datapath.id)
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+
+        req = parser.OFPFlowStatsRequest(datapath)
+        datapath.send_msg(req)
+
+        req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
+        datapath.send_msg(req)
+
+    @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
+    def _port_stats_reply_handler(self, ev):
+        body = ev.msg.body
+        self.logger.info('port stats : dp %s', ev.msg.datapath.id)
+        self.logger.info('datapath         port     '
+                         'rx-pkts  rx-bytes rx-error '
+                         'tx-pkts  tx-bytes tx-error')
+        self.logger.info('---------------- -------- '
+                         '-------- -------- -------- '
+                         '-------- -------- --------')
+        for stat in sorted(body, key=attrgetter('port_no')):
+            self.logger.info('%016x %8x %8d %8d %8d %8d %8d %8d',
+                             ev.msg.datapath.id, stat.port_no,
+                             stat.rx_packets, stat.rx_bytes, stat.rx_errors,
+                             stat.tx_packets, stat.tx_bytes, stat.tx_errors)
+
+    @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
+    def _flow_stats_reply_handler(self, ev):
+        body = ev.msg.body
+
+        self.logger.info('port stats : dp %s', ev.msg.datapath.id)
+
+        self.logger.info('datapath         '
+                         'in-port  eth-dst           '
+                         'out-port packets  bytes')
+        self.logger.info('---------------- '
+                         '-------- ----------------- '
+                         '-------- -------- --------')
+        for stat in sorted([flow for flow in body if flow.priority == 1],
+                           key=lambda flow: (flow.match['in_port'],
+                                             flow.match['eth_dst'])):
+            self.logger.info('%016x %8x %17s %8x %8d %8d',
+                             ev.msg.datapath.id,
+                             stat.match['in_port'], stat.match['eth_dst'],
+                             stat.instructions[0].actions[0].port,
+                             stat.packet_count, stat.byte_count)
 
     def cc_generator1(self):  # protocol을 추가?
         datapath = self.dp[1]
