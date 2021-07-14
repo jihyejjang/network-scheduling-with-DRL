@@ -219,10 +219,11 @@ class rl_switch(app_manager.RyuApp):
 
         if dst in self.mac_to_port[switchid]:  # dst의 mac이 테이블에 저장되어있는 경우 그쪽으로 나가면 되지만 아니라면 flooding
             out_port = self.mac_to_port[switchid][dst]
+            self.queue[switchid - 1][out_port - 1][class_ - 1] += 1
         else:
             out_port = ofproto.OFPP_FLOOD
 
-        self.queue[switchid -1][out_port -1][class_ -1] += 1
+
         # mac address table에 따라 output port 지정
         actions = [parser.OFPActionOutput(out_port)]
         # 들어온 패킷에 대해 해당하는 Match를 생성하고, flow entry에 추가하는 작업 (꼭 필요한 작업인가?, 내가 생성해야하는 플로우들만 flow entry에 추가해야하는가?)
