@@ -227,7 +227,7 @@ class rl_switch(app_manager.RyuApp):
         # 들어온 패킷에 대해 해당하는 Match를 생성하고, flow entry에 추가하는 작업 (꼭 필요한 작업인가?, 내가 생성해야하는 플로우들만 flow entry에 추가해야하는가?)
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
-            self.add_flow(datapath, 1,match, actions)
+            self.add_flow(datapath, 1,match, actions,ofproto.OFP_NO_BUFFER)
             # # verify if we have a valid buffer_id, if yes avoid to send both
             # # flow_mod & packet_out
             if msg.buffer_id != ofproto.OFP_NO_BUFFER:  # 버퍼가 존재하는 패킷이면 return? 전송하지 않음..?
@@ -340,7 +340,7 @@ class rl_switch(app_manager.RyuApp):
         #self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
         match = parser.OFPMatch(in_port = 1, eth_dst=self.H[5])
         actions = [parser.OFPActionOutput(3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
-        self.add_flow(datapath, 1, match, actions)
+        self.add_flow(datapath, 1, match, actions,ofproto.OFP_NO_BUFFER)
         match = parser.OFPMatch(in_port = 1)
         data = pkt.data
         out = parser.OFPPacketOut(datapath=datapath,
