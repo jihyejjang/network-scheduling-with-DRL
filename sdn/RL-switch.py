@@ -211,7 +211,7 @@ class rl_switch(app_manager.RyuApp):
 
         # queue에 진입, ts_cnt와 GCl을 보고 대기
         # queue에서 대기(하고있다고 가정)중인 패킷 증가
-        self.queue[switchid -1][in_port -1][class_ -1] += 1
+        self.queue[switchid -1][out_port -1][class_ -1] += 1
 
         # mac table에 없는 source 추가
         if not (src in self.mac_to_port[switchid]):
@@ -272,7 +272,7 @@ class rl_switch(app_manager.RyuApp):
         if self.terminal == True:
             for d in range(len(self.dp)):
                 self.send_flow_stats_request(self.dp[d+1])
-            self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,                                                               (datetime.now() - self.start_time).microseconds / 1000))
+            self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,(datetime.now() - self.start_time).microseconds / 1000))
             self.switch_log.to_csv('switchlog0713_1.csv')
             self.terminal = False
 
