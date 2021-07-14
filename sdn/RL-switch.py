@@ -268,7 +268,7 @@ class rl_switch(app_manager.RyuApp):
                               (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk))
 
         if self.terminal == True:
-            for d in self.dp:
+            for d in range(len(self.dp)):
                 self._request_stats(d)
             self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,                                                               (datetime.now() - self.start_time).microseconds / 1000))
             self.switch_log.to_csv('switchlog0713_1.csv')
@@ -276,7 +276,7 @@ class rl_switch(app_manager.RyuApp):
 
         # traffic monitoring
     def _request_stats(self, datapath):
-        self.logger.debug('send stats request: %016x', datapath)
+        self.logger.debug('send stats request: %016x', datapath.id)
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
