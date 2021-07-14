@@ -91,7 +91,6 @@ class rl_switch(app_manager.RyuApp):
         msg = ev.msg
         datapath = msg.datapath
         self.dp[datapath.id]=datapath
-        print("datapath, id", datapath,datapath.id)
         self.logger.info("%s초 %0.1f : 스위치 %s 연결" % ((datetime.now() - self.start_time).seconds, (datetime.now() - self.start_time).microseconds/1000 , datapath.id))
 
         ofproto = datapath.ofproto
@@ -101,7 +100,7 @@ class rl_switch(app_manager.RyuApp):
         # controller에 전송하고 flow entry modify하는 명령 : 빈 매치를 modify해서 flow-miss를 controller로 보내는 명령
         actions = [parser.OFPActionOutput(port=ofproto.OFPP_CONTROLLER,
                                           max_len=ofproto.OFPCML_NO_BUFFER)]
-        self.add_flow(datapath,0,match,actions)
+        self.add_flow(datapath,0,match,actions,ofproto.OFP_NO_BUFFER)
 
         #switch가 모두 연결됨과 동시에 flow들을 주기마다 생성, queue state 요청 메세지
         #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
