@@ -44,7 +44,7 @@ class rl_switch(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         super(rl_switch, self).__init__(*args, **kwargs)
 
-        self.switch_log = pd.DataFrame()#{'switch','class','arrival time','queue'}
+        self.switch_log = pd.DataFrame(columns=['switch','class','arrival','queue'])#{'switch','class','arrival time','queue'}
 
         #self.model = DQN(4,10)
         #self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
@@ -146,7 +146,7 @@ class rl_switch(app_manager.RyuApp):
 
         for i in range(len(self.state)):#datapath 수만큼 반복
             gcl = format(np.argmax(self.model.predict_one(self.state[i])), '010b')  #model predict부분
-            gcl =
+            #gcl =
             self.gcl[i+1] = gcl
         #
         # self.ts_cnt=0
@@ -261,7 +261,8 @@ class rl_switch(app_manager.RyuApp):
         datapath.send_msg(out)
         if (1 <= out_port <=3):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
-            self.switch_log.append([switchid, class_, datetime.now()-self.start_time, self.queue[switchid-1][out_port-1][class_-1]])
+            df = [switchid, class_, datetime.now()-self.start_time, self.queue[switchid-1][out_port-1][class_-1]]
+            self.switch_log = self.switch_log.append(df)
 
         if class_ != 4:
             self.logger.info("%s초 %0.1f : 스위치 %s, 패킷 out class %s,clk %s " % \
