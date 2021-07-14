@@ -269,7 +269,7 @@ class rl_switch(app_manager.RyuApp):
 
         if self.terminal == True:
             for d in range(len(self.dp)):
-                self._request_stats(d)
+                self._request_stats(self.dp[d+1])
             self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,                                                               (datetime.now() - self.start_time).microseconds / 1000))
             self.switch_log.to_csv('switchlog0713_1.csv')
             self.terminal = False
