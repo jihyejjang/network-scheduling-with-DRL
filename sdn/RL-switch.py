@@ -44,7 +44,7 @@ class rl_switch(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         super(rl_switch, self).__init__(*args, **kwargs)
 
-        self.switch_log = pd.DataFrame({'switch','class','arrival time'})
+        self.switch_log = pd.DataFrame()#{'switch','class','arrival time','queue'}
 
         #self.model = DQN(4,10)
         #self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
@@ -137,16 +137,17 @@ class rl_switch(app_manager.RyuApp):
         #     self.gcl_cycle() #Gcl update
 
     def gcl_cycle(self):
-        #대기중인 패킷 수
+        #state 관측
         for switch in range(len(self.state)):
             for queue in range(len(self.state[0])): #switch 별 state : len(state[0]) = 4
                 self.state[switch][queue] = sum(self.queue[switch, :, queue])
 
         #TODO: model dqn 추가하면 이부분을 수정(아랫부분을 주석처리 하면 gcl은 FIFO역할을 하게 됨)
-        #for i in range(len(self.state)):#datapath 수만큼 반복
-            #gcl = format(np.argmax(self.model.predict_one(self.state[i])), '010b')  #model predict부분
-            #gcl =
-            #self.gcl[i+1] = gcl
+
+        for i in range(len(self.state)):#datapath 수만큼 반복
+            gcl = format(np.argmax(self.model.predict_one(self.state[i])), '010b')  #model predict부분
+            gcl =
+            self.gcl[i+1] = gcl
         #
         # self.ts_cnt=0
         # self.timeslot() #cycle재시작
@@ -258,9 +259,9 @@ class rl_switch(app_manager.RyuApp):
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   match=match, actions=actions, data=data)
         datapath.send_msg(out)
-
-        self.queue[switchid-1][in_port-1][class_-1] -= 1
-        self.switch_log.append([switchid, class_, datetime.now()-self.start_time])
+        if (1 <= out_port <=3):
+            self.queue[switchid-1][out_port-1][class_-1] -= 1
+            self.switch_log.append([switchid, class_, datetime.now()-self.start_time, self.queue[switchid-1][out_port-1][class_-1]])
 
         if class_ != 4:
             self.logger.info("%s초 %0.1f : 스위치 %s, 패킷 out class %s,clk %s " % \
@@ -298,23 +299,21 @@ class rl_switch(app_manager.RyuApp):
                           stat.match, stat.stats))
         self.logger.info('FlowStats: %s', flows)
 
-    def cc_generator1(self):  # protocol을 추가?
+    def cc_generator1(self):
         datapath = self.dp[1]
-        #timer는 내부에서 실행해야 계속 재귀호출을 하면서 반복실행될 수 있음.
         self.cc_cnt += 1
 
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
                                            dst=self.H[5],
-                                           src=self.H[1]))  # 패킷 생성 매커니즘, ethertype을 내가 설정해주어야 할듯
+                                           src=self.H[1]))
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         pkt.serialize()
-        #self.logger.info("packet 정보", pkt)
-        #self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
+
         match = parser.OFPMatch(in_port = 1, eth_dst=self.H[5])
-        actions = [parser.OFPActionOutput(3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
+        actions = [parser.OFPActionOutput(3)]
         self.add_flow(datapath, 1, match, actions,ofproto.OFP_NO_BUFFER)
         match = parser.OFPMatch(in_port = 1)
         data = pkt.data
@@ -335,8 +334,6 @@ class rl_switch(app_manager.RyuApp):
             t.cancel()
             print ("전송 끝!")
             time.sleep(1)
-            # if (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
-            #         and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
             self.terminal = True
 
     #
