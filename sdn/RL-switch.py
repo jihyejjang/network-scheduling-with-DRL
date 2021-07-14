@@ -211,7 +211,6 @@ class rl_switch(app_manager.RyuApp):
 
         # queue에 진입, ts_cnt와 GCl을 보고 대기
         # queue에서 대기(하고있다고 가정)중인 패킷 증가
-        self.queue[switchid -1][out_port -1][class_ -1] += 1
 
         # mac table에 없는 source 추가
         if not (src in self.mac_to_port[switchid]):
@@ -223,6 +222,7 @@ class rl_switch(app_manager.RyuApp):
         else:
             out_port = ofproto.OFPP_FLOOD
 
+        self.queue[switchid -1][out_port -1][class_ -1] += 1
         # mac address table에 따라 output port 지정
         actions = [parser.OFPActionOutput(out_port)]
         # 들어온 패킷에 대해 해당하는 Match를 생성하고, flow entry에 추가하는 작업 (꼭 필요한 작업인가?, 내가 생성해야하는 플로우들만 flow entry에 추가해야하는가?)
