@@ -276,7 +276,7 @@ class rl_switch(app_manager.RyuApp):
 
         # traffic monitoring
     def _request_stats(self, datapath):
-        self.logger.debug('send stats request: %016x', datapath.id)
+        self.logger.debug('send stats request: %016x', datapath)
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
