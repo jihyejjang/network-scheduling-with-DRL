@@ -261,7 +261,7 @@ class rl_switch(app_manager.RyuApp):
         datapath.send_msg(out)
         if (1 <= out_port <=3):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
-            df = [switchid, class_, datetime.now()-self.start_time, self.queue[switchid-1][out_port-1][class_-1]]
+            df = pd.DataFrame([switchid, class_, datetime.now()-self.start_time, self.queue[switchid-1][out_port-1][class_-1]], columns=['switch','class','arrival','queue'])
             self.switch_log = self.switch_log.append(df)
 
         if class_ != 4:
