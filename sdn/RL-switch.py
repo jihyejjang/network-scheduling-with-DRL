@@ -280,8 +280,8 @@ class rl_switch(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
-        req = parser.OFPFlowStatsRequest(datapath)
-        datapath.send_msg(req)
+        #req = parser.OFPFlowStatsRequest(datapath)
+        #datapath.send_msg(req)
 
         req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
         datapath.send_msg(req)
@@ -306,7 +306,7 @@ class rl_switch(app_manager.RyuApp):
     def _flow_stats_reply_handler(self, ev):
         body = ev.msg.body
 
-        self.logger.info('port stats : dp %s', ev.msg.datapath.id)
+        self.logger.info('flow stats : dp %s', ev.msg.datapath.id)
 
         self.logger.info('datapath         '
                          'in-port  eth-dst           '
