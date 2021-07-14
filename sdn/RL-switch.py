@@ -358,9 +358,11 @@ class rl_switch(app_manager.RyuApp):
 
         if self.cc_cnt >= self.command_control:
             t.cancel()
-            if (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
-                    and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
-                self.terminal = True
+            print ("전송 끝!")
+            time.sleep(1)
+            # if (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
+            #         and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+            self.terminal = True
 
     #
     # def cc_generator2(self):  # protocol을 추가?
