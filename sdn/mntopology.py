@@ -59,8 +59,8 @@ def runMyTopo(): #activate mininet topology after ping test
 
      dumpNodeConnections(net.hosts)
      dumpNodeConnections(net.switches)
-     net.pingAll()
-     print("ping test completed")	
+     #net.pingAll()
+     #print("ping test completed")
      CLI(net)
         
 if __name__ == '__main__':
