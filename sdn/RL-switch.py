@@ -70,7 +70,7 @@ class rl_switch(app_manager.RyuApp):
         # flow attribute
         #self.best_effort = 30  # best effort traffic (Even)
         #self.cnt1 = 0  # 전송된 flow 개수 카운트
-        self.command_control = 20  # c&c flow number (Even)
+        self.command_control = 10  # c&c flow number (Even)
         self.cc_cnt = 0
         self.cc_cnt2 = 0
         self.video = 2  # video flow number (Even)
@@ -80,7 +80,7 @@ class rl_switch(app_manager.RyuApp):
         self.ad_cnt = 0
         self.ad_cnt2 = 0
         # self.be_period = 3
-        self.cc_period = 30  # to 80
+        self.cc_period = 5  # to 80
         self.vd_period = 33
         self.ad_period = 1  # milliseconds
 
@@ -272,35 +272,36 @@ class rl_switch(app_manager.RyuApp):
                               (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk))
 
         if self.terminal == True:
-            for d in range(len(self.dp)):
-                self.send_flow_stats_request(self.dp[d+1])
+            # for d in range(len(self.dp)):
+            #     self.send_flow_stats_request(self.dp[d+1])
             self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,(datetime.now() - self.start_time).microseconds / 1000))
             self.switch_log.to_csv('switchlog0713_1.csv')
             self.terminal = False
+    #
+    # def send_flow_stats_request(self, datapath):
+    #     ofp = datapath.ofproto
+    #     ofp_parser = datapath.ofproto_parser
+    #
+    #     cookie = cookie_mask = 0
+    #     match = ofp_parser.OFPMatch(in_port=1) #TODO : ?
+    #     req = ofp_parser.OFPFlowStatsRequest(datapath, 0,
+    #                                          ofp.OFPTT_ALL,
+    #                                          ofp.OFPP_ANY, ofp.OFPG_ANY,
+    #                                          cookie, cookie_mask,
+    #                                          match)
+    #     datapath.send_msg(req)
+    #
+    # @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
+    # def flow_stats_reply_handler(self, ev):
+    #     self.logger.info('reply')
+    #     flows = []
+    #     for stat in ev.msg.body:
+    #         flows.append('table_id=%s reason=%d priority=%d '
+    #                      'match=%s stats=%s' %
+    #                      (stat.table_id, stat.reason, stat.priority,
+    #                       stat.match, stat.stats))
+    #     self.logger.info('FlowStats: %s', flows)
 
-    def send_flow_stats_request(self, datapath):
-        ofp = datapath.ofproto
-        ofp_parser = datapath.ofproto_parser
-
-        cookie = cookie_mask = 0
-        match = ofp_parser.OFPMatch(in_port=1) #TODO : ?
-        req = ofp_parser.OFPFlowStatsRequest(datapath, 0,
-                                             ofp.OFPTT_ALL,
-                                             ofp.OFPP_ANY, ofp.OFPG_ANY,
-                                             cookie, cookie_mask,
-                                             match)
-        datapath.send_msg(req)
-
-    @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
-    def flow_stats_reply_handler(self, ev):
-        self.logger.info('reply')
-        flows = []
-        for stat in ev.msg.body:
-            flows.append('table_id=%s reason=%d priority=%d '
-                         'match=%s stats=%s' %
-                         (stat.table_id, stat.reason, stat.priority,
-                          stat.match, stat.stats))
-        self.logger.info('FlowStats: %s', flows)
 
     def cc_generator1(self):
         datapath = self.dp[1]
