@@ -80,7 +80,7 @@ class rl_switch(app_manager.RyuApp):
         self.ad_cnt = 0
         self.ad_cnt2 = 0
         # self.be_period = 3
-        self.cc_period = 5  # to 80
+        self.cc_period = 30  # to 80
         self.vd_period = 33
         self.ad_period = 1  # milliseconds
 
