@@ -69,19 +69,19 @@ class FlowGenerator(rl_switch):
     #             del self.datapaths[datapath.id]
 
     def _cc_gen1(self):
-        datapath = self.dp[1]
+        datapath = rl_switch.dp[1]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
-                                           dst=self.H[5],
-                                           src=self.H[1]))
+                                           dst=rl_switch.H[5],
+                                           src=rl_switch.H[1]))
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         pkt.serialize()
 
-        match = parser.OFPMatch(in_port=1, eth_dst=self.H[5])
+        match = parser.OFPMatch(in_port=1, eth_dst=rl_switch.H[5])
         actions = [parser.OFPActionOutput(3)]
-        self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
+        rl_switch.add_flow(self,datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
         match = parser.OFPMatch(in_port=1)
         data = pkt.data
 
@@ -90,13 +90,13 @@ class FlowGenerator(rl_switch):
                                   match=match,
                                   actions=actions, data=data)
 
-        for i in range(len(self.cc_cnt)):
-            self.cc_cnt += 1
+        for i in range(len(rl_switch.cc_cnt)):
+            rl_switch.cc_cnt += 1
             datapath.send_msg(out)
-            hub.sleep(self.cc_period)
+            hub.sleep(rl_switch.cc_period)
             self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
-                                     ((datetime.now() - self.start_time).seconds,
-                              (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
+                                     ((datetime.now() - rl_switch.start_time).seconds,
+                              (datetime.now() - rl_switch.start_time).microseconds / 1000, rl_switch.cc_cnt, datapath.id))
 
         print("전송 끝!!!!@@@@@")
 
