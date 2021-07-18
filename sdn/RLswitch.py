@@ -45,7 +45,7 @@ class rl_switch(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         super(rl_switch, self).__init__(*args, **kwargs)
 
-        self.cc_thread = hub.spawn(self._cc_gen1)
+        self.cc_thread = None
         self.switch_log = pd.DataFrame(columns=['switch','class','arrival','queue'])#{'switch','class','arrival time','queue'}
 
         #self.model = DQN(4,10)
@@ -109,6 +109,7 @@ class rl_switch(app_manager.RyuApp):
         if len(self.dp)==6:
             self.timeslot_start = datetime.now()
             self.first = False
+            self.cc_thread = hub.spawn(self._cc_gen1)
             #self.cc_generator1()
             #self.ad_generator1()
             #self.vd_generator1()
@@ -281,7 +282,7 @@ class rl_switch(app_manager.RyuApp):
             self.terminal = False
 
     def _cc_gen1(self):
-        time.sleep(1)
+        time.sleep(2)
         datapath = self.dp[1]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
