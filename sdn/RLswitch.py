@@ -203,8 +203,8 @@ class rl_switch(app_manager.RyuApp):
                 class_ = 3
                 #self.logger.info("class %s packet" % (class_))
 
-        if class_ == 4:
-            return
+        # if class_ == 4:
+        #     return
         # self.logger.info("class : %d", class_)
 
         #if class_ != 4:
@@ -269,10 +269,10 @@ class rl_switch(app_manager.RyuApp):
             df = pd.DataFrame([(switchid, class_, datetime.now()-self.start_time, self.queue[switchid-1][out_port-1][class_-1])], columns=['switch','class','arrival','queue'])
             self.switch_log = self.switch_log.append(df)
 
-        if class_ != 4:
-            self.logger.info("%s초 %0.1f : 스위치 %s, 패킷 out class %s,clk %s " % \
-                             ((datetime.now() - self.start_time).seconds,
-                              (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk))
+        # if class_ != 4:
+        #     self.logger.info("%s초 %0.1f : 스위치 %s, 패킷 out class %s,clk %s " % \
+        #                      ((datetime.now() - self.start_time).seconds,
+        #                       (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk))
 
         if self.terminal == True:
             # for d in range(len(self.dp)):
