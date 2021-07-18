@@ -259,7 +259,7 @@ class rl_switch(app_manager.RyuApp):
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   match=match, actions=actions, data=data)
         datapath.send_msg(out)
-        if (1 <= out_port <= 3) and (switchid == 5) or (switchid == 6):
+        if (1 <= out_port <= 3) and ((switchid == 5) or (switchid == 6)):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
             df = pd.DataFrame([(switchid, class_, datetime.now()-self.start_time, self.queue[switchid-1][out_port-1][class_-1])], columns=['switch','class','arrival','queue'])
             self.switch_log = self.switch_log.append(df)
