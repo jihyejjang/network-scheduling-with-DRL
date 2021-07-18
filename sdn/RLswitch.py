@@ -72,7 +72,7 @@ class rl_switch(app_manager.RyuApp):
         # flow attribute
         #self.best_effort = 30  # best effort traffic (Even)
         #self.cnt1 = 0  # 전송된 flow 개수 카운트
-        self.command_control = 10  # c&c flow number (Even) #TODO: 개수 줄임
+        self.command_control = 20  # c&c flow number (Even) #TODO: 개수 줄임
         self.cc_cnt = 0
         self.cc_cnt2 = 0
         self.video = 2  # video flow number (Even)
@@ -207,11 +207,11 @@ class rl_switch(app_manager.RyuApp):
             return
         # self.logger.info("class : %d", class_)
 
-        if class_ != 4:
-            self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
-                             ((datetime.now() - self.start_time).seconds,
-                              (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk,
-                              bufferid))
+        #if class_ != 4:
+        self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
+                         ((datetime.now() - self.start_time).seconds,
+                          (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk,
+                          bufferid))
 
         # queue에 진입, ts_cnt와 GCl을 보고 대기
         # queue에서 대기(하고있다고 가정)중인 패킷 증가
