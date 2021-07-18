@@ -61,12 +61,12 @@ class rl_switch(app_manager.RyuApp):
         self.timeslot_size = 0.5 #ms
         self.cycle = 10
         self.ts_cnt=0
-        self.gcl = {1: ['1111111111', '1111111111', '0000000001', '0000000001'],
-                    2: ['1111111111', '1111111111', '0000000001', '0000000001'],
-                    3: ['1111111111', '1111111111', '0000000001', '0000000001'],
-                    4: ['1111111111', '1111111111', '0000000001', '0000000001'],
-                    5: ['1111111111', '1111111111', '0000000001', '0000000001'],
-                    6: ['1111111111', '1111111111', '0000000001', '0000000001'],
+        self.gcl = {1: ['0000000001', '1111111111', '0000000001', '0000000001'],
+                    2: ['0000000001', '1111111111', '0000000001', '0000000001'],
+                    3: ['0000000001', '1111111111', '0000000001', '0000000001'],
+                    4: ['0000000001', '1111111111', '0000000001', '0000000001'],
+                    5: ['0000000001', '1111111111', '0000000001', '0000000001'],
+                    6: ['0000000001', '1111111111', '0000000001', '0000000001'],
                     } #스위치 첫 연결 시 action은 FIFO
 
         # flow attribute
@@ -203,10 +203,6 @@ class rl_switch(app_manager.RyuApp):
                 class_ = 3
                 #self.logger.info("class %s packet" % (class_))
 
-        # if class_ == 4:
-        #     return
-        #self.logger.info("class : %d", class_)
-
         if class_ != 4:
             self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
                              ((datetime.now() - self.start_time).seconds,
@@ -263,7 +259,7 @@ class rl_switch(app_manager.RyuApp):
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   match=match, actions=actions, data=data)
         datapath.send_msg(out)
-        if (1 <= out_port <=3):
+        if (1 <= out_port <= 3) and (switchid == 5) or (switchid == 6):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
             df = pd.DataFrame([(switchid, class_, datetime.now()-self.start_time, self.queue[switchid-1][out_port-1][class_-1])], columns=['switch','class','arrival','queue'])
             self.switch_log = self.switch_log.append(df)
@@ -313,32 +309,6 @@ class rl_switch(app_manager.RyuApp):
             if self.cc_cnt == self.command_control:
                 self.terminal = True
                 break
-
-
-    #
-    # def send_flow_stats_request(self, datapath):
-    #     ofp = datapath.ofproto
-    #     ofp_parser = datapath.ofproto_parser
-    #
-    #     cookie = cookie_mask = 0
-    #     match = ofp_parser.OFPMatch(in_port=1) #TODO : ?
-    #     req = ofp_parser.OFPFlowStatsRequest(datapath, 0,
-    #                                          ofp.OFPTT_ALL,
-    #                                          ofp.OFPP_ANY, ofp.OFPG_ANY,
-    #                                          cookie, cookie_mask,
-    #                                          match)
-    #     datapath.send_msg(req)
-    #
-    # @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
-    # def flow_stats_reply_handler(self, ev):
-    #     self.logger.info('reply')
-    #     flows = []
-    #     for stat in ev.msg.body:
-    #         flows.append('table_id=%s reason=%d priority=%d '
-    #                      'match=%s stats=%s' %
-    #                      (stat.table_id, stat.reason, stat.priority,
-    #                       stat.match, stat.stats))
-    #     self.logger.info('FlowStats: %s', flows)
 
 
     def cc_generator1(self):
