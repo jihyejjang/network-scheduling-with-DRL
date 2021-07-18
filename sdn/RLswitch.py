@@ -72,7 +72,7 @@ class rl_switch(app_manager.RyuApp):
         # flow attribute
         #self.best_effort = 30  # best effort traffic (Even)
         #self.cnt1 = 0  # 전송된 flow 개수 카운트
-        self.command_control = 5  # c&c flow number (Even) #TODO: 개수 줄임
+        self.command_control = 10  # c&c flow number (Even) #TODO: 개수 줄임
         self.cc_cnt = 0
         self.cc_cnt2 = 0
         self.video = 2  # video flow number (Even)
