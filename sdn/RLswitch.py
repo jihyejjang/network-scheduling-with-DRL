@@ -4,6 +4,7 @@ from datetime import datetime
 from threading import Timer
 import pandas as pd
 #from model.dqn import DQN
+from ryu.lib import hub
 
 from ryu.base import app_manager
 from ryu.controller import ofp_event
@@ -44,6 +45,7 @@ class rl_switch(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         super(rl_switch, self).__init__(*args, **kwargs)
 
+        self.cc_thread = hub.spawn(self._cc_gen1)
         self.switch_log = pd.DataFrame(columns=['switch','class','arrival','queue'])#{'switch','class','arrival time','queue'}
 
         #self.model = DQN(4,10)
@@ -70,7 +72,7 @@ class rl_switch(app_manager.RyuApp):
         # flow attribute
         #self.best_effort = 30  # best effort traffic (Even)
         #self.cnt1 = 0  # 전송된 flow 개수 카운트
-        self.command_control = 10  # c&c flow number (Even)
+        self.command_control = 20  # c&c flow number (Even)
         self.cc_cnt = 0
         self.cc_cnt2 = 0
         self.video = 2  # video flow number (Even)
@@ -107,7 +109,7 @@ class rl_switch(app_manager.RyuApp):
         if len(self.dp)==6:
             self.timeslot_start = datetime.now()
             self.first = False
-            self.cc_generator1()
+            #self.cc_generator1()
             #self.ad_generator1()
             #self.vd_generator1()
             #self.cc_generator2()
@@ -277,6 +279,40 @@ class rl_switch(app_manager.RyuApp):
             self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,(datetime.now() - self.start_time).microseconds / 1000))
             self.switch_log.to_csv('switchlog0713_1.csv')
             self.terminal = False
+
+    def _cc_gen1(self):
+        time.sleep(1)
+        datapath = self.dp[1]
+        pkt = packet.Packet()
+        pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
+                                           dst=self.H[5],
+                                           src=self.H[1]))
+
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        pkt.serialize()
+
+        match = parser.OFPMatch(in_port=1, eth_dst=self.H[5])
+        actions = [parser.OFPActionOutput(3)]
+        self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
+        match = parser.OFPMatch(in_port=1)
+        data = pkt.data
+
+        out = parser.OFPPacketOut(datapath=datapath,
+                                  buffer_id=ofproto.OFP_NO_BUFFER,
+                                  match=match,
+                                  actions=actions, data=data)
+
+        for i in range(len(self.cc_cnt)):
+            self.cc_cnt += 1
+            datapath.send_msg(out)
+            hub.sleep(self.cc_period)
+            self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
+                                     ((datetime.now() - self.start_time).seconds,
+                              (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
+        self.terminal == True
+        print("전송 끝!!!!@@@@@")
+
     #
     # def send_flow_stats_request(self, datapath):
     #     ofp = datapath.ofproto
