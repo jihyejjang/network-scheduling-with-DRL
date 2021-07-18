@@ -279,7 +279,7 @@ class rl_switch(app_manager.RyuApp):
             #     self.send_flow_stats_request(self.dp[d+1])
             self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,(datetime.now() - self.start_time).microseconds / 1000))
             self.switch_log.to_csv('switchlog0713_1.csv')
-            self.terminal = False
+            #self.terminal = False
 
     def _cc_gen1(self):
         time.sleep(1)
@@ -311,7 +311,8 @@ class rl_switch(app_manager.RyuApp):
                 self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
                                          ((datetime.now() - self.start_time).seconds,
                                   (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
-            self.terminal == True
+            self.terminal = True
+            break
 
 
     #
