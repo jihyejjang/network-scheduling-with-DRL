@@ -54,7 +54,7 @@ class FlowGenerator(rl_switch):
             self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
                                      ((datetime.now() - self.start_time).seconds,
                               (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
-
+        self.terminal == True
         print("전송 끝!!!!@@@@@")
 
     # def cc_generator1(self):
