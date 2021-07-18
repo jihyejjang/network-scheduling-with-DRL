@@ -304,15 +304,16 @@ class rl_switch(app_manager.RyuApp):
                                   match=match,
                                   actions=actions, data=data)
         while True:
-            if self.cc_cnt < self.command_control :
-                self.cc_cnt += 1
-                datapath.send_msg(out)
-                hub.sleep(self.cc_period/1000)
-                self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
-                                         ((datetime.now() - self.start_time).seconds,
-                                  (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
-            self.terminal = True
-            break
+            self.cc_cnt += 1
+            datapath.send_msg(out)
+            hub.sleep(self.cc_period/1000)
+            self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
+                                     ((datetime.now() - self.start_time).seconds,
+                              (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
+
+            if self.cc_cnt == self.command_control:
+                self.terminal = True
+                break
 
 
     #
