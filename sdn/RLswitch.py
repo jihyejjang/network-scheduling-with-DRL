@@ -72,7 +72,7 @@ class rl_switch(app_manager.RyuApp):
         # flow attribute
         #self.best_effort = 30  # best effort traffic (Even)
         #self.cnt1 = 0  # 전송된 flow 개수 카운트
-        self.command_control = 20  # c&c flow number (Even)
+        self.command_control = 5  # c&c flow number (Even) #TODO: 개수 줄임
         self.cc_cnt = 0
         self.cc_cnt2 = 0
         self.video = 2  # video flow number (Even)
@@ -282,7 +282,7 @@ class rl_switch(app_manager.RyuApp):
             self.terminal = False
 
     def _cc_gen1(self):
-        time.sleep(2)
+        time.sleep(3)
         datapath = self.dp[1]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
@@ -304,10 +304,10 @@ class rl_switch(app_manager.RyuApp):
                                   match=match,
                                   actions=actions, data=data)
 
-        for i in range(len(self.cc_cnt)):
+        for i in range(self.command_control):
             self.cc_cnt += 1
             datapath.send_msg(out)
-            hub.sleep(self.cc_period)
+            hub.sleep(self.cc_period/1000)
             self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
                                      ((datetime.now() - self.start_time).seconds,
                               (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
