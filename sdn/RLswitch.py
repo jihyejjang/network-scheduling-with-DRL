@@ -203,9 +203,9 @@ class rl_switch(app_manager.RyuApp):
                 class_ = 3
                 #self.logger.info("class %s packet" % (class_))
 
-        # if class_ == 4:
-        #     return
-        # self.logger.info("class : %d", class_)
+        if class_ == 4:
+            return
+        #self.logger.info("class : %d", class_)
 
         #if class_ != 4:
         self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
