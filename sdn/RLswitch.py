@@ -81,7 +81,6 @@ class rl_switch(app_manager.RyuApp):
         self.audio = 8  # audio flow number (Even)
         self.ad_cnt = 0
         self.ad_cnt2 = 0
-        # self.be_period = 3
         self.cc_period = 5  # to 80
         self.vd_period = 33
         self.ad_period = 1  # milliseconds
@@ -110,12 +109,12 @@ class rl_switch(app_manager.RyuApp):
             self.timeslot_start = datetime.now()
             self.first = False
             self.cc_thread = hub.spawn(self._cc_gen1)
-            #self.cc_generator1()
-            #self.ad_generator1()
-            #self.vd_generator1()
-            #self.cc_generator2()
-            #self.ad_generator2()
-            #self.vd_generator2()
+            self.cc_thread2 = hub.spawn(self._cc_gen2)
+            self.ad_thread = hub.spawn(self._ad_gen1)
+            self.ad_thread2 = hub.spawn(self._ad_gen2)
+            self.vd_thread = hub.spawn(self._vd_gen1)
+            self.vd_thread2 = hub.spawn(self._vd_gen2)
+
 
     # self.queue 구현해서 대기중인 flow 구하고, gcl 함수호출로 실행, 스위치 첫연결시 gcl은 FIFO
     # TODO : 0.5밀리초마다 타임슬롯 함수를 실행하는게 아니라 절대시간을 보고 몇번째 timeslot인지 계산한다. gcl도 마찬가지로,0.5ms*9에 갱신한다.
@@ -288,10 +287,10 @@ class rl_switch(app_manager.RyuApp):
         parser = datapath.ofproto_parser
         pkt.serialize()
 
-        match = parser.OFPMatch(in_port=1, eth_dst=self.H[5])
+        match = parser.OFPMatch(in_port=2, eth_dst=self.H[5])
         actions = [parser.OFPActionOutput(3)]
         self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
-        match = parser.OFPMatch(in_port=1)
+        match = parser.OFPMatch(in_port=2)
         data = pkt.data
 
         out = parser.OFPPacketOut(datapath=datapath,
@@ -306,260 +305,187 @@ class rl_switch(app_manager.RyuApp):
                                      ((datetime.now() - self.start_time).seconds,
                               (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
 
-            if self.cc_cnt == self.command_control:
+            if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
+                                     and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
                 self.terminal = True
                 break
 
-
-    def cc_generator1(self):
-        datapath = self.dp[1]
-        self.cc_cnt += 1
-
+    def _cc_gen2(self):
+        time.sleep(1)
+        datapath = self.dp[2]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
-                                           dst=self.H[5],
-                                           src=self.H[1]))
+                                           dst=self.H[6],
+                                           src=self.H[2]))
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         pkt.serialize()
 
-        match = parser.OFPMatch(in_port = 1, eth_dst=self.H[5])
+        match = parser.OFPMatch(in_port=1, eth_dst=self.H[6])
         actions = [parser.OFPActionOutput(3)]
-        self.add_flow(datapath, 1, match, actions,ofproto.OFP_NO_BUFFER)
-        match = parser.OFPMatch(in_port = 1)
+        self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
+        match = parser.OFPMatch(in_port=1)
         data = pkt.data
+
         out = parser.OFPPacketOut(datapath=datapath,
-                                 buffer_id = ofproto.OFP_NO_BUFFER,
-                                 match=match,
-                                 actions=actions, data=data)
+                                  buffer_id=ofproto.OFP_NO_BUFFER,
+                                  match=match,
+                                  actions=actions, data=data)
+        while True:
+            self.cc_cnt2 += 1
+            datapath.send_msg(out)
+            hub.sleep(self.cc_period/1000)
+            self.logger.info("%s.%0.1f : C&C2 generated %s, 스위치%s " % \
+                                     ((datetime.now() - self.start_time).seconds,
+                              (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt2, datapath.id))
 
-        datapath.send_msg(out)
-        self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
-                         ((datetime.now() - self.start_time).seconds,
-                          (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
+            if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
+                    self.ad_cnt >= self.audio) \
+                    and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+                self.terminal = True
+                break
 
-        t = Timer((self.cc_period/1000), self.cc_generator1)
-        t.start()
+    def _ad_gen1(self):
+        time.sleep(1)
+        datapath = self.dp[1]
+        pkt = packet.Packet()
+        pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_8021AD,
+                                           dst=self.H[4],
+                                           src=self.H[0]))
 
-        if self.cc_cnt >= self.command_control:
-            t.cancel()
-            print ("전송 끝!")
-            time.sleep(1)
-            self.terminal = True
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        pkt.serialize()
 
-    #
-    # def cc_generator2(self):  # protocol을 추가?
-    #     datapath = self.dp[2]
-    #     self.cc_cnt2 += 1
-    #     #self.logger.info("%s번째 cc2" % (self.cc_cnt2))
-    #
-    #     priority = 1
-    #
-    #     pkt = packet.Packet()
-    #     # pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
-    #     pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
-    #                                        dst=self.H[6],
-    #                                        src=self.H[2]))  # 패킷 생성 매커니즘, ethertype을 내가 설정해주어야 할듯
-    #
-    #     ofproto = datapath.ofproto
-    #     parser = datapath.ofproto_parser
-    #
-    #     pkt.serialize()
-    #
-    #     #self.logger.info("c&c 패킷 객체 생성, 스위치%s" % (datapath.id))
-    #     self.logger.info("%s.%0.1f : C&C2 generated %s, 스위치%s " % \
-    #                      ((datetime.now() - self.start_time).seconds,
-    #                       (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt2, datapath.id))
-    #
-    #     data = pkt.data
-    #     actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
-    #     out = parser.OFPPacketOut(datapath=datapath,
-    #                              buffer_id=ofproto.OFP_NO_BUFFER,  # buffer id?
-    #                              in_port=ofproto.OFPP_CONTROLLER,
-    #                              # controller에서 들어온 패킷 (생성된 패킷이기 때문에? host자체에서 생성은 하지 못하는듯)
-    #                              actions=actions,
-    #                              data=data)
-    #
-    #     datapath.send_msg(out)
-    #
-    #     t = Timer((self.cc_period/1000), self.cc_generator2)
-    #     t.start()
-    #
-    #     if self.cc_cnt2 >= self.command_control:
-    #         t.cancel()
-    #         if (self.cc_cnt >= self.command_control) and (self.ad_cnt >= self.audio) \
-    #                 and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
-    #             self.terminal = True
-    #
-    # def ad_generator1(self):  # protocol을 추가?
-    #     datapath = self.dp[1]
-    #     # timer는 내부에서 실행해야 계속 재귀호출을 하면서 반복실행될 수 있음.
-    #     self.ad_cnt += 1
-    #     #self.logger.info("%s번째 ad1" % (self.ad_cnt))
-    #
-    #     priority = 2
-    #
-    #     pkt = packet.Packet()
-    #     pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_8021AD,
-    #                                        dst=self.H[4],
-    #                                        src=self.H[0]))  # 패킷 생성 매커니즘, ethertype을 내가 설정해주어야 할듯
-    #
-    #     ofproto = datapath.ofproto
-    #     parser = datapath.ofproto_parser
-    #
-    #     pkt.serialize()
-    #
-    #     #self.logger.info("audio 패킷 객체 생성, 스위치%s" % (datapath.id))
-    #     self.logger.info("%s.%0.1f : AD1 generated %s, 스위치%s " % \
-    #                      ((datetime.now() - self.start_time).seconds,
-    #                       (datetime.now() - self.start_time).microseconds / 1000, self.ad_cnt, datapath.id))
-    #
-    #     data = pkt.data
-    #     actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
-    #     out = parser.OFPPacketOut(datapath=datapath,
-    #                               buffer_id=ofproto.OFP_NO_BUFFER,  # buffer id?
-    #                               in_port=ofproto.OFPP_CONTROLLER,
-    #                               # controller에서 들어온 패킷 (생성된 패킷이기 때문에? host자체에서 생성은 하지 못하는듯)
-    #                               actions=actions,
-    #                               data=data)
-    #
-    #     datapath.send_msg(out)
-    #
-    #     t = Timer((self.ad_period / 1000), self.ad_generator1)
-    #     t.start()
-    #
-    #     if self.ad_cnt >= self.audio:
-    #         t.cancel()
-    #         if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) \
-    #                 and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
-    #             self.terminal = True
-    #
-    # def ad_generator2(self):  # protocol을 추가?
-    #     datapath = self.dp[2]
-    #     self.ad_cnt2 += 1
-    #     #self.logger.info("%s번째 ad2" % (self.ad_cnt2))
-    #
-    #     priority = 2
-    #
-    #     pkt = packet.Packet()
-    #     # pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
-    #     pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_8021AD,
-    #                                        dst=self.H[7],
-    #                                        src=self.H[3]))  # 패킷 생성 매커니즘, ethertype을 내가 설정해주어야 할듯
-    #
-    #     ofproto = datapath.ofproto
-    #     parser = datapath.ofproto_parser
-    #
-    #     pkt.serialize()
-    #
-    #     #self.logger.info("audio 패킷 객체 생성, 스위치%s" % (datapath.id))
-    #     self.logger.info("%s.%0.1f : AD2 generated %s, 스위치%s " % \
-    #                      ((datetime.now() - self.start_time).seconds,
-    #                       (datetime.now() - self.start_time).microseconds / 1000, self.ad_cnt2, datapath.id))
-    #
-    #     data = pkt.data
-    #     actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
-    #     out = parser.OFPPacketOut(datapath=datapath,
-    #                               buffer_id=ofproto.OFP_NO_BUFFER,  # buffer id?
-    #                               in_port=ofproto.OFPP_CONTROLLER,
-    #                               # controller에서 들어온 패킷 (생성된 패킷이기 때문에? host자체에서 생성은 하지 못하는듯)
-    #                               actions=actions,
-    #                               data=data)
-    #
-    #     datapath.send_msg(out)
-    #
-    #     t = Timer((self.ad_period / 1000), self.ad_generator2)
-    #     t.start()
-    #
-    #     if self.ad_cnt2 >= self.audio:
-    #         t.cancel()
-    #         if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) \
-    #                 and (self.ad_cnt >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
-    #             self.terminal = True
-    #
-    # def vd_generator1(self):  # protocol을 추가?
-    #     datapath = self.dp[1]
-    #     # timer는 내부에서 실행해야 계속 재귀호출을 하면서 반복실행될 수 있음.
-    #     self.vd_cnt += 1
-    #     #self.logger.info("%s번째 vd1" % (self.ad_cnt))
-    #
-    #     priority = 3
-    #
-    #     pkt = packet.Packet()
-    #     pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_8021AH,
-    #                                        dst=self.H[4],
-    #                                        src=self.H[0]))  # 패킷 생성 매커니즘, ethertype을 내가 설정해주어야 할듯
-    #
-    #     ofproto = datapath.ofproto
-    #     parser = datapath.ofproto_parser
-    #
-    #     pkt.serialize()
-    #
-    #     #self.logger.info("video 패킷 객체 생성, 스위치%s" % (datapath.id))
-    #     self.logger.info("%s.%0.1f : VD1 generated %s, 스위치%s " % \
-    #                      ((datetime.now() - self.start_time).seconds,
-    #                       (datetime.now() - self.start_time).microseconds / 1000, self.vd_cnt, datapath.id))
-    #
-    #     data = pkt.data
-    #     actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
-    #     out = parser.OFPPacketOut(datapath=datapath,
-    #                               buffer_id=ofproto.OFP_NO_BUFFER,  # buffer id?
-    #                               in_port=ofproto.OFPP_CONTROLLER,
-    #                               # controller에서 들어온 패킷 (생성된 패킷이기 때문에? host자체에서 생성은 하지 못하는듯)
-    #                               actions=actions,
-    #                               data=data)
-    #
-    #     datapath.send_msg(out)
-    #
-    #     t = Timer((self.vd_period / 1000), self.vd_generator1)
-    #     t.start()
-    #
-    #     if self.vd_cnt >= self.video:
-    #         t.cancel()
-    #         if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) \
-    #                 and (self.ad_cnt >= self.audio) and (self.ad_cnt2 >= self.video) and (self.vd_cnt2 >= self.video):
-    #             self.terminal = True
-    #
-    # def vd_generator2(self):  # protocol을 추가?
-    #     datapath = self.dp[2]
-    #     self.vd_cnt2 += 1
-    #     #self.logger.info("%s번째 vd2" % (self.vd_cnt2))
-    #
-    #     priority = 3
-    #
-    #     pkt = packet.Packet()
-    #     # pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
-    #     pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_8021AH,
-    #                                        dst=self.H[7],
-    #                                        src=self.H[3]))  # 패킷 생성 매커니즘, ethertype을 내가 설정해주어야 할듯
-    #
-    #     ofproto = datapath.ofproto
-    #     parser = datapath.ofproto_parser
-    #
-    #     pkt.serialize()
-    #
-    #     #self.logger.info("video 패킷 객체 생성, 스위치%s" % (datapath.id))
-    #     self.logger.info("%s.%0.1f : VD2 generated %s, 스위치%s " % \
-    #                      ((datetime.now() - self.start_time).seconds,
-    #                       (datetime.now() - self.start_time).microseconds / 1000, self.vd_cnt2, datapath.id))
-    #
-    #     data = pkt.data
-    #     actions = [parser.OFPActionOutput(port=3)]  # switch 1과 2의 3번 포트로 출력하기 때문에
-    #     out = parser.OFPPacketOut(datapath=datapath,
-    #                               buffer_id=ofproto.OFP_NO_BUFFER,  # buffer id?
-    #                               in_port=ofproto.OFPP_CONTROLLER,
-    #                               # controller에서 들어온 패킷 (생성된 패킷이기 때문에? host자체에서 생성은 하지 못하는듯)
-    #                               actions=actions,
-    #                               data=data)
-    #
-    #     datapath.send_msg(out)
-    #
-    #     t = Timer((self.vd_period / 1000), self.vd_generator2)
-    #     t.start()
-    #
-    #     if self.vd_cnt2 >= self.video:
-    #         t.cancel()
-    #         if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) \
-    #                 and (self.ad_cnt >= self.audio) and (self.ad_cnt2 >= self.video) and (self.vd_cnt >= self.video):
-    #             self.terminal = True
+        match = parser.OFPMatch(in_port=1, eth_dst=self.H[4])
+        actions = [parser.OFPActionOutput(3)]
+        self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
+        match = parser.OFPMatch(in_port=1)
+        data = pkt.data
+
+        out = parser.OFPPacketOut(datapath=datapath,
+                                  buffer_id=ofproto.OFP_NO_BUFFER,
+                                  match=match,
+                                  actions=actions, data=data)
+        while True:
+            self.ad_cnt += 1
+            datapath.send_msg(out)
+            hub.sleep(self.ad_period/1000)
+            self.logger.info("%s.%0.1f : Audio1 generated %s, 스위치%s " % \
+                                     ((datetime.now() - self.start_time).seconds,
+                              (datetime.now() - self.start_time).microseconds / 1000, self.ad_cnt, datapath.id))
+
+            if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
+                    self.ad_cnt >= self.audio) \
+                    and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+                self.terminal = True
+                break
+
+    def _ad_gen2(self):
+        time.sleep(1)
+        datapath = self.dp[2]
+        pkt = packet.Packet()
+        pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_8021AD,
+                                           dst=self.H[7],
+                                           src=self.H[3]))
+
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        pkt.serialize()
+
+        match = parser.OFPMatch(in_port=2, eth_dst=self.H[7])
+        actions = [parser.OFPActionOutput(3)]
+        self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
+        match = parser.OFPMatch(in_port=2)
+        data = pkt.data
+
+        out = parser.OFPPacketOut(datapath=datapath,
+                                  buffer_id=ofproto.OFP_NO_BUFFER,
+                                  match=match,
+                                  actions=actions, data=data)
+        while True:
+            self.ad_cnt2 += 1
+            datapath.send_msg(out)
+            hub.sleep(self.ad_period/1000)
+            self.logger.info("%s.%0.1f : Audio1 generated %s, 스위치%s " % \
+                                     ((datetime.now() - self.start_time).seconds,
+                              (datetime.now() - self.start_time).microseconds / 1000, self.ad_cnt2, datapath.id))
+
+            if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
+                    self.ad_cnt >= self.audio) \
+                    and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+                self.terminal = True
+                break
+
+    def _vd_gen1(self):
+        time.sleep(1)
+        datapath = self.dp[1]
+        pkt = packet.Packet()
+        pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_8021AH,
+                                           dst=self.H[4],
+                                           src=self.H[0]))
+
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        pkt.serialize()
+
+        match = parser.OFPMatch(in_port=1, eth_dst=self.H[4])
+        actions = [parser.OFPActionOutput(3)]
+        self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
+        match = parser.OFPMatch(in_port=1)
+        data = pkt.data
+
+        out = parser.OFPPacketOut(datapath=datapath,
+                                  buffer_id=ofproto.OFP_NO_BUFFER,
+                                  match=match,
+                                  actions=actions, data=data)
+        while True:
+            self.vd_cnt += 1
+            datapath.send_msg(out)
+            hub.sleep(self.vd_period/1000)
+            self.logger.info("%s.%0.1f : Audio1 generated %s, 스위치%s " % \
+                                     ((datetime.now() - self.start_time).seconds,
+                              (datetime.now() - self.start_time).microseconds / 1000, self.vd_cnt, datapath.id))
+
+            if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
+                    self.ad_cnt >= self.audio) \
+                    and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+                self.terminal = True
+                break
+
+    def _vd_gen2(self):
+        time.sleep(1)
+        datapath = self.dp[2]
+        pkt = packet.Packet()
+        pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_8021AH,
+                                           dst=self.H[7],
+                                           src=self.H[3]))
+
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        pkt.serialize()
+
+        match = parser.OFPMatch(in_port=2, eth_dst=self.H[7])
+        actions = [parser.OFPActionOutput(3)]
+        self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
+        match = parser.OFPMatch(in_port=2)
+        data = pkt.data
+
+        out = parser.OFPPacketOut(datapath=datapath,
+                                  buffer_id=ofproto.OFP_NO_BUFFER,
+                                  match=match,
+                                  actions=actions, data=data)
+        while True:
+            self.vd_cnt2 += 1
+            datapath.send_msg(out)
+            hub.sleep(self.vd_period/1000)
+            self.logger.info("%s.%0.1f : Audio1 generated %s, 스위치%s " % \
+                                     ((datetime.now() - self.start_time).seconds,
+                              (datetime.now() - self.start_time).microseconds / 1000, self.vd_cnt2, datapath.id))
+
+            if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
+                    self.ad_cnt >= self.audio) \
+                    and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+                self.terminal = True
+                break
