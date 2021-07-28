@@ -108,7 +108,7 @@ class rl_switch(app_manager.RyuApp):
         if len(self.dp)==6:
             self.timeslot_start = datetime.now()
             self.action_thread = hub.spawn(self.gcl_cycle)
-            #self.first = False
+            self.first = False
             self.cc_thread = hub.spawn(self._cc_gen1)
             self.cc_thread2 = hub.spawn(self._cc_gen2)
             self.ad_thread = hub.spawn(self._ad_gen1)
@@ -128,8 +128,9 @@ class rl_switch(app_manager.RyuApp):
         return cyc, clk
 
     def gcl_cycle(self):
-        # if self.first == True:
-        #     return
+        if self.first == True:
+            time.sleep(0.001)
+            return
 
         while True:
             print("dqn 관측@@@@@@@@@@@@@@@@@@@@@")
