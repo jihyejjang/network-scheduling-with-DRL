@@ -291,7 +291,7 @@ class rl_switch(app_manager.RyuApp):
                                   actions=actions, data=data)
 
         while True:
-            if self.cc_cnt <= self.command_control :
+            if self.cc_cnt < self.command_control :
                 self.cc_cnt += 1
                 datapath.send_msg(out)
                 hub.sleep(self.cc_period/1000)
@@ -331,7 +331,7 @@ class rl_switch(app_manager.RyuApp):
                                   match=match,
                                   actions=actions, data=data)
         while True:
-            if self.cc_cnt2 <= self.command_control:
+            if self.cc_cnt2 < self.command_control:
                 self.cc_cnt2 += 1
                 datapath.send_msg(out)
                 hub.sleep(self.cc_period/1000)
@@ -372,7 +372,7 @@ class rl_switch(app_manager.RyuApp):
                                   match=match,
                                   actions=actions, data=data)
         while True:
-            if self.ad_cnt <= self.audio:
+            if self.ad_cnt < self.audio:
                 self.ad_cnt += 1
                 datapath.send_msg(out)
                 hub.sleep(self.ad_period/1000)
@@ -413,7 +413,7 @@ class rl_switch(app_manager.RyuApp):
                                   match=match,
                                   actions=actions, data=data)
         while True:
-            if self.ad_cnt2 <= self.audio:
+            if self.ad_cnt2 < self.audio:
                 self.ad_cnt2 += 1
                 datapath.send_msg(out)
                 hub.sleep(self.ad_period/1000)
@@ -454,7 +454,7 @@ class rl_switch(app_manager.RyuApp):
                                   match=match,
                                   actions=actions, data=data)
         while True:
-            if self.vd_cnt <= self.video:
+            if self.vd_cnt < self.video:
                 self.vd_cnt += 1
                 datapath.send_msg(out)
                 hub.sleep(self.vd_period/1000)
@@ -495,7 +495,7 @@ class rl_switch(app_manager.RyuApp):
                                   match=match,
                                   actions=actions, data=data)
         while True:
-            if self.vd_cnt2 <= self.video:
+            if self.vd_cnt2 < self.video:
                 self.vd_cnt2 += 1
                 datapath.send_msg(out)
                 hub.sleep(self.vd_period/1000)
