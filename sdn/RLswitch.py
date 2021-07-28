@@ -133,7 +133,7 @@ class rl_switch(app_manager.RyuApp):
             return
 
         while True:
-            print("dqn 관측@@@@@@@@@@@@@@@@@@@@@")
+            #print("dqn 관측@@@@@@@@@@@@@@@@@@@@@")
             time.sleep(0.001 * self.timeslot_size * 9)
             #state 관측
             for switch in range(len(self.state)):
@@ -147,7 +147,7 @@ class rl_switch(app_manager.RyuApp):
                        format(np.argmax(self.model2.predict(self.state[s].reshape(-1,4))), '010b'),
                        format(np.argmax(self.model3.predict(self.state[s].reshape(-1,4))), '010b'),
                        format(np.argmax(self.model4.predict(self.state[s].reshape(-1,4))), '010b')]
-                print(self.gcl[s])
+                #print(self.gcl[s])
 
 
 
@@ -238,13 +238,13 @@ class rl_switch(app_manager.RyuApp):
             #self.logger.info("No buffer")
         #뇌피셜 : buffer가 있으면 data를 보낼 수 없으니 데이터는 전송하지 않고 플로우 정보만 전송해주는것이 아닐까 하는 생각
 
-        while True:
-            try:
-                delay = (self.gcl[switchid][class_-1][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
-                break
-            except:
-                print("다음 cycle까지 기다리기 : 현재 사이클에 OPEN예정이 없음")
-                time.sleep(self.timeslot_size/1000)
+        # while True:
+        #     try:
+            delay = (self.gcl[switchid][class_-1][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
+                # break
+            # except:
+            #     print("다음 cycle까지 기다리기 : 현재 사이클에 OPEN예정이 없음")
+            #     time.sleep(self.timeslot_size/1000)
 
         time.sleep(delay/1000) #delay
         # self.logger.info("sleep")
