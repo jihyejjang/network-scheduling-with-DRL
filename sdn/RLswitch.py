@@ -301,10 +301,12 @@ class rl_switch(app_manager.RyuApp):
             self.switch_log = self.switch_log.append(df)
 
             if (self.cc_cnt >= self.command_control):
-                if (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) and (self.ad_cnt2 >= self.audio) \
-                        and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
-                    self.terminal = True
-                    break
+                # if (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) and (self.ad_cnt2 >= self.audio) \
+                #         and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+                #     self.terminal = True
+                #     break
+                self.terminal = True
+                break
 
     def _cc_gen2(self):
         datapath = self.dp[2]
@@ -340,10 +342,11 @@ class rl_switch(app_manager.RyuApp):
             self.switch_log = self.switch_log.append(df)
 
             if (self.cc_cnt2 >= self.command_control):
-                if (self.cc_cnt >= self.command_control) and (self.ad_cnt >= self.audio) and (self.ad_cnt2 >= self.audio) \
-                        and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
-                    self.terminal = True
-                    break
+                # if (self.cc_cnt >= self.command_control) and (self.ad_cnt >= self.audio) and (self.ad_cnt2 >= self.audio) \
+                #         and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+                #     self.terminal = True
+                self.terminal = True
+                break
 
     def _ad_gen1(self):
         datapath = self.dp[1]
@@ -379,10 +382,11 @@ class rl_switch(app_manager.RyuApp):
             self.switch_log = self.switch_log.append(df)
 
             if (self.ad_cnt >= self.audio):
-                if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt2 >= self.audio) \
-                        and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
-                    self.terminal = True
-                    break
+                # if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt2 >= self.audio) \
+                #         and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+                #     self.terminal = True
+                self.terminal = True
+                break
 
     def _ad_gen2(self):
         datapath = self.dp[2]
@@ -418,10 +422,13 @@ class rl_switch(app_manager.RyuApp):
             self.switch_log = self.switch_log.append(df)
 
             if (self.ad_cnt2 >= self.audio):
-                if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
-                        and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
-                    self.terminal = True
-                    break
+                # if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
+                #         and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
+                #     self.terminal = True
+                #     break
+                self.terminal+=1
+                break
+
 
     def _vd_gen1(self):
         datapath = self.dp[1]
@@ -457,10 +464,12 @@ class rl_switch(app_manager.RyuApp):
             self.switch_log = self.switch_log.append(df)
 
             if (self.vd_cnt >= self.video):
-                if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
-                        and (self.ad_cnt2 >= self.audio) and (self.vd_cnt2 >= self.video):
-                    self.terminal=True
-                    break
+                self.terminal+=1
+                break
+                # if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
+                #         and (self.ad_cnt2 >= self.audio) and (self.vd_cnt2 >= self.video):
+                #     self.terminal=True
+                #     break
 
             # if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
             #         self.ad_cnt >= self.audio) \
@@ -502,10 +511,13 @@ class rl_switch(app_manager.RyuApp):
             self.switch_log = self.switch_log.append(df)
 
             if (self.vd_cnt2 >= self.video):
-                if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
-                        and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video):
-                    self.terminal=True
-                    break
+                self.terminal+=1
+                break
+                # if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
+                #         and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video):
+                #     self.terminal=True
+                #     break
+
             #
             # if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
             #         self.ad_cnt >= self.audio) \
