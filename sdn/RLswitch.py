@@ -104,7 +104,7 @@ class rl_switch(app_manager.RyuApp):
         #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
         if len(self.dp)==6:
             self.timeslot_start = datetime.now()
-            self.action_thread = hub.spwan(self.gcl_cycle)
+            self.action_thread = hub.spawn(self.gcl_cycle)
             self.first = False
             self.cc_thread = hub.spawn(self._cc_gen1)
             self.cc_thread2 = hub.spawn(self._cc_gen2)
