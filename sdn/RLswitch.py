@@ -289,7 +289,8 @@ class rl_switch(app_manager.RyuApp):
                                   actions=actions, data=data)
 
         while True:
-            #if self.cc_cnt < self.command_control :
+            if self.cc_cnt >= self.command_control :
+                continue
             self.cc_cnt += 1
             datapath.send_msg(out)
             hub.sleep(self.cc_period/1000)
@@ -328,7 +329,8 @@ class rl_switch(app_manager.RyuApp):
                                   match=match,
                                   actions=actions, data=data)
         while True:
-            #if self.cc_cnt2 < self.command_control:
+            if self.cc_cnt2 >= self.command_control:
+                continue
             self.cc_cnt2 += 1
             datapath.send_msg(out)
             hub.sleep(self.cc_period/1000)
@@ -368,7 +370,8 @@ class rl_switch(app_manager.RyuApp):
                                   match=match,
                                   actions=actions, data=data)
         while True:
-            #if self.ad_cnt < self.audio:
+            if self.ad_cnt >= self.audio:
+                continue
             self.ad_cnt += 1
             datapath.send_msg(out)
             hub.sleep(self.ad_period/1000)
@@ -408,7 +411,8 @@ class rl_switch(app_manager.RyuApp):
                                   match=match,
                                   actions=actions, data=data)
         while True:
-            #if self.ad_cnt2 < self.audio:
+            if self.ad_cnt2 >= self.audio:
+                continue
             self.ad_cnt2 += 1
             datapath.send_msg(out)
             hub.sleep(self.ad_period/1000)
@@ -448,17 +452,18 @@ class rl_switch(app_manager.RyuApp):
                                   match=match,
                                   actions=actions, data=data)
         while True:
-            if (self.vd_cnt < self.video):
-                self.vd_cnt += 1
-                datapath.send_msg(out)
-                hub.sleep(self.vd_period/1000)
-                self.logger.info("%s.%0.1f : video1 generated %s, 스위치%s " % \
-                                         ((datetime.now() - self.timeslot_start).seconds,
-                                  (datetime.now() - self.timeslot_start).microseconds / 1000, self.vd_cnt, datapath.id))
+            if (self.vd_cnt >= self.video):
+                continue
+            self.vd_cnt += 1
+            datapath.send_msg(out)
+            hub.sleep(self.vd_period/1000)
+            self.logger.info("%s.%0.1f : video1 generated %s, 스위치%s " % \
+                                     ((datetime.now() - self.timeslot_start).seconds,
+                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.vd_cnt, datapath.id))
 
-                df = pd.DataFrame([(datapath.id, 3, datetime.now() - self.timeslot_start, 'x')],
-                                  columns=['switch', 'class', 'arrival', 'queue'])
-                self.switch_log = self.switch_log.append(df)
+            df = pd.DataFrame([(datapath.id, 3, datetime.now() - self.timeslot_start, 'x')],
+                              columns=['switch', 'class', 'arrival', 'queue'])
+            self.switch_log = self.switch_log.append(df)
 
             if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
                     self.ad_cnt >= self.audio) \
@@ -488,17 +493,18 @@ class rl_switch(app_manager.RyuApp):
                                   match=match,
                                   actions=actions, data=data)
         while True:
-            if (self.vd_cnt2 < self.video):
-                self.vd_cnt2 += 1
-                datapath.send_msg(out)
-                hub.sleep(self.vd_period/1000)
-                self.logger.info("%s.%0.1f : video2 generated %s, 스위치%s " % \
-                                         ((datetime.now() - self.timeslot_start).seconds,
-                                  (datetime.now() - self.timeslot_start).microseconds / 1000, self.vd_cnt2, datapath.id))
+            if (self.vd_cnt2 >= self.video):
+                continue
+            self.vd_cnt2 += 1
+            datapath.send_msg(out)
+            hub.sleep(self.vd_period/1000)
+            self.logger.info("%s.%0.1f : video2 generated %s, 스위치%s " % \
+                                     ((datetime.now() - self.timeslot_start).seconds,
+                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.vd_cnt2, datapath.id))
 
-                df = pd.DataFrame([(datapath.id, 3, datetime.now() - self.timeslot_start, 'x')],
-                                  columns=['switch', 'class', 'arrival', 'queue'])
-                self.switch_log = self.switch_log.append(df)
+            df = pd.DataFrame([(datapath.id, 3, datetime.now() - self.timeslot_start, 'x')],
+                              columns=['switch', 'class', 'arrival', 'queue'])
+            self.switch_log = self.switch_log.append(df)
 
             if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
                     self.ad_cnt >= self.audio) \
