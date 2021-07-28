@@ -44,7 +44,11 @@ class rl_switch(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         super(rl_switch, self).__init__(*args, **kwargs)
 
-        self.cc_thread = None
+        self.model1 = keras.models.load_model("agent17.900466698629316e-07.h5")
+        self.model2 = keras.models.load_model("agent27.900466698629316e-07.h5")
+        self.model3 = keras.models.load_model("agent37.900466698629316e-07.h5")
+        self.model4 = keras.models.load_model("agent47.900466698629316e-07.h5")
+
         self.switch_log = pd.DataFrame(columns=['switch','class','arrival','queue'])#{'switch','class','arrival time','queue'}
         self.terminal = False
         #self.start_time=datetime.now()
