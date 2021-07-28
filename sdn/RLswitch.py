@@ -104,7 +104,7 @@ class rl_switch(app_manager.RyuApp):
         if len(self.dp)==6:
             self.timeslot_start = datetime.now()
             self.action_thread = hub.spawn(self.gcl_cycle)
-            self.first = False
+            #self.first = False
             self.cc_thread = hub.spawn(self._cc_gen1)
             self.cc_thread2 = hub.spawn(self._cc_gen2)
             self.ad_thread = hub.spawn(self._ad_gen1)
@@ -128,6 +128,7 @@ class rl_switch(app_manager.RyuApp):
         #     return
 
         while True:
+            print("dqn 관측@@@@@@@@@@@@@@@@@@@@@")
             time.sleep(0.001 * self.timeslot_size * 9)
             #state 관측
             for switch in range(len(self.state)):
@@ -141,7 +142,7 @@ class rl_switch(app_manager.RyuApp):
                        format(np.argmax(self.model2.predict_one(self.state[s])), '010b'),
                        format(np.argmax(self.model3.predict_one(self.state[s])), '010b'),
                        format(np.argmax(self.model4.predict_one(self.state[s])), '010b')]
-                print (self.gcl[s])
+                print(self.gcl[s])
 
 
 
@@ -261,7 +262,7 @@ class rl_switch(app_manager.RyuApp):
         if self.terminal == 6:
             # for d in range(len(self.dp)):
             #     self.send_flow_stats_request(self.dp[d+1])
-            self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.timeslot_start).seconds,(datetime.now() - self.timeslot_start).microseconds / 1000))
+            #self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.timeslot_start).seconds,(datetime.now() - self.timeslot_start).microseconds / 1000))
             self.switch_log.to_csv('switchlog0728_1.csv')
             #self.terminal = False
 
