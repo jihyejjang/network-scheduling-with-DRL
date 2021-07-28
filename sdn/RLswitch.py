@@ -142,10 +142,10 @@ class rl_switch(app_manager.RyuApp):
             #TODO: model dqn 추가하면 이부분을 수정(아랫부분을 주석처리 하면 gcl은 FIFO역할을 하게 됨)
 
             for s in range(len(self.dp)):
-                self.gcl[s] = [format(np.argmax(self.model1.predict_one(self.state[s])), '010b'),
-                       format(np.argmax(self.model2.predict_one(self.state[s])), '010b'),
-                       format(np.argmax(self.model3.predict_one(self.state[s])), '010b'),
-                       format(np.argmax(self.model4.predict_one(self.state[s])), '010b')]
+                self.gcl[s] = [format(np.argmax(self.model1.predict(self.state[s])), '010b'),
+                       format(np.argmax(self.model2.predict(self.state[s])), '010b'),
+                       format(np.argmax(self.model3.predict(self.state[s])), '010b'),
+                       format(np.argmax(self.model4.predict(self.state[s])), '010b')]
                 print(self.gcl[s])
 
 
