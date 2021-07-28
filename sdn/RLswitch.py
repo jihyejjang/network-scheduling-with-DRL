@@ -259,7 +259,7 @@ class rl_switch(app_manager.RyuApp):
         #                      ((datetime.now() - self.start_time).seconds,
         #                       (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk))
 
-        if self.terminal == True:
+        if self.terminal == 6:
             # for d in range(len(self.dp)):
             #     self.send_flow_stats_request(self.dp[d+1])
             self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.timeslot_start).seconds,(datetime.now() - self.timeslot_start).microseconds / 1000))
@@ -305,7 +305,7 @@ class rl_switch(app_manager.RyuApp):
                 #         and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
                 #     self.terminal = True
                 #     break
-                self.terminal = True
+                self.terminal += 1
                 break
 
     def _cc_gen2(self):
@@ -345,7 +345,7 @@ class rl_switch(app_manager.RyuApp):
                 # if (self.cc_cnt >= self.command_control) and (self.ad_cnt >= self.audio) and (self.ad_cnt2 >= self.audio) \
                 #         and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
                 #     self.terminal = True
-                self.terminal = True
+                self.terminal += 1
                 break
 
     def _ad_gen1(self):
@@ -385,7 +385,7 @@ class rl_switch(app_manager.RyuApp):
                 # if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt2 >= self.audio) \
                 #         and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
                 #     self.terminal = True
-                self.terminal = True
+                self.terminal += 1
                 break
 
     def _ad_gen2(self):
