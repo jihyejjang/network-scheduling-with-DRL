@@ -124,14 +124,11 @@ class rl_switch(app_manager.RyuApp):
         return cyc, clk
 
     def gcl_cycle(self):
-        if self.first == True:
-            return
+        # if self.first == True:
+        #     return
 
         while True:
-            _,clk = self.timeslot(datetime.now())
-
-            if clk != 9 :
-                return
+            time.sleep(0.001 * self.timeslot_size * 9)
             #state 관측
             for switch in range(len(self.state)):
                 for queue in range(len(self.state[0])): #switch 별 state : len(state[0]) = 4
