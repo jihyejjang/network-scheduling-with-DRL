@@ -249,7 +249,6 @@ class rl_switch(app_manager.RyuApp):
                                   match=match, actions=actions, data=data)
         datapath.send_msg(out)
 
-        #TODO : start time 변경 - deadline이 ms단위인데 엑셀 타임스템프의 범위가 벗어남
         if (1 <= out_port <= 3) and ((switchid == 5) or (switchid == 6)):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
             df = pd.DataFrame([(switchid, class_, datetime.now()-self.timeslot_start, self.queue[switchid-1][out_port-1][class_-1])], columns=['switch','class','arrival','queue'])
@@ -268,7 +267,6 @@ class rl_switch(app_manager.RyuApp):
             #self.terminal = False
 
     def _cc_gen1(self):
-        time.sleep(1)
         datapath = self.dp[1]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
@@ -309,7 +307,6 @@ class rl_switch(app_manager.RyuApp):
                 break
 
     def _cc_gen2(self):
-        time.sleep(1)
         datapath = self.dp[2]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
@@ -350,7 +347,6 @@ class rl_switch(app_manager.RyuApp):
                 break
 
     def _ad_gen1(self):
-        time.sleep(1)
         datapath = self.dp[1]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_8021AD,
@@ -391,7 +387,6 @@ class rl_switch(app_manager.RyuApp):
                 break
 
     def _ad_gen2(self):
-        time.sleep(1)
         datapath = self.dp[2]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_8021AD,
@@ -432,7 +427,6 @@ class rl_switch(app_manager.RyuApp):
                 break
 
     def _vd_gen1(self):
-        time.sleep(1)
         datapath = self.dp[1]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_8021AH,
@@ -473,7 +467,6 @@ class rl_switch(app_manager.RyuApp):
                 break
 
     def _vd_gen2(self):
-        time.sleep(1)
         datapath = self.dp[2]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_8021AH,
