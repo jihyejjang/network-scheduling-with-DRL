@@ -46,7 +46,6 @@ class rl_switch(app_manager.RyuApp):
 
         self.cc_thread = None
         self.switch_log = pd.DataFrame(columns=['switch','class','arrival','queue'])#{'switch','class','arrival time','queue'}
-
         self.terminal = False
         #self.start_time=datetime.now()
         self.first = True
@@ -128,23 +127,26 @@ class rl_switch(app_manager.RyuApp):
         if self.first == True:
             return
 
-        _,clk = self.timeslot(datetime.now())
+        while True:
+            _,clk = self.timeslot(datetime.now())
 
-        if clk != 9 :
-            return
+            if clk != 9 :
+                return
+            #state 관측
+            for switch in range(len(self.state)):
+                for queue in range(len(self.state[0])): #switch 별 state : len(state[0]) = 4
+                    self.state[switch][queue] = sum(self.queue[switch, :, queue])
 
-        #state 관측
-        for switch in range(len(self.state)):
-            for queue in range(len(self.state[0])): #switch 별 state : len(state[0]) = 4
-                self.state[switch][queue] = sum(self.queue[switch, :, queue])
+            #TODO: model dqn 추가하면 이부분을 수정(아랫부분을 주석처리 하면 gcl은 FIFO역할을 하게 됨)
 
-        #TODO: model dqn 추가하면 이부분을 수정(아랫부분을 주석처리 하면 gcl은 FIFO역할을 하게 됨)
+            for s in range(len(self.dp)):
+                self.gcl[s] = [format(np.argmax(self.model1.predict_one(self.state[s])), '010b'),
+                       format(np.argmax(self.model2.predict_one(self.state[s])), '010b'),
+                       format(np.argmax(self.model3.predict_one(self.state[s])), '010b'),
+                       format(np.argmax(self.model4.predict_one(self.state[s])), '010b')]
+                print (self.gcl[s])
 
-        for s in range(len(self.dp)):
-            self.gcl[s] = [format(np.argmax(self.model1.predict_one(self.state[s])), '010b'),
-                   format(np.argmax(self.model2.predict_one(self.state[s])), '010b'),
-                   format(np.argmax(self.model3.predict_one(self.state[s])), '010b'),
-                   format(np.argmax(self.model4.predict_one(self.state[s])), '010b')]
+
 
     # flow table entry 업데이트 - timeout(설정)
     def add_flow(self, datapath, priority, match, actions,buffer_id=None):
