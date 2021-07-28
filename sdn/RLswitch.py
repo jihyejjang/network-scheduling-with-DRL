@@ -1,9 +1,7 @@
-from operator import attrgetter
+
 import time
 from datetime import datetime
-from threading import Timer
 import pandas as pd
-#from model.dqn import DQN
 from ryu.lib import hub
 
 from ryu.base import app_manager
@@ -15,13 +13,14 @@ from ryu.ofproto import ofproto_v1_5
 
 from ryu.lib.packet import packet, ether_types
 from ryu.lib.packet import ethernet
-from collections import deque
 import numpy as np
 
-# TODO: deadline 구현 -> Latency(flow 별 전송시간)구하기 : 모든 packet들이 다 전송되는 데 걸리는 시간
+from tensorflow import keras
+
+# deadline 구현 -> Latency(flow 별 전송시간)구하기 : 모든 packet들이 다 전송되는 데 걸리는 시간
 # TODO: dqn model 연결
-# TODO: openflow 1.3 -> 1.5 : buffer 미지원
-# TODO: 모든 flow들이 다 전송되면 프로그램을 종료
+# openflow 1.3 -> 1.5 : buffer 미지원
+# 모든 flow들이 다 전송되면 프로그램을 종료
 
 def addr_table():  # address table dictionary is created manually
     H = ['00:00:00:00:00:0' + str(h) for h in range(1, 9)]  # hosts
@@ -48,10 +47,8 @@ class rl_switch(app_manager.RyuApp):
         self.cc_thread = None
         self.switch_log = pd.DataFrame(columns=['switch','class','arrival','queue'])#{'switch','class','arrival time','queue'}
 
-        #self.model = DQN(4,10)
-        #self.model.test('~/src/RYU project/weight files/<built-in function time>.h5')
         self.terminal = False
-        self.start_time=datetime.now()
+        #self.start_time=datetime.now()
         self.first = True
         self.state=np.zeros((6,4))
         self.mac_to_port = addr_table()
@@ -61,18 +58,18 @@ class rl_switch(app_manager.RyuApp):
         self.timeslot_size = 0.5 #ms
         self.cycle = 10
         self.ts_cnt=0
-        self.gcl = {1: ['1111111111', '1111111111', '0000000001', '0000000001'],
-                    2: ['1111111111', '1111111111', '0000000001', '0000000001'],
-                    3: ['1111111111', '1111111111', '0000000001', '0000000001'],
-                    4: ['1111111111', '1111111111', '0000000001', '0000000001'],
-                    5: ['1111111111', '1111111111', '0000000001', '0000000001'],
-                    6: ['1111111111', '1111111111', '0000000001', '0000000001'],
+        self.gcl = {1: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    2: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    3: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    4: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    5: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    6: ['1111111111', '1111111111', '1111111111', '1111111111'],
                     } #스위치 첫 연결 시 action은 FIFO
 
         # flow attribute
         #self.best_effort = 30  # best effort traffic (Even)
         #self.cnt1 = 0  # 전송된 flow 개수 카운트
-        self.command_control = 20  # c&c flow number (Even) #TODO: 개수 줄임
+        self.command_control = 20  # c&c flow number (Even)
         self.cc_cnt = 0
         self.cc_cnt2 = 0
         self.video = 2  # video flow number (Even)
@@ -92,7 +89,7 @@ class rl_switch(app_manager.RyuApp):
         msg = ev.msg
         datapath = msg.datapath
         self.dp[datapath.id]=datapath
-        self.logger.info("%s초 %0.1f : 스위치 %s 연결" % ((datetime.now() - self.start_time).seconds, (datetime.now() - self.start_time).microseconds/1000 , datapath.id))
+        self.logger.info("스위치 %s 연결" %  datapath.id)
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -107,6 +104,7 @@ class rl_switch(app_manager.RyuApp):
         #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
         if len(self.dp)==6:
             self.timeslot_start = datetime.now()
+            self.action_thread = hub.spwan(self.gcl_cycle)
             self.first = False
             self.cc_thread = hub.spawn(self._cc_gen1)
             self.cc_thread2 = hub.spawn(self._cc_gen2)
@@ -117,7 +115,7 @@ class rl_switch(app_manager.RyuApp):
 
 
     # self.queue 구현해서 대기중인 flow 구하고, gcl 함수호출로 실행, 스위치 첫연결시 gcl은 FIFO
-    # TODO : 0.5밀리초마다 타임슬롯 함수를 실행하는게 아니라 절대시간을 보고 몇번째 timeslot인지 계산한다. gcl도 마찬가지로,0.5ms*9에 갱신한다.
+    # 0.5밀리초마다 타임슬롯 함수를 실행하는게 아니라 절대시간을 보고 몇번째 timeslot인지 계산한다. gcl도 마찬가지로,0.5ms*9에 갱신한다.
     def timeslot(self, time):  # timeslot 진행 횟수를 알려주는 함수
         sec = (time - self.timeslot_start).seconds
         ms = round((time - self.timeslot_start).microseconds / 1000, 1)  # 소수점 첫째자리까지 출력
@@ -126,19 +124,15 @@ class rl_switch(app_manager.RyuApp):
         clk = cyc % self.cycle  # 몇번째 timeslot인지
         return cyc, clk
 
-        # if self.first: #스위치 첫 연결시 action
-        #     self.first = False
-        #
-        # self.ts_cnt+=1
-        #
-        # t = Timer((self.timeslot_size / 1000), self.timeslot)  # timeslot
-        # t.start()
-        #
-        # if self.ts_cnt >= self.cycle:
-        #     t.cancel()
-        #     self.gcl_cycle() #Gcl update
-
     def gcl_cycle(self):
+        if self.first == True:
+            return
+
+        _,clk = self.timeslot(datetime.now())
+
+        if clk != 9 :
+            return
+
         #state 관측
         for switch in range(len(self.state)):
             for queue in range(len(self.state[0])): #switch 별 state : len(state[0]) = 4
@@ -146,15 +140,11 @@ class rl_switch(app_manager.RyuApp):
 
         #TODO: model dqn 추가하면 이부분을 수정(아랫부분을 주석처리 하면 gcl은 FIFO역할을 하게 됨)
 
-        for i in range(len(self.state)):#datapath 수만큼 반복
-            gcl = format(np.argmax(self.model.predict_one(self.state[i])), '010b')  #model predict부분
-            #gcl =
-            self.gcl[i+1] = gcl
-        #
-        # self.ts_cnt=0
-        # self.timeslot() #cycle재시작
-
-
+        for s in range(len(self.dp)):
+            self.gcl[s] = [format(np.argmax(self.model1.predict_one(self.state[s])), '010b'),
+                   format(np.argmax(self.model2.predict_one(self.state[s])), '010b'),
+                   format(np.argmax(self.model3.predict_one(self.state[s])), '010b'),
+                   format(np.argmax(self.model4.predict_one(self.state[s])), '010b')]
 
     # flow table entry 업데이트 - timeout(설정)
     def add_flow(self, datapath, priority, match, actions,buffer_id=None):
@@ -204,8 +194,8 @@ class rl_switch(app_manager.RyuApp):
 
         if class_ != 4:
             self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
-                             ((datetime.now() - self.start_time).seconds,
-                              (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk,
+                             ((datetime.now() - self.timeslot_start).seconds,
+                              (datetime.now() - self.timeslot_start).microseconds / 1000, switchid, class_, clk,
                               bufferid))
         # queue에 진입, ts_cnt와 GCl을 보고 대기
         # queue에서 대기(하고있다고 가정)중인 패킷 증가
@@ -258,9 +248,11 @@ class rl_switch(app_manager.RyuApp):
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   match=match, actions=actions, data=data)
         datapath.send_msg(out)
+
+        #TODO : start time 변경 - deadline이 ms단위인데 엑셀 타임스템프의 범위가 벗어남
         if (1 <= out_port <= 3) and ((switchid == 5) or (switchid == 6)):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
-            df = pd.DataFrame([(switchid, class_, datetime.now()-self.start_time, self.queue[switchid-1][out_port-1][class_-1])], columns=['switch','class','arrival','queue'])
+            df = pd.DataFrame([(switchid, class_, datetime.now()-self.timeslot_start, self.queue[switchid-1][out_port-1][class_-1])], columns=['switch','class','arrival','queue'])
             self.switch_log = self.switch_log.append(df)
 
         # if class_ != 4:
@@ -271,8 +263,8 @@ class rl_switch(app_manager.RyuApp):
         if self.terminal == True:
             # for d in range(len(self.dp)):
             #     self.send_flow_stats_request(self.dp[d+1])
-            self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.start_time).seconds,(datetime.now() - self.start_time).microseconds / 1000))
-            self.switch_log.to_csv('switchlog0713_1.csv')
+            self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.timeslot_start).seconds,(datetime.now() - self.timeslot_start).microseconds / 1000))
+            self.switch_log.to_csv('switchlog0728_1.csv')
             #self.terminal = False
 
     def _cc_gen1(self):
@@ -297,13 +289,18 @@ class rl_switch(app_manager.RyuApp):
                                   buffer_id=ofproto.OFP_NO_BUFFER,
                                   match=match,
                                   actions=actions, data=data)
+
         while True:
             self.cc_cnt += 1
             datapath.send_msg(out)
             hub.sleep(self.cc_period/1000)
             self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
-                                     ((datetime.now() - self.start_time).seconds,
-                              (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt, datapath.id))
+                                     ((datetime.now() - self.timeslot_start).seconds,
+                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.cc_cnt, datapath.id))
+
+            df = pd.DataFrame([(datapath.id, 1, datetime.now() - self.timeslot_start, 'x')],
+                              columns=['switch', 'class', 'arrival', 'queue'])
+            self.switch_log = self.switch_log.append(df)
 
             if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
                                      and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
@@ -337,8 +334,12 @@ class rl_switch(app_manager.RyuApp):
             datapath.send_msg(out)
             hub.sleep(self.cc_period/1000)
             self.logger.info("%s.%0.1f : C&C2 generated %s, 스위치%s " % \
-                                     ((datetime.now() - self.start_time).seconds,
-                              (datetime.now() - self.start_time).microseconds / 1000, self.cc_cnt2, datapath.id))
+                                     ((datetime.now() - self.timeslot_start).seconds,
+                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.cc_cnt2, datapath.id))
+
+            df = pd.DataFrame([(datapath.id, 1, datetime.now() - self.timeslot_start, 'x')],
+                              columns=['switch', 'class', 'arrival', 'queue'])
+            self.switch_log = self.switch_log.append(df)
 
             if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
                     self.ad_cnt >= self.audio) \
@@ -373,8 +374,12 @@ class rl_switch(app_manager.RyuApp):
             datapath.send_msg(out)
             hub.sleep(self.ad_period/1000)
             self.logger.info("%s.%0.1f : Audio1 generated %s, 스위치%s " % \
-                                     ((datetime.now() - self.start_time).seconds,
-                              (datetime.now() - self.start_time).microseconds / 1000, self.ad_cnt, datapath.id))
+                                     ((datetime.now() - self.timeslot_start).seconds,
+                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.ad_cnt, datapath.id))
+
+            df = pd.DataFrame([(datapath.id, 2, datetime.now() - self.timeslot_start, 'x')],
+                              columns=['switch', 'class', 'arrival', 'queue'])
+            self.switch_log = self.switch_log.append(df)
 
             if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
                     self.ad_cnt >= self.audio) \
@@ -409,8 +414,12 @@ class rl_switch(app_manager.RyuApp):
             datapath.send_msg(out)
             hub.sleep(self.ad_period/1000)
             self.logger.info("%s.%0.1f : Audio1 generated %s, 스위치%s " % \
-                                     ((datetime.now() - self.start_time).seconds,
-                              (datetime.now() - self.start_time).microseconds / 1000, self.ad_cnt2, datapath.id))
+                                     ((datetime.now() - self.timeslot_start).seconds,
+                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.ad_cnt2, datapath.id))
+
+            df = pd.DataFrame([(datapath.id, 2, datetime.now() - self.timeslot_start, 'x')],
+                              columns=['switch', 'class', 'arrival', 'queue'])
+            self.switch_log = self.switch_log.append(df)
 
             if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
                     self.ad_cnt >= self.audio) \
@@ -445,8 +454,12 @@ class rl_switch(app_manager.RyuApp):
             datapath.send_msg(out)
             hub.sleep(self.vd_period/1000)
             self.logger.info("%s.%0.1f : Audio1 generated %s, 스위치%s " % \
-                                     ((datetime.now() - self.start_time).seconds,
-                              (datetime.now() - self.start_time).microseconds / 1000, self.vd_cnt, datapath.id))
+                                     ((datetime.now() - self.timeslot_start).seconds,
+                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.vd_cnt, datapath.id))
+
+            df = pd.DataFrame([(datapath.id, 3, datetime.now() - self.timeslot_start, 'x')],
+                              columns=['switch', 'class', 'arrival', 'queue'])
+            self.switch_log = self.switch_log.append(df)
 
             if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
                     self.ad_cnt >= self.audio) \
@@ -481,8 +494,12 @@ class rl_switch(app_manager.RyuApp):
             datapath.send_msg(out)
             hub.sleep(self.vd_period/1000)
             self.logger.info("%s.%0.1f : Audio1 generated %s, 스위치%s " % \
-                                     ((datetime.now() - self.start_time).seconds,
-                              (datetime.now() - self.start_time).microseconds / 1000, self.vd_cnt2, datapath.id))
+                                     ((datetime.now() - self.timeslot_start).seconds,
+                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.vd_cnt2, datapath.id))
+
+            df = pd.DataFrame([(datapath.id, 3, datetime.now() - self.timeslot_start, 'x')],
+                              columns=['switch', 'class', 'arrival', 'queue'])
+            self.switch_log = self.switch_log.append(df)
 
             if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
                     self.ad_cnt >= self.audio) \

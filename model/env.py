@@ -282,6 +282,7 @@ class GateControllEnv(object):
         #print ("보상1" , rewards)
         
         #reward 2
+        #TODO: sdn에서 deadline을 구현하지 못했을 뿐더러 감점폭이 너무 큰듯
         for f in range(len(flows)):
             if (flows[f].met_ == True):
                 rn = flows[f].type_ 
