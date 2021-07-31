@@ -290,8 +290,8 @@ class GateControllEnv(object):
             else:
                 rn = flows[f].type_ 
                 rewards[(rn-1)] -= 10*rn #기간내에 전송 못했을 때
+
         #print ("최종보상" , rewards)
-        
         #rewards = [rewards[flows[f].type_ - 1] + 5 * (flows[f].type_)  for f in range(len(flows))] #전송완료 됐으면 추가점수 * 우선순위 높을수록 가산점
         
         return rewards
