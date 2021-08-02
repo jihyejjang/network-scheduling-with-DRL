@@ -107,6 +107,7 @@ class rl_switch(app_manager.RyuApp):
         #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
         if len(self.dp)==6:
             self.timeslot_start = datetime.now()
+            self.action_thread.start()
             #self.action_thread = hub.spawn(self.gcl_cycle)
             self.first = False
             self.cc_thread = hub.spawn(self._cc_gen1)
@@ -128,12 +129,10 @@ class rl_switch(app_manager.RyuApp):
         return cyc, clk
 
     def gcl_cycle(self):
-        if self.first == True:
-            time.sleep(0.001)
-            return
+        time.sleep(0.005)
 
         while True:
-            #print("dqn 관측@@@@@@@@@@@@@@@@@@@@@")
+            print("dqn 관측@@@@@@@@@@@@@@@@@@@@@")
             time.sleep(0.001 * self.timeslot_size * 9)
             #state 관측
             for switch in range(len(self.state)):
