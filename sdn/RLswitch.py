@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 import pandas as pd
 from ryu.lib import hub
+from multiprocessing import Process
 
 from ryu.base import app_manager
 from ryu.controller import ofp_event
@@ -84,6 +85,7 @@ class rl_switch(app_manager.RyuApp):
         self.cc_period = 5  # to 80
         self.vd_period = 33
         self.ad_period = 1  # milliseconds
+        self.action_thread = Process(target=self.gcl_cycle)
 
         self.timeslot_start = 0
 
