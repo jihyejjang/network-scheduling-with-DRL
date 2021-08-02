@@ -16,7 +16,7 @@ from ryu.lib.packet import packet, ether_types
 from ryu.lib.packet import ethernet
 import numpy as np
 
-from tensorflow import keras
+#from tensorflow import keras
 
 # deadline 구현 -> Latency(flow 별 전송시간)구하기 : 모든 packet들이 다 전송되는 데 걸리는 시간
 # TODO: dqn model 연결
@@ -45,10 +45,10 @@ class rl_switch(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         super(rl_switch, self).__init__(*args, **kwargs)
 
-        self.model1 = keras.models.load_model("agent17.900466698629316e-07.h5")
-        self.model2 = keras.models.load_model("agent27.900466698629316e-07.h5")
-        self.model3 = keras.models.load_model("agent37.900466698629316e-07.h5")
-        self.model4 = keras.models.load_model("agent47.900466698629316e-07.h5")
+        #self.model1 = keras.models.load_model("agent17.900466698629316e-07.h5")
+        #self.model2 = keras.models.load_model("agent27.900466698629316e-07.h5")
+        #self.model3 = keras.models.load_model("agent37.900466698629316e-07.h5")
+        #self.model4 = keras.models.load_model("agent47.900466698629316e-07.h5")
 
         self.switch_log = pd.DataFrame(columns=['switch','class','arrival','queue'])#{'switch','class','arrival time','queue'}
         self.terminal = False
@@ -109,9 +109,8 @@ class rl_switch(app_manager.RyuApp):
         #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
         if len(self.dp)==6:
             self.timeslot_start = datetime.now()
-            self.action_thread.start()
+            #self.action_thread.start()
             #self.action_thread = hub.spawn(self.gcl_cycle)
-            self.first = False
             self.cc_thread = hub.spawn(self._cc_gen1)
             self.cc_thread2 = hub.spawn(self._cc_gen2)
             self.ad_thread = hub.spawn(self._ad_gen1)
@@ -148,7 +147,7 @@ class rl_switch(app_manager.RyuApp):
                        format(np.argmax(self.model2.predict(self.state[s].reshape(-1,4))), '010b'),
                        format(np.argmax(self.model3.predict(self.state[s].reshape(-1,4))), '010b'),
                        format(np.argmax(self.model4.predict(self.state[s].reshape(-1,4))), '010b')]
-                #print(self.gcl[s])
+                print(self.gcl[s])
 
 
 
