@@ -182,7 +182,7 @@ class rl_switch(app_manager.RyuApp):
         dst = eth.dst
         src = eth.src
 
-        icmp_packet = pkt.get_protocols(icmp.icmp)
+        icmp_packet = pkt.get_protocols(icmp.icmp).data
         print (icmp_packet)
         # payload = icmp_packet.data
         # info = payload.split(';')
@@ -285,7 +285,7 @@ class rl_switch(app_manager.RyuApp):
 
         while True:
             self.cc_cnt += 1
-            payload = str('%d;%f' % (self.cc_cnt, time.time())).encode('ascii')
+            payload = '%d;%f' % (self.cc_cnt, time.time()).encode('ascii')
             print ("payload",payload)
             payload_ = icmp.echo(data=payload)
             pkt.add_protocol(icmp.icmp(data=payload_))
