@@ -281,7 +281,8 @@ class rl_switch(app_manager.RyuApp):
         while True:
             self.cc_cnt += 1
             payload = str('%d;%f' % (self.cc_cnt, time.time())).encode('ascii')
-            pkt.add_protocol(icmp.icmp(data=payload))
+            payload_ = icmp.echo(data=payload)
+            pkt.add_protocol(icmp.icmp(data=payload_))
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
