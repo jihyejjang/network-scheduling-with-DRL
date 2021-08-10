@@ -113,11 +113,11 @@ class rl_switch(app_manager.RyuApp):
             #self.action_thread.start()
             #self.action_thread = hub.spawn(self.gcl_cycle)
             self.cc_thread = hub.spawn(self._cc_gen1)
-            # self.cc_thread2 = hub.spawn(self._cc_gen2)
-            # self.ad_thread = hub.spawn(self._ad_gen1)
-            # self.ad_thread2 = hub.spawn(self._ad_gen2)
-            # self.vd_thread = hub.spawn(self._vd_gen1)
-            # self.vd_thread2 = hub.spawn(self._vd_gen2)
+            self.cc_thread2 = hub.spawn(self._cc_gen2)
+            self.ad_thread = hub.spawn(self._ad_gen1)
+            self.ad_thread2 = hub.spawn(self._ad_gen2)
+            self.vd_thread = hub.spawn(self._vd_gen1)
+            self.vd_thread2 = hub.spawn(self._vd_gen2)
 
 
     # self.queue 구현해서 대기중인 flow 구하고, gcl 함수호출로 실행, 스위치 첫연결시 gcl은 FIFO
@@ -259,6 +259,7 @@ class rl_switch(app_manager.RyuApp):
         if self.terminal == 6:
             # for d in range(len(self.dp)):
             #     self.send_flow_stats_request(self.dp[d+1])
+            print ("terminal")
             #self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.timeslot_start).seconds,(datetime.now() - self.timeslot_start).microseconds / 1000))
             self.generated_log.to_csv('switchlog0810_generated.csv')
             self.received_log.to_csv('switchlog0810_received.csv')
