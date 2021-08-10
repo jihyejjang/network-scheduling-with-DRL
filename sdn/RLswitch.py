@@ -13,7 +13,7 @@ from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_5
 
 from ryu.lib.packet import packet, ether_types
-from ryu.lib.packet import ethernet
+from ryu.lib.packet import ethernet, icmp
 import numpy as np
 
 #from tensorflow import keras
@@ -51,7 +51,7 @@ class rl_switch(app_manager.RyuApp):
         #self.model4 = keras.models.load_model("agent47.900466698629316e-07.h5")
 
         self.generated_log = pd.DataFrame(columns=['switch','class','number','time','queue'])#{'switch','class','arrival time','queue'}
-        self.received_log = pd.DataFrame(columns=['switch','class','number','delay','queue'])
+        self.received_log = pd.DataFrame(columns=['arrival time','switch','class','number','delay','queue'])
         self.terminal = False
         #self.start_time=datetime.now()
         self.first = True
@@ -175,12 +175,16 @@ class rl_switch(app_manager.RyuApp):
         in_port = msg.match['in_port']
 
         switchid = datapath.id
-        bufferid = msg.buffer_id
+        #bufferid = msg.buffer_id
 
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         dst = eth.dst
         src = eth.src
+
+        icmp_packet = pkt.get_protocols(icmp.icmp).data
+        payload = icmp_packet.data
+        info = payload.split(';')
 
         class_ = 4 #best effort
 
@@ -235,23 +239,21 @@ class rl_switch(app_manager.RyuApp):
         delay_end_time = 0
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             delay_end_time = time.time()
-            data = msg.data + str(';%f' % (delay_end_time - delay_start_time)).encode('ascii') #handling time to subtract from controller
 
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
-                                  match=match, actions=actions, data=data)
+                                  match=match, actions=actions, data=msg.data)
 
         datapath.send_msg(out)
 
         if (1 <= out_port <= 3) and ((switchid == 5) or (switchid == 6)):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
-            df = pd.DataFrame([(switchid, class_, msg.data[0], delay_end_time - delay_start_time, self.queue[switchid-1][out_port-1][class_-1])], columns=['switch', 'class',
-                                                                                                                                              'number', 'delay',
-                                                                                                                                              'queue'])
+            df = pd.DataFrame([(delay_end_time, switchid, class_, info[0], delay_end_time - delay_start_time,
+                                self.queue[switchid-1][out_port-1][class_-1])], columns=['arrival time', 'switch', 'class', 'number', 'delay', 'queue'])
             self.received_log = self.received_log.append(df)
 
             if class_ != 4:
                 self.logger.info("[in] %f : 스위치 %s, class %s 의 %s번째 패킷,clk %s" % \
-                                 (delay_end_time - delay_start_time, switchid, class_, msg.data[0], clk))
+                                 (time.time(), switchid, class_, msg.data[0], clk))
 
         if self.terminal == 6:
             # for d in range(len(self.dp)):
@@ -270,7 +272,6 @@ class rl_switch(app_manager.RyuApp):
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        pkt.serialize()
 
         match = parser.OFPMatch(in_port=2, eth_dst=self.H[5])
         actions = [parser.OFPActionOutput(3)]
@@ -280,10 +281,12 @@ class rl_switch(app_manager.RyuApp):
         while True:
             self.cc_cnt += 1
             payload = str('%d;%f' % (self.cc_cnt, time.time())).encode('ascii')
+            pkt.add_protocol(icmp.icmp(data=payload))
+            pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
                                       match=match,
-                                      actions=actions, data=payload)
+                                      actions=actions, data=pkt.data)
             datapath.send_msg(out)
             hub.sleep(self.cc_period/1000)
             self.logger.info("%f : C&C1 generated %s, 스위치%s " % (time.time(), self.cc_cnt, datapath.id))
