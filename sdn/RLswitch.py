@@ -261,8 +261,8 @@ class rl_switch(app_manager.RyuApp):
             self.received_log.to_csv('switchlog0810_received.csv')
             #self.terminal = False
 
-    def _cc_gen1(self):
-        time = 0
+    def _cc_gen1(self, time=None):
+        time = time.time()
         datapath = self.dp[1]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
