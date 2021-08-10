@@ -1,6 +1,6 @@
 
 import time
-from datetime import datetime
+# from datetime import datetime
 import pandas as pd
 from ryu.lib import hub
 from multiprocessing import Process
@@ -50,7 +50,8 @@ class rl_switch(app_manager.RyuApp):
         #self.model3 = keras.models.load_model("agent37.900466698629316e-07.h5")
         #self.model4 = keras.models.load_model("agent47.900466698629316e-07.h5")
 
-        self.switch_log = pd.DataFrame(columns=['switch','class','arrival','queue'])#{'switch','class','arrival time','queue'}
+        self.generated_log = pd.DataFrame(columns=['switch','class','number','time','queue'])#{'switch','class','arrival time','queue'}
+        self.received_log = pd.DataFrame(columns=['switch','class','number','delay','queue'])
         self.terminal = False
         #self.start_time=datetime.now()
         self.first = True
@@ -108,15 +109,15 @@ class rl_switch(app_manager.RyuApp):
         #switch가 모두 연결됨과 동시에 flow들을 주기마다 생성, queue state 요청 메세지
         #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
         if len(self.dp)==6:
-            self.timeslot_start = datetime.now()
+            #self.timeslot_start = datetime.now()
             #self.action_thread.start()
             #self.action_thread = hub.spawn(self.gcl_cycle)
             self.cc_thread = hub.spawn(self._cc_gen1)
-            self.cc_thread2 = hub.spawn(self._cc_gen2)
-            self.ad_thread = hub.spawn(self._ad_gen1)
-            self.ad_thread2 = hub.spawn(self._ad_gen2)
-            self.vd_thread = hub.spawn(self._vd_gen1)
-            self.vd_thread2 = hub.spawn(self._vd_gen2)
+            # self.cc_thread2 = hub.spawn(self._cc_gen2)
+            # self.ad_thread = hub.spawn(self._ad_gen1)
+            # self.ad_thread2 = hub.spawn(self._ad_gen2)
+            # self.vd_thread = hub.spawn(self._vd_gen1)
+            # self.vd_thread2 = hub.spawn(self._vd_gen2)
 
 
     # self.queue 구현해서 대기중인 flow 구하고, gcl 함수호출로 실행, 스위치 첫연결시 gcl은 FIFO
@@ -165,7 +166,9 @@ class rl_switch(app_manager.RyuApp):
     # packet-in handler에서는 gcl의 Open정보와 현재 timeslot cnt를 비교하여 delay후 전송한다.
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
-        _,clk = self.timeslot(datetime.now())
+        delay_start_time = time.time()
+        _,clk = self.timeslot(delay_start_time)
+
         msg = ev.msg
         datapath = msg.datapath
         ofproto = datapath.ofproto
@@ -195,40 +198,26 @@ class rl_switch(app_manager.RyuApp):
                 #self.logger.info("class %s packet" % (class_))
 
 
-        # queue에 진입, ts_cnt와 GCl을 보고 대기
-        # queue에서 대기(하고있다고 가정)중인 패킷 증가
-
-        # mac table에 없는 source 추가
         if not (src in self.mac_to_port[switchid]):
             self.mac_to_port[switchid][src] = in_port
-            # input port와 연결되어있는 source mac 학습테이블에 저장 (Q: input port가 host가 아닌 switch랑 연결되어있어도..?)
 
-        if dst in self.mac_to_port[switchid]:  # dst의 mac이 테이블에 저장되어있는 경우 그쪽으로 나가면 되지만 아니라면 flooding
+        if dst in self.mac_to_port[switchid]:
             out_port = self.mac_to_port[switchid][dst]
             self.queue[switchid - 1][out_port - 1][class_ - 1] += 1
         else:
             out_port = ofproto.OFPP_FLOOD
+            print("flooding")
 
 
-        # mac address table에 따라 output port 지정
         actions = [parser.OFPActionOutput(out_port)]
-        # 들어온 패킷에 대해 해당하는 Match를 생성하고, flow entry에 추가하는 작업 (꼭 필요한 작업인가?, 내가 생성해야하는 플로우들만 flow entry에 추가해야하는가?)
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
             self.add_flow(datapath, 1,match, actions,ofproto.OFP_NO_BUFFER)
             # # verify if we have a valid buffer_id, if yes avoid to send both
             # # flow_mod & packet_out
-            if msg.buffer_id != ofproto.OFP_NO_BUFFER:  # 버퍼가 존재하는 패킷이면 return? 전송하지 않음..?
+            if msg.buffer_id != ofproto.OFP_NO_BUFFER:
                 self.add_flow(datapath, 1, match, actions, msg.buffer_id)
-                #return
-            # else:
-            #     self.add_flow(datapath, 1, match, actions)
-
-        data = None #buffer 존재하면 data는 None이어야 함 (이유는 모름..)
-        if msg.buffer_id == ofproto.OFP_NO_BUFFER:
-            data = msg.data #buffer가 없으면 data를 할당받음
-            #self.logger.info("No buffer")
-        #뇌피셜 : buffer가 있으면 data를 보낼 수 없으니 데이터는 전송하지 않고 플로우 정보만 전송해주는것이 아닐까 하는 생각
+                return
 
         # while True:
         #     try:
@@ -238,29 +227,39 @@ class rl_switch(app_manager.RyuApp):
             #     print("다음 cycle까지 기다리기 : 현재 사이클에 OPEN예정이 없음")
             #     time.sleep(self.timeslot_size/1000)
 
+        print("delay", delay/1000)
+
         hub.sleep(delay/1000) #delay
-        # self.logger.info("sleep")
+
         match = parser.OFPMatch(in_port = in_port)
         #flow가 match와 일치하면 match생성시에 지정해준 action으로 packet out한다.
+        delay_end_time = 0
+        if msg.buffer_id == ofproto.OFP_NO_BUFFER:
+            delay_end_time = time.time()
+            data = msg.data + ';%f' % (delay_end_time - delay_start_time) #handling time to subtract from controller
+
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   match=match, actions=actions, data=data)
+
         datapath.send_msg(out)
 
         if (1 <= out_port <= 3) and ((switchid == 5) or (switchid == 6)):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
-            df = pd.DataFrame([(switchid, class_, datetime.now()-self.timeslot_start, self.queue[switchid-1][out_port-1][class_-1])], columns=['switch','class','arrival','queue'])
-            self.switch_log = self.switch_log.append(df)
+            df = pd.DataFrame([(switchid, class_, msg.data[0], delay_end_time - delay_start_time, self.queue[switchid-1][out_port-1][class_-1])], columns=['switch', 'class',
+                                                                                                                                              'number', 'delay',
+                                                                                                                                              'queue'])
+            self.received_log = self.received_log.append(df)
+
             if class_ != 4:
-                self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
-                                 ((datetime.now() - self.timeslot_start).seconds,
-                                  (datetime.now() - self.timeslot_start).microseconds / 1000, switchid, class_, clk,
-                                  bufferid))
+                self.logger.info("[in] %f : 스위치 %s, class %s 의 %s번째 패킷,clk %s" % \
+                                 (delay_end_time - delay_start_time, switchid, class_, msg.data[0], clk))
 
         if self.terminal == 6:
             # for d in range(len(self.dp)):
             #     self.send_flow_stats_request(self.dp[d+1])
             #self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.timeslot_start).seconds,(datetime.now() - self.timeslot_start).microseconds / 1000))
-            self.switch_log.to_csv('switchlog0728_1.csv')
+            self.generated_log.to_csv('switchlog0810_generated.csv')
+            self.received_log.to_csv('switchlog0810_received.csv')
             #self.terminal = False
 
     def _cc_gen1(self):
@@ -278,30 +277,24 @@ class rl_switch(app_manager.RyuApp):
         actions = [parser.OFPActionOutput(3)]
         self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
         match = parser.OFPMatch(in_port=2)
-        data = pkt.data
-
-        out = parser.OFPPacketOut(datapath=datapath,
-                                  buffer_id=ofproto.OFP_NO_BUFFER,
-                                  match=match,
-                                  actions=actions, data=data)
 
         while True:
             self.cc_cnt += 1
+            time = time.time()
+            payload = '%d;%f' % (self.cc_cnt, time)
+            out = parser.OFPPacketOut(datapath=datapath,
+                                      buffer_id=ofproto.OFP_NO_BUFFER,
+                                      match=match,
+                                      actions=actions, data=payload)
             datapath.send_msg(out)
             hub.sleep(self.cc_period/1000)
-            self.logger.info("%s.%0.1f : C&C1 generated %s, 스위치%s " % \
-                                     ((datetime.now() - self.timeslot_start).seconds,
-                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.cc_cnt, datapath.id))
+            self.logger.info("%f : C&C1 generated %s, 스위치%s " % (time, self.cc_cnt, datapath.id))
 
-            df = pd.DataFrame([(datapath.id, 1, datetime.now() - self.timeslot_start, 'x')],
-                              columns=['switch', 'class', 'arrival', 'queue'])
-            self.switch_log = self.switch_log.append(df)
+            df = pd.DataFrame([(datapath.id, 1, self.cc_cnt, time.time(), 'x')],
+                              columns=['switch', 'class', 'number', 'time', 'queue'])
+            self.generated_log = self.generated_log.append(df)
 
             if (self.cc_cnt >= self.command_control):
-                # if (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) and (self.ad_cnt2 >= self.audio) \
-                #         and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
-                #     self.terminal = True
-                #     break
                 self.terminal += 1
                 break
 
