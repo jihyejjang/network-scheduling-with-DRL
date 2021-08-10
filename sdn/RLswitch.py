@@ -235,7 +235,7 @@ class rl_switch(app_manager.RyuApp):
         delay_end_time = 0
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             delay_end_time = time.time()
-            data = msg.data + ';%f' % (delay_end_time - delay_start_time).encode('ascii') #handling time to subtract from controller
+            data = msg.data + str(';%f' % (delay_end_time - delay_start_time)).encode('ascii') #handling time to subtract from controller
 
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   match=match, actions=actions, data=data)
@@ -262,6 +262,7 @@ class rl_switch(app_manager.RyuApp):
             #self.terminal = False
 
     def _cc_gen1(self):
+        time = 0
         datapath = self.dp[1]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
