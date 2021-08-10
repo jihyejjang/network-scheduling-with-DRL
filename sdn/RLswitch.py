@@ -210,7 +210,6 @@ class rl_switch(app_manager.RyuApp):
             self.queue[switchid - 1][out_port - 1][class_ - 1] += 1
         else:
             out_port = ofproto.OFPP_FLOOD
-            print("flooding")
 
 
         actions = [parser.OFPActionOutput(out_port)]
@@ -246,15 +245,17 @@ class rl_switch(app_manager.RyuApp):
 
         datapath.send_msg(out)
 
+        if class_ != 4:
+            self.logger.info("[in] %f : 스위치 %s, class %s 의 %s번째 패킷,clk %s" % \
+                             (time.time(), switchid, class_, '-', clk))
+
         if (1 <= out_port <= 3) and ((switchid == 5) or (switchid == 6)):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
             df = pd.DataFrame([(delay_end_time, switchid, class_, '-', delay_end_time - delay_start_time,
                                 self.queue[switchid-1][out_port-1][class_-1])], columns=['arrival time', 'switch', 'class', 'number', 'delay', 'queue'])
             self.received_log = self.received_log.append(df)
 
-            if class_ != 4:
-                self.logger.info("[in] %f : 스위치 %s, class %s 의 %s번째 패킷,clk %s" % \
-                                 (time.time(), switchid, class_, '-', clk))
+
 
         if self.terminal == 6:
             # for d in range(len(self.dp)):
@@ -278,17 +279,18 @@ class rl_switch(app_manager.RyuApp):
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
+        pkt.serialize()
 
         match = parser.OFPMatch(in_port=2, eth_dst=self.H[5])
         actions = [parser.OFPActionOutput(3)]
         self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
         match = parser.OFPMatch(in_port=2)
-        pkt.serialize()
+        data = pkt.data
+
         out = parser.OFPPacketOut(datapath=datapath,
                                   buffer_id=ofproto.OFP_NO_BUFFER,
                                   match=match,
-                                  actions=actions, data=pkt.data)
-
+                                  actions=actions, data=data)
         while True:
             self.cc_cnt += 1
             # payload = str('%d;%f' % (self.cc_cnt, time.time())).encode('ascii')
