@@ -109,7 +109,7 @@ class rl_switch(app_manager.RyuApp):
         #switch가 모두 연결됨과 동시에 flow들을 주기마다 생성, queue state 요청 메세지
         #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
         if len(self.dp)==6:
-            #self.timeslot_start = datetime.now()
+            self.timeslot_start = time.time()
             #self.action_thread.start()
             #self.action_thread = hub.spawn(self.gcl_cycle)
             self.cc_thread = hub.spawn(self._cc_gen1)
@@ -123,9 +123,8 @@ class rl_switch(app_manager.RyuApp):
     # self.queue 구현해서 대기중인 flow 구하고, gcl 함수호출로 실행, 스위치 첫연결시 gcl은 FIFO
     # 0.5밀리초마다 타임슬롯 함수를 실행하는게 아니라 절대시간을 보고 몇번째 timeslot인지 계산한다. gcl도 마찬가지로,0.5ms*9에 갱신한다.
     def timeslot(self, time):  # timeslot 진행 횟수를 알려주는 함수
-        sec = (time - self.timeslot_start).seconds
-        ms = round((time - self.timeslot_start).microseconds / 1000, 1)  # 소수점 첫째자리까지 출력
-        slots = int((sec + 0.001 * ms) / (0.001 * self.timeslot_size))
+        msec = round((time - self.timeslot_start)*1000,1)
+        slots = int(msec / self.timeslot_size)
         cyc = int(slots / self.cycle)  # 몇번째 cycle인지
         clk = cyc % self.cycle  # 몇번째 timeslot인지
         return cyc, clk
