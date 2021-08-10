@@ -282,6 +282,11 @@ class rl_switch(app_manager.RyuApp):
         actions = [parser.OFPActionOutput(3)]
         self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
         match = parser.OFPMatch(in_port=2)
+        pkt.serialize()
+        out = parser.OFPPacketOut(datapath=datapath,
+                                  buffer_id=ofproto.OFP_NO_BUFFER,
+                                  match=match,
+                                  actions=actions, data=pkt.data)
 
         while True:
             self.cc_cnt += 1
@@ -289,18 +294,20 @@ class rl_switch(app_manager.RyuApp):
             # print ("payload",payload)
             # payload_ = icmp.echo(data=payload)
             #pkt.add_protocol(icmp.icmp(data=payload_))
-            pkt.serialize()
-            out = parser.OFPPacketOut(datapath=datapath,
-                                      buffer_id=ofproto.OFP_NO_BUFFER,
-                                      match=match,
-                                      actions=actions, data=pkt.data)
+            # pkt.serialize()
+            # out = parser.OFPPacketOut(datapath=datapath,
+            #                           buffer_id=ofproto.OFP_NO_BUFFER,
+            #                           match=match,
+            #                           actions=actions, data=pkt.data)
             datapath.send_msg(out)
-            hub.sleep(self.cc_period/1000)
+
             self.logger.info("%f : C&C1 generated %s, 스위치%s " % (time.time(), self.cc_cnt, datapath.id))
 
             df = pd.DataFrame([(datapath.id, 1, self.cc_cnt, time.time(), 'x')],
                               columns=['switch', 'class', 'number', 'time', 'queue'])
             self.generated_log = self.generated_log.append(df)
+
+            hub.sleep(self.cc_period / 1000)
 
             if (self.cc_cnt >= self.command_control):
                 self.terminal += 1
@@ -330,19 +337,17 @@ class rl_switch(app_manager.RyuApp):
         while True:
             self.cc_cnt2 += 1
             datapath.send_msg(out)
-            hub.sleep(self.cc_period/1000)
-            self.logger.info("%s.%0.1f : C&C2 generated %s, 스위치%s " % \
-                                     ((datetime.now() - self.timeslot_start).seconds,
-                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.cc_cnt2, datapath.id))
 
-            df = pd.DataFrame([(datapath.id, 1, datetime.now() - self.timeslot_start, 'x')],
-                              columns=['switch', 'class', 'arrival', 'queue'])
-            self.switch_log = self.switch_log.append(df)
+            self.logger.info("%f : C&C2 generated %s, 스위치%s " % (time.time(), self.cc_cnt2, datapath.id))
+
+            df = pd.DataFrame([(datapath.id, 1, self.cc_cnt2, time.time(), 'x')],
+                              columns=['switch', 'class', 'number', 'time', 'queue'])
+            self.generated_log = self.generated_log.append(df)
+
+            hub.sleep(self.cc_period / 1000)
+
 
             if (self.cc_cnt2 >= self.command_control):
-                # if (self.cc_cnt >= self.command_control) and (self.ad_cnt >= self.audio) and (self.ad_cnt2 >= self.audio) \
-                #         and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
-                #     self.terminal = True
                 self.terminal += 1
                 break
 
@@ -370,19 +375,14 @@ class rl_switch(app_manager.RyuApp):
         while True:
             self.ad_cnt += 1
             datapath.send_msg(out)
-            hub.sleep(self.ad_period/1000)
-            self.logger.info("%s.%0.1f : Audio1 generated %s, 스위치%s " % \
-                                     ((datetime.now() - self.timeslot_start).seconds,
-                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.ad_cnt, datapath.id))
+            self.logger.info("%f : Audio1 generated %s, 스위치%s " % (time.time(), self.ad_cnt, datapath.id))
 
-            df = pd.DataFrame([(datapath.id, 2, datetime.now() - self.timeslot_start, 'x')],
-                              columns=['switch', 'class', 'arrival', 'queue'])
-            self.switch_log = self.switch_log.append(df)
+            df = pd.DataFrame([(datapath.id, 2, self.ad_cnt, time.time(), 'x')],
+                              columns=['switch', 'class', 'number', 'time', 'queue'])
+            self.generated_log = self.generated_log.append(df)
+            hub.sleep(self.ad_period / 1000)
 
             if (self.ad_cnt >= self.audio):
-                # if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt2 >= self.audio) \
-                #         and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
-                #     self.terminal = True
                 self.terminal += 1
                 break
 
@@ -410,20 +410,14 @@ class rl_switch(app_manager.RyuApp):
         while True:
             self.ad_cnt2 += 1
             datapath.send_msg(out)
-            hub.sleep(self.ad_period/1000)
-            self.logger.info("%s.%0.1f : Audio2 generated %s, 스위치%s " % \
-                                     ((datetime.now() - self.timeslot_start).seconds,
-                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.ad_cnt2, datapath.id))
+            self.logger.info("%f : Audio2 generated %s, 스위치%s " % (time.time(), self.ad_cnt2, datapath.id))
 
-            df = pd.DataFrame([(datapath.id, 2, datetime.now() - self.timeslot_start, 'x')],
-                              columns=['switch', 'class', 'arrival', 'queue'])
-            self.switch_log = self.switch_log.append(df)
+            df = pd.DataFrame([(datapath.id, 2, self.ad_cnt2, time.time(), 'x')],
+                              columns=['switch', 'class', 'number', 'time', 'queue'])
+            self.generated_log = self.generated_log.append(df)
+            hub.sleep(self.ad_period / 1000)
 
             if (self.ad_cnt2 >= self.audio):
-                # if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
-                #         and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
-                #     self.terminal = True
-                #     break
                 self.terminal+=1
                 break
 
@@ -452,28 +446,17 @@ class rl_switch(app_manager.RyuApp):
         while True:
             self.vd_cnt += 1
             datapath.send_msg(out)
-            hub.sleep(self.vd_period/1000)
-            self.logger.info("%s.%0.1f : video1 generated %s, 스위치%s " % \
-                                     ((datetime.now() - self.timeslot_start).seconds,
-                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.vd_cnt, datapath.id))
 
-            df = pd.DataFrame([(datapath.id, 3, datetime.now() - self.timeslot_start, 'x')],
-                              columns=['switch', 'class', 'arrival', 'queue'])
-            self.switch_log = self.switch_log.append(df)
+            self.logger.info("%f : video1 generated %s, 스위치%s " % (time.time(), self.vd_cnt, datapath.id))
+
+            df = pd.DataFrame([(datapath.id, 3, self.vd_cnt, time.time(), 'x')],
+                              columns=['switch', 'class', 'number', 'time', 'queue'])
+            self.generated_log = self.generated_log.append(df)
+            hub.sleep(self.vd_period / 1000)
 
             if (self.vd_cnt >= self.video):
                 self.terminal+=1
                 break
-                # if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (self.ad_cnt >= self.audio) \
-                #         and (self.ad_cnt2 >= self.audio) and (self.vd_cnt2 >= self.video):
-                #     self.terminal=True
-                #     break
-
-            # if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
-            #         self.ad_cnt >= self.audio) \
-            #         and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
-            #     self.terminal = True
-            #     break
 
     def _vd_gen2(self):
         datapath = self.dp[2]
@@ -499,15 +482,12 @@ class rl_switch(app_manager.RyuApp):
         while True:
             self.vd_cnt2 += 1
             datapath.send_msg(out)
-            hub.sleep(self.vd_period/1000)
-            self.logger.info("%s.%0.1f : video2 generated %s, 스위치%s " % \
-                                     ((datetime.now() - self.timeslot_start).seconds,
-                              (datetime.now() - self.timeslot_start).microseconds / 1000, self.vd_cnt2, datapath.id))
+            self.logger.info("%f : video2 generated %s, 스위치%s " % (time.time(), self.vd_cnt2, datapath.id))
 
-            df = pd.DataFrame([(datapath.id, 3, datetime.now() - self.timeslot_start, 'x')],
-                              columns=['switch', 'class', 'arrival', 'queue'])
-            self.switch_log = self.switch_log.append(df)
-
+            df = pd.DataFrame([(datapath.id, 3, self.vd_cnt2, time.time(), 'x')],
+                              columns=['switch', 'class', 'number', 'time', 'queue'])
+            self.generated_log = self.generated_log.append(df)
+            hub.sleep(self.vd_period / 1000)
             if (self.vd_cnt2 >= self.video):
                 self.terminal+=1
                 break
