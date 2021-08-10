@@ -12,8 +12,8 @@ from ryu.controller.handler import set_ev_cls
 
 from ryu.ofproto import ofproto_v1_5
 
-from ryu.lib.packet import packet, ether_types
-from ryu.lib.packet import ethernet, icmp
+from ryu.lib.packet import packet, ether_types, in_proto
+from ryu.lib.packet import ethernet, icmp, ipv4
 import numpy as np
 
 #from tensorflow import keras
@@ -182,9 +182,10 @@ class rl_switch(app_manager.RyuApp):
         dst = eth.dst
         src = eth.src
 
-        icmp_packet = pkt.get_protocols(icmp.icmp).data
-        payload = icmp_packet.data
-        info = payload.split(';')
+        icmp_packet = pkt.get_protocols(icmp.icmp)
+        print (icmp_packet)
+        # payload = icmp_packet.data
+        # info = payload.split(';')
 
         class_ = 4 #best effort
 
@@ -269,6 +270,10 @@ class rl_switch(app_manager.RyuApp):
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
                                            dst=self.H[5],
                                            src=self.H[1]))
+
+        pkt.add_protocol(ipv4.ipv4(proto=in_proto.IPPROTO_ICMP,
+                                   src='10.0.0.100',
+                                   dst=self.H[5]))
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
