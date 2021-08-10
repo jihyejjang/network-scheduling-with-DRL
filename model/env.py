@@ -1,19 +1,20 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
-#TODO : episode마다 model, loss, reward save
-
 import numpy as np
 import pandas as pd
 import simpy
 import random
 from agent import Agent
 import time
+import warnings
+warnings.filterwarnings('ignore')
+
 start = time.time()
 
 from dataclasses import dataclass 
 
+#TODO : class 를 반대로
 @dataclass 
 class Flow: #type(class1:besteffort,2:c&c,3:video,4:audio),Num,deadline,generate_time,depart_time,bits
     type_ : int = None
@@ -33,67 +34,74 @@ class GateControllEnv(object):
         self.agents = []
         self.TDM_CYCLE = 10 #millisecond, LCM of periods
         #self.agents.append(Agent(self.PRIORITY_QUEUE,self.TDM_CYCLE)
-        self.agents = [Agent(self.PRIORITY_QUEUE,self.TDM_CYCLE) for _ in range(self.PRIORITY_QUEUE)]#multiagents
-        #print ("agents",self.agents)
-        
+        self.agents = [Agent(self.TDM_CYCLE) for _ in range(self.PRIORITY_QUEUE)]#4 of multiagents which is number of priority queue
         self.class_based_queues=[simpy.Store(self.env) for _ in range(self.PRIORITY_QUEUE)]#simpy store, queue 하나당 1Gbit
 #         self.strict_priority_scheduler = [] #simpy resource
         
-        self.best_effort = 30 #best effort traffic (Even)
-        self.cnt1 = 0 #전송된 flow 개수 카운트
-        self.command_control = 40 #c&c flow number (Even)
-        self.cnt2 = 0
-        self.video = 2 #video flow number (Even)
+        #self.best_effort = 100 #best effort traffic (Even)
+        self.best_effort = 200
+        self.cnt4 = 0 #전송된 flow 개수 카운트
+        #self.command_control = 40 #c&c flow number (Even)
+        self.command_control = 80
+        self.cnt1 = 0
+        #self.video = 2 #video flow number (Even)
+        self.video = 10 #video flow number (Even)
         self.cnt3 = 0
-        self.audio = 8 #audio flow number (Even)
-        self.cnt4 = 0
-        
-        self.be_period = 0.003
-        self.cc_period = 0.005 # to 80
-        self.vd_period = 0.033
-        self.ad_period = 0.001 # milliseconds
+        #self.audio = 8 #audio flow number (Even)
+        self.audio = 32
+        self.cnt2 = 0
+
+        # self.be_period = 0.002
+        # self.cc_period = 0.005 # to 80
+        # self.vd_period = 0.033
+        # self.ad_period = 0.001 # milliseconds
+
+        self.be_period = 0.002
+        self.cc_period = 0.001  # to 80
+        self.vd_period = 0.003
+        self.ad_period = 0.002  # milliseconds
         
         
         self.total_episode = 0
-        self.max_episode = 800
+        self.max_episode = 1000
         self.timeslot_size = 0.0005 #millisecond 단위, 0.5ms 마다 timeout
         self.simulation_duration = 0 
         self.timestep = 0
-        
-        self.state_size = self.PRIORITY_QUEUE
+
         self.action_size = 2**self.TDM_CYCLE
-        
-        self.state = []
+
+        self.state = np.zeros((4,2))
         self.actions = []
-        self.rewards = []
+        self.reward_ = 0
 #         self.flows = [] #전송한 flow들을 기록, deadline 맞췄는 지 확인용
         self.done = False
-        self.next_state = []
+        self.next_state = np.zeros((4,2))
         self.log = pd.DataFrame(columns = ['Episode','Time','Final step','Score','Epsilon','Min_loss']  )
 
         self.start_time = 0 #episode 시작
         self.end_time = 0 #episode 끝났을 때
 
         self.minloss = []
+        self.received_packet = np.zeros(3, dtype=np.int32)
+
+        self.total_timestep = 0
         
         
     def reset(self): #initial state, new episode start
         self.class_based_queues = [simpy.Store(self.env) for _ in range(self.PRIORITY_QUEUE)]#simpy store, queue 하나당 1Gbit
 #         self.flows = []
-        self.state = np.zeros(self.PRIORITY_QUEUE) #class1,2,3,4 queued frames(byte) 모든 agent들의 state는 같다
+        self.state = np.zeros((4,2))
         self.actions = np.array([list(map(int,format(random.randrange(self.action_size),'0'+str(self.TDM_CYCLE)+'b'))) for _ in range(self.PRIORITY_QUEUE)])
-        self.rewards = []
+        self.reward_ = 0
         self.done = False
-        self.next_state = []
+        self.next_state = np.zeros((4,2))
         self.time = 0
-        self.best_effort = 30 #best effort traffic (Even)
         self.cnt1 = 0 #전송된 flow 개수 카운트
-        self.command_control = 40 #c&c flow number (Even)
         self.cnt2 = 0
-        self.video = 2 #video flow number (Even)
         self.cnt3 = 0
-        self.audio = 8 #audio flow number (Even)
         self.cnt4 = 0
+        self.received_packet = np.zeros(3, dtype=np.int32)
+        self.timestep = 0
 
 #type에 맞게 flow scheme을 설정하는 모듈
 
@@ -103,7 +111,7 @@ class GateControllEnv(object):
         
         #flow type, num으로 특정 가능
         
-        if type_num == 1: #best effort
+        if type_num == 4: #best effort
             f.type_ = type_num
             f.num_ = fnum
             f.deadline_ = 0.010
@@ -112,7 +120,7 @@ class GateControllEnv(object):
             f.bit_ = 32*8
             f.met_ = False
             
-        elif type_num == 2: #c&c
+        elif type_num == 1: #c&c
             f.type_ = type_num
             f.num_ = fnum
             f.deadline_= period
@@ -150,39 +158,44 @@ class GateControllEnv(object):
     def flow_generate_BE(self,env, store): #flow 생성 process(producer) 1, store = class_based_queue[0]
         for i in range(self.best_effort):
             yield env.timeout(self.be_period) #be 주기
-            flow = self.flow_generator(1,i,self.env.now-self.end_time) #type,f_num,env.now,period=none(c&c)
+            flow = self.flow_generator(4,i,self.env.now-self.end_time) #type,f_num,env.now,period=none(c&c)
             yield store.put(flow) 
-            flowname="best effort flow {:2d}".format(i)
-            #print("{} : {} 추가,{} flows left in queue 1".format(env.now, flowname , len(store.items)))
-            self.cnt1+=1
+            # flowname="best effort flow {:2d}".format(i)
+            # #print("{} : {} 추가,{} flows left in queue 1".format(env.now, flowname , len(store.items)))
+            self.cnt4+=1
 
     def flow_generate_CC(self,env,store): #cq[1] 
         for i in range(self.command_control):
             yield env.timeout(self.cc_period) #cc 주기
-            flow = self.flow_generator(2,i,self.env.now-self.end_time,self.cc_period) #type,f_num,env.now,period=none(c&c)
+            flow = self.flow_generator(1,i,self.env.now-self.end_time,self.cc_period) #type,f_num,env.now,period=none(c&c)
             yield store.put(flow)
-            flowname="command&control flow {:2d}".format(i)
-            #print("{} : {} 추가,{} flows left in queue 2".format(env.now, flowname , len(store.items)))
-            self.cnt2+=1
+            # flowname="command&control flow {:2d}".format(i)
+            # #print("{} : {} 추가,{} flows left in queue 2".format(env.now, flowname , len(store.items)))
+            self.cnt1+=1
             
     def flow_generate_VD(self,env,store): #cq[2]
         for i in range(self.video):
             yield env.timeout(self.vd_period) #video 주기
             flow = self.flow_generator(3,i,self.env.now-self.end_time) #type,f_num,env.now,period=none(c&c)
             yield store.put(flow)
-            flowname="video flow {:2d}".format(i)
-            #print("{} : {} 추가,{} flows left in queue 3".format(env.now, flowname , len(store.items)))
+            # flowname="video flow {:2d}".format(i)
+            # #print("{} : {} 추가,{} flows left in queue 3".format(env.now, flowname , len(store.items)))
             self.cnt3 +=1
             
     def flow_generate_AD(self,env,store): #cq[3]
         for i in range(self.audio):
             yield env.timeout(self.ad_period) #audio 주기
-            flow = self.flow_generator(4,i,self.env.now-self.end_time) #type,f_num,env.now,period=none(c&c)
+            flow = self.flow_generator(2,i,self.env.now-self.end_time) #type,f_num,env.now,period=none(c&c)
             yield store.put(flow)
-            flowname="audio flow {:2d}".format(i)
-            #print("{} : {} 추가,{} flows left in queue 4".format(env.now, flowname , len(store.items)))
-            self.cnt4 +=1
-    
+            # flowname="audio flow {:2d}".format(i)
+            # #print("{} : {} 추가,{} flows left in queue 4".format(env.now, flowname , len(store.items)))
+            self.cnt2 +=1
+
+    def action_choose(self):
+        gcl = [list(self.agents[a].choose_action(self.state[a])) for a in range(4)] #GCL update
+        #print("gcl",gcl)
+        return np.array(gcl)
+
     def episode(self,env):
         flow = [] #reward 용 전송된 flow
         
@@ -190,128 +203,149 @@ class GateControllEnv(object):
         
         for episode_num in range(self.max_episode): #max episode만큼 하나의 episode를 실행
             rewards_all = []
+
             timestep = 0
             epsilon = 0
             self.start_time = self.env.now
             self.total_episode +=1
             self.reset()
-            stores = self.class_based_queues
             
             #episode 시작 시 마다 flow generator process를 실행
 
-            self.env.process(self.flow_generate_BE(self.env, self.class_based_queues[0]))
-            self.env.process(self.flow_generate_CC(self.env, self.class_based_queues[1]))
+            self.env.process(self.flow_generate_BE(self.env, self.class_based_queues[3]))
+            self.env.process(self.flow_generate_CC(self.env, self.class_based_queues[0]))
             self.env.process(self.flow_generate_VD(self.env, self.class_based_queues[2]))
-            self.env.process(self.flow_generate_AD(self.env, self.class_based_queues[3]))
+            self.env.process(self.flow_generate_AD(self.env, self.class_based_queues[1]))
 
 
             print ( "***에피소드" + str(self.total_episode) + "시작***" )
 
             while (self.done == False): #모든 flow가 전송 완료 (episode종료 조건)
-                
                 loss = []
-                #print ("--Tdm cycle" + str(timestep) + "시작--")
-                self.actions = np.array([list(map(int,agent.choose_action(self.state))) for agent in self.agents]) #GCL생성
-                #print ("actions", self.actions)
-                timestep +=1
-                self.state = [len(self.class_based_queues[i].items) for i in range(self.PRIORITY_QUEUE)]   
-        
-                #Tdm cycle -> step (reward 측정 단위)
-                 
                 flow = []
-                self.rewards = []
-                for t in range(self.TDM_CYCLE):
-                    yield env.timeout(self.timeslot_size) #time slot마다 timeout
+                self.reward_ = 0
+                #print ("--Tdm cycle" + str(timestep) + "시작--")
+
+                self.state = self.next_state
+                self.actions = self.action_choose()
+                self.total_timestep += 1
+                self.timestep += 1
+
+
+                for t in range(self.TDM_CYCLE): #cycle
                     gcl = self.actions[:,t] #GCL에서 각 queue별 gate open 정보를 불러옴
                     #print ("Time : {}".format(env.now))
 
-                    for n in range(len(gcl)):
-                        f=Flow()
-                        if (gcl[n] == 1) and (len(stores[n].items)): #gcl이 열려있고, flow가 존재하면
-                            f=yield stores[n].get()
+                    for n in range(len(gcl)): #queue
+                        if (gcl[n] == '1') and (len(self.class_based_queues[n].items)): #gcl이 열려있고, flow가 존재하면
+                            f=yield self.class_based_queues[n].get()
                             flow.append(f) #전송된 flow 추가
+                            if (n != 3):
+                                self.received_packet[n] += 1
                             f.depart_time_ = env.now-self.end_time
-                            
                             if ((f.depart_time_ - f.generate_time_) <= f.deadline_): 
                                 f.met_ = True
-                                #print ("deadline 만족", f.met_)
-                            #print ("{} : flow type {}의 {} 전송".format(env.now, f.type_ ,f.num_))
-                
-                #reward, 다음 state, done 여부 
-                self.next_state, self.rewards , self.done = self.step(flow)
-                #print (self.rewards)
-                rewards_all.append(sum(self.rewards))
-                
-                
+
+                    yield env.timeout(self.timeslot_size)
+
+                self.next_state, self.reward_ , self.done = self.step(flow)
+                rewards_all.append(self.reward_)
+
                 for a in range(len(self.agents)):
                     #print ("observe" ,a)
-#                     print (self.state)
+                    #print (self.state)
                     #print (self.actions[a])
-                    self.agents[a].observation(self.state,"".join(map(str,self.actions[a])),self.rewards[a], self.next_state, self.done)
+                    #print("state,act,rewared,nextstate",self.state[a],self.actions[a],self.reward_,self.next_state[a])
+                    self.agents[a].observation(self.state[a], self.actions[a], self.reward_, self.next_state[a], self.done)
                     epsilon = self.agents[a].epsilon_decay()
                     loss.append(self.agents[a].replay())
-                    self.agents[a].update_target_model()
-                    
-            
-                self.timestep += timestep
+                    if (self.total_timestep%100 == 0):
+                        self.agents[a].update_target_model()
+
 
             self.end_time = self.env.now
-            log_ = pd.DataFrame([(episode_num, self.end_time-self.start_time ,timestep ,sum(rewards_all),  epsilon, min(loss))], columns = ['Episode','Time','Final step','Score','Epsilon','Min_loss'])
+            print(loss)
+            log_ = pd.DataFrame([(episode_num, self.end_time-self.start_time ,self.timestep ,np.sum(rewards_all),  epsilon, np.mean(loss))], columns = ['Episode','Time','Final step','Score','Epsilon','avg_loss'])
             self.minloss.append(min(loss))
-            if (self.total_episode >= 100) and (min(self.minloss) >= min(loss)):
+            if (self.total_episode >= 100) and (min(self.minloss) >= np.mean(loss)):
                 #self.minloss = min(loss)
                 i=0
                 for agent in self.agents:
                     i+=1
-                    agent.model.save_model("./result/0630_1_train/"+ "agent" + str(i) + str(min(loss)) + ".h5")
-                self.log.to_csv("./result/0630_1_train/log_0630_train_1.csv")
+                    agent.model.save_model("./result/0808_1_train/"+ "agent[" + str(i) +"]"+ str(np.mean(loss)) + ".h5")
+                self.log.to_csv("./result/0808_1_train/log_0808_train_1.csv")
 
             self.log = self.log.append(log_,ignore_index=True)
             
-            print("Episode {p}, Score: {s}, Final Step: {t}, now: {n},epsilon: {e} , min_loss: {m}".format(p=episode_num, s=sum(rewards_all) ,t=timestep , n= self.end_time - self.start_time , e=epsilon ,m=min(loss)))
+            print("Episode {p}, Score: {s}, Final Step: {t}, now: {n},epsilon: {e} , avg_loss: {m}".format(p=episode_num, s=np.sum(rewards_all) ,t=self.timestep , n= self.end_time - self.start_time , e=epsilon ,m=np.mean(loss)))
 
-#             gate_control(consumer)를 여러개 선언하면 time slot의 time out이 중복되는거 아닌가?
-#             gate_control은 하나만 선언되도록..!!
-#             해결책 : get하는 함수는 따로 만들고 gate_control내에서 선언...
-#             혹은 store가 비어있으면 wait하지않고 넘어가도록.
-#TODO : reward를 agent별로 따로 주어야 하나?
     def reward(self,state,flows):
-        #print ("state", state)
-        #reward 1
-        rewards = [-(state[i]*(i+1)) for i in range(self.PRIORITY_QUEUE)] #기다리고 있는 플로우 수 * 우선순위 낮을수록 가산점
-        #print ("보상1" , rewards)
-        
-        #reward 2
-        #TODO: sdn에서 deadline을 구현하지 못했을 뿐더러 감점폭이 너무 큰듯
-        for f in range(len(flows)):
-            if (flows[f].met_ == True):
-                rn = flows[f].type_ 
-                rewards[(rn-1)] += 1*rn #기간내에 전송 완료했을 때
-            else:
-                rn = flows[f].type_ 
-                rewards[(rn-1)] -= 10*rn #기간내에 전송 못했을 때
+        #state = [전송된 패킷, 생성해야 할 전체 패킷의 개수, 생성한 패킷의 개수]
 
-        #print ("최종보상" , rewards)
-        #rewards = [rewards[flows[f].type_ - 1] + 5 * (flows[f].type_)  for f in range(len(flows))] #전송완료 됐으면 추가점수 * 우선순위 높을수록 가산점
-        
-        return rewards
+        w1 = [6,4,2]
+        w2 = 5
+        w3 = -20
+
+        # reward 1
+        # 생성해야할 패킷 대비 전송된 패킷 : 전송된 패킷이 많아질 수록 점수를 많이 부여하기 때문에 빨리 전송할 수록 보상이 많이 주어짐
+        #오류 발견 : class별로 차등 점수를 부여하지 않았음;
+        reward1 = 0
+        for i in range(3):
+            reward1 += state[i][0] * w1[i]
+        #print("reward1",reward1)
+        #
+        #reward 2
+        # 생성한 패킷 대비 전송된 패킷 : 생성한 패킷이 모두 전송완료될때까지 panelty
+        reward2 = 0
+        for i in range(3):
+            if state[i][1] != 0:
+                #print("state", state[i][0],state[i][2])
+                r = w2 * (1 - state[i][1])
+                reward2 -= r*(3-i)*(3-i)
+        #print("reward2", reward2)
+        #
+        # #reward 3
+        # #높은 우선순위 Flow를 빨리 전송했을수록 가산점
+        reward3 = 0
+        for f in range(len(flows)):
+            if (flows[f].met_ != True):
+                # rn = flows[f].type_
+                # reward3 += 4-rn #기간내에 전송 완료했을 때
+            # else:
+                rn = flows[f].type_
+                reward3 -= w3*(4-rn) #기간내에 전송 못했을 때 : 큰 panelty
+        # #print("reward3",reward3)
+        return round(reward1+reward2+reward3)
             
     def step(self,flows):
         
         #state 관측
-        state = [len(self.class_based_queues[i].items) for i in range(self.PRIORITY_QUEUE)]
-        
+
+        state = np.zeros((4,2))
+
+        try:
+            state[0] = round(self.received_packet[0]/self.command_control,2) , round(self.received_packet[0]/self.cnt1,2)
+            state[1] = round(self.received_packet[1]/self.command_control,2) , round(self.received_packet[0]/self.cnt1,2)
+            state[2] = round(self.received_packet[2]/self.command_control,2) , round(self.received_packet[0]/self.cnt1,2)
+            state[3] = state[0][0]*0.5+state[1][0]*0.3+state[2][0]*0.2, state[0][1]*0.5+state[1][1]*0.3+state[2][1]*0.2
+
+        except: #devided by zero
+            state[0] = round(self.received_packet[0] / self.command_control, 2), 0
+            state[1] = round(self.received_packet[1] / self.command_control, 2), 0
+            state[2] = round(self.received_packet[2] / self.command_control, 2), 0
+            state[3] = state[0][0] * 0.5 + state[1][0] * 0.3 + state[2][0] * 0.2, 0
+
         #reward 측정
         rewards = self.reward(state,flows)
         
         #done 검사
-        if (self.cnt1 == self.best_effort) and (self.cnt2 == self.command_control) and (self.cnt3 == self.video) and (self.cnt4 == self.audio) :
+        if (self.cnt1 == self.command_control) and (self.cnt2 == self.audio) and (self.cnt3 == self.video) and (self.cnt4 == self.best_effort) :
             done = True
         
         else :
             done = False
         
-        return [state,rewards,done]
+        return [state, rewards, done]
            
                 
     def run(self):
@@ -320,13 +354,8 @@ class GateControllEnv(object):
         i = 0
         for agent in self.agents:
             i += 1
-            agent.model.save_model("./result/0630_1_train/" + "agent" + str(i) + str(min(self.minloss)) + ".h5")
-        self.log.to_csv("./result/0630_1_train/log_0630_train_1.csv")
-
-        # for agent in self.agents:
-        #     agent.model.save_model("train_0630_"+str(end_sim_time)+str(agent)+".h5")
-                  
-        #self.log.to_csv("log_0630_train.csv")
+            agent.model.save_model("./result/0808_1_train/" + "agent[" + str(i) + "]" + str(min(self.minloss)) + ".h5")
+        self.log.to_csv("./result/0808_1_train/log_0808_train_1.csv")
         
 if __name__ =="__main__":
     env_ = GateControllEnv()

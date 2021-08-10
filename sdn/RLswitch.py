@@ -165,7 +165,6 @@ class rl_switch(app_manager.RyuApp):
     # packet-in handler에서는 gcl의 Open정보와 현재 timeslot cnt를 비교하여 delay후 전송한다.
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
-        #gcl을 참조하여 dealy 계산
         _,clk = self.timeslot(datetime.now())
         msg = ev.msg
         datapath = msg.datapath
@@ -180,11 +179,9 @@ class rl_switch(app_manager.RyuApp):
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         dst = eth.dst
         src = eth.src
+
         class_ = 4 #best effort
-        if eth.ethertype == ether_types.ETH_TYPE_LLDP:
-            # ignore lldp packet
-            return
-        # flow generator check(debug)
+
         if (dst in self.H) and (src in self.H):
 
             if eth.ethertype == ether_types.ETH_TYPE_IEEE802_3:
@@ -197,11 +194,7 @@ class rl_switch(app_manager.RyuApp):
                 class_ = 3
                 #self.logger.info("class %s packet" % (class_))
 
-        if class_ != 4:
-            self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
-                             ((datetime.now() - self.timeslot_start).seconds,
-                              (datetime.now() - self.timeslot_start).microseconds / 1000, switchid, class_, clk,
-                              bufferid))
+
         # queue에 진입, ts_cnt와 GCl을 보고 대기
         # queue에서 대기(하고있다고 가정)중인 패킷 증가
 
@@ -227,7 +220,6 @@ class rl_switch(app_manager.RyuApp):
             # # flow_mod & packet_out
             if msg.buffer_id != ofproto.OFP_NO_BUFFER:  # 버퍼가 존재하는 패킷이면 return? 전송하지 않음..?
                 self.add_flow(datapath, 1, match, actions, msg.buffer_id)
-                self.logger.info("buffer가 존재합니다.")
                 #return
             # else:
             #     self.add_flow(datapath, 1, match, actions)
@@ -240,13 +232,13 @@ class rl_switch(app_manager.RyuApp):
 
         # while True:
         #     try:
-            delay = (self.gcl[switchid][class_-1][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
+        delay = (self.gcl[switchid][class_-1][clk - 1:].index('1')) * self.timeslot_size  # gate가 open되기까지의 시간을 계산 (만약 열려있으면 바로 전송)
                 # break
             # except:
             #     print("다음 cycle까지 기다리기 : 현재 사이클에 OPEN예정이 없음")
             #     time.sleep(self.timeslot_size/1000)
 
-        time.sleep(delay/1000) #delay
+        hub.sleep(delay/1000) #delay
         # self.logger.info("sleep")
         match = parser.OFPMatch(in_port = in_port)
         #flow가 match와 일치하면 match생성시에 지정해준 action으로 packet out한다.
@@ -258,11 +250,11 @@ class rl_switch(app_manager.RyuApp):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
             df = pd.DataFrame([(switchid, class_, datetime.now()-self.timeslot_start, self.queue[switchid-1][out_port-1][class_-1])], columns=['switch','class','arrival','queue'])
             self.switch_log = self.switch_log.append(df)
-
-        # if class_ != 4:
-        #     self.logger.info("%s초 %0.1f : 스위치 %s, 패킷 out class %s,clk %s " % \
-        #                      ((datetime.now() - self.start_time).seconds,
-        #                       (datetime.now() - self.start_time).microseconds / 1000, switchid, class_, clk))
+            if class_ != 4:
+                self.logger.info("[in] %s초 %0.1f : 스위치 %s, 패킷 in class %s,clk %s, buffer %s " % \
+                                 ((datetime.now() - self.timeslot_start).seconds,
+                                  (datetime.now() - self.timeslot_start).microseconds / 1000, switchid, class_, clk,
+                                  bufferid))
 
         if self.terminal == 6:
             # for d in range(len(self.dp)):

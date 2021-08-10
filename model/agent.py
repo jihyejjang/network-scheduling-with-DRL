@@ -13,27 +13,29 @@ from dqn import DQN
 #from memory import Memory
 
 class Agent(object):
-    def __init__(self,priority_queue,tdm_cycle):
+    def __init__(self,tdm_cycle):
         self.tdm_cycle = tdm_cycle
-        self.priority_queue = priority_queue
-        self.model = DQN(priority_queue,tdm_cycle)
-        self.state_size = priority_queue
-        self.action_size = 2**tdm_cycle
+        self.model = DQN()
+        self.state_size = 2
+        self.action_size = 10
         self.epsilon = 0.999
         self.epsilon_min = 0.01
         self.step = 0
         self.test = False
-        self.step_decrease = 2500 #step_decrease마다 epsilon 감소, 전체 episode를 약 10번으로 나눠서 epsilon을 감소
-        self.discount_factor = 0.8 #할인율. 1에 가까울 수록 미래에 받는 보상도 중요, 0에 가까울수록 즉각적인 보상이 중요
-        self.memory = deque(maxlen=9999999999)
-        #self.mse_loss = []
-        
+        self.step_decrease = 5000 #step_decrease마다 epsilon 감소, 전체 episode를 약 10번으로 나눠서 epsilon을 감소
+        self.discount_factor = 0.9 #할인율. 1에 가까울 수록 미래에 받는 보상도 중요, 0에 가까울수록 즉각적인 보상이 중요
+        self.memory = deque(maxlen=99999)
+        self.action_list=np.array(['1111111111','1111100000','1001001001'
+                        ,'1010101010','0011001100','0000011111','1100110011'
+                        ,'0000000001','0000100001','0000000000'])
+
     def choose_action(self,state):
-        if np.random.random() < self.epsilon: 
-            return format(random.randrange(self.action_size),'0'+str(self.tdm_cycle)+'b')
+        if np.random.random() < self.epsilon:
+            return random.choice(self.action_list)
         else:
-            return format(np.argmax(self.model.predict_one(state)),'0'+str(self.tdm_cycle)+'b') #tdm cycle자리수의 이진수 변환 '111111'
-        
+            n = self.model.predict_one(state)
+            return self.action_list[np.argmax(n)]
+
     def epsilon_decay(self):
         
         if self.test:
@@ -72,7 +74,7 @@ class Agent(object):
         for i in range(batch_len):
             o = batch[i]
             s = o[0]
-            a = int(o[1],2) #binary action을 action id로 matching
+            a = np.where(self.action_list == o[1])
             r = o[2]
             s_ = o[3]
             done = o[4]
