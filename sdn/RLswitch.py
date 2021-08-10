@@ -261,8 +261,7 @@ class rl_switch(app_manager.RyuApp):
             self.received_log.to_csv('switchlog0810_received.csv')
             #self.terminal = False
 
-    def _cc_gen1(self, time=None):
-        time = time.time()
+    def _cc_gen1(self):
         datapath = self.dp[1]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
@@ -280,15 +279,14 @@ class rl_switch(app_manager.RyuApp):
 
         while True:
             self.cc_cnt += 1
-            time = time.time()
-            payload = '%d;%f' % (self.cc_cnt, time)
+            payload = str('%d;%f' % (self.cc_cnt, time.time())).encode('ascii')
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
                                       match=match,
                                       actions=actions, data=payload)
             datapath.send_msg(out)
             hub.sleep(self.cc_period/1000)
-            self.logger.info("%f : C&C1 generated %s, 스위치%s " % (time, self.cc_cnt, datapath.id))
+            self.logger.info("%f : C&C1 generated %s, 스위치%s " % (time.time(), self.cc_cnt, datapath.id))
 
             df = pd.DataFrame([(datapath.id, 1, self.cc_cnt, time.time(), 'x')],
                               columns=['switch', 'class', 'number', 'time', 'queue'])
