@@ -210,7 +210,7 @@ class rl_switch(app_manager.RyuApp):
             self.queue[switchid - 1][out_port - 1][class_ - 1] += 1
         else:
             out_port = ofproto.OFPP_FLOOD
-            print("flooding")
+            #print("flooding")
 
 
         actions = [parser.OFPActionOutput(out_port)]
@@ -231,7 +231,7 @@ class rl_switch(app_manager.RyuApp):
             #     print("다음 cycle까지 기다리기 : 현재 사이클에 OPEN예정이 없음")
             #     time.sleep(self.timeslot_size/1000)
 
-        print("delay", delay/1000)
+        #print("delay", delay/1000)
 
         hub.sleep(delay/1000) #delay
 
@@ -248,13 +248,13 @@ class rl_switch(app_manager.RyuApp):
 
         if (1 <= out_port <= 3) and ((switchid == 5) or (switchid == 6)):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
-            df = pd.DataFrame([(delay_end_time, switchid, class_, info[0], delay_end_time - delay_start_time,
+            df = pd.DataFrame([(delay_end_time, switchid, class_, icmp_packet, delay_end_time - delay_start_time,
                                 self.queue[switchid-1][out_port-1][class_-1])], columns=['arrival time', 'switch', 'class', 'number', 'delay', 'queue'])
             self.received_log = self.received_log.append(df)
 
             if class_ != 4:
                 self.logger.info("[in] %f : 스위치 %s, class %s 의 %s번째 패킷,clk %s" % \
-                                 (time.time(), switchid, class_, msg.data[0], clk))
+                                 (time.time(), switchid, class_, icmp_packet, clk))
 
         if self.terminal == 6:
             # for d in range(len(self.dp)):
@@ -272,8 +272,8 @@ class rl_switch(app_manager.RyuApp):
                                            src=self.H[1]))
 
         pkt.add_protocol(ipv4.ipv4(proto=in_proto.IPPROTO_ICMP,
-                                   src='10.0.0.100',
-                                   dst=self.H[5]))
+                                   src='10.0.0.2',
+                                   dst='10.0.0.6'))
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -286,6 +286,7 @@ class rl_switch(app_manager.RyuApp):
         while True:
             self.cc_cnt += 1
             payload = str('%d;%f' % (self.cc_cnt, time.time())).encode('ascii')
+            print ("payload",payload)
             payload_ = icmp.echo(data=payload)
             pkt.add_protocol(icmp.icmp(data=payload_))
             pkt.serialize()
