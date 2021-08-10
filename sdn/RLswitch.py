@@ -182,8 +182,8 @@ class rl_switch(app_manager.RyuApp):
         dst = eth.dst
         src = eth.src
 
-        icmp_packet = pkt.get_protocols(icmp.icmp).data
-        print (icmp_packet)
+        # icmp_packet = pkt.get_protocol(icmp.icmp)
+        # print (icmp_packet)
         # payload = icmp_packet.data
         # info = payload.split(';')
 
@@ -210,7 +210,7 @@ class rl_switch(app_manager.RyuApp):
             self.queue[switchid - 1][out_port - 1][class_ - 1] += 1
         else:
             out_port = ofproto.OFPP_FLOOD
-            #print("flooding")
+            print("flooding")
 
 
         actions = [parser.OFPActionOutput(out_port)]
@@ -248,13 +248,13 @@ class rl_switch(app_manager.RyuApp):
 
         if (1 <= out_port <= 3) and ((switchid == 5) or (switchid == 6)):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
-            df = pd.DataFrame([(delay_end_time, switchid, class_, icmp_packet, delay_end_time - delay_start_time,
+            df = pd.DataFrame([(delay_end_time, switchid, class_, '-', delay_end_time - delay_start_time,
                                 self.queue[switchid-1][out_port-1][class_-1])], columns=['arrival time', 'switch', 'class', 'number', 'delay', 'queue'])
             self.received_log = self.received_log.append(df)
 
             if class_ != 4:
                 self.logger.info("[in] %f : 스위치 %s, class %s 의 %s번째 패킷,clk %s" % \
-                                 (time.time(), switchid, class_, icmp_packet, clk))
+                                 (time.time(), switchid, class_, '-', clk))
 
         if self.terminal == 6:
             # for d in range(len(self.dp)):
@@ -271,9 +271,9 @@ class rl_switch(app_manager.RyuApp):
                                            dst=self.H[5],
                                            src=self.H[1]))
 
-        pkt.add_protocol(ipv4.ipv4(proto=in_proto.IPPROTO_ICMP,
-                                   src='10.0.0.2',
-                                   dst='10.0.0.6'))
+        # pkt.add_protocol(ipv4.ipv4(proto=in_proto.IPPROTO_ICMP,
+        #                            src='10.0.0.2',
+        #                            dst='10.0.0.6'))
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -285,10 +285,10 @@ class rl_switch(app_manager.RyuApp):
 
         while True:
             self.cc_cnt += 1
-            payload = '%d;%f' % (self.cc_cnt, time.time()).encode('ascii')
-            print ("payload",payload)
-            payload_ = icmp.echo(data=payload)
-            pkt.add_protocol(icmp.icmp(data=payload_))
+            # payload = str('%d;%f' % (self.cc_cnt, time.time())).encode('ascii')
+            # print ("payload",payload)
+            # payload_ = icmp.echo(data=payload)
+            #pkt.add_protocol(icmp.icmp(data=payload_))
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
