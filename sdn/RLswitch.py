@@ -245,22 +245,20 @@ class rl_switch(app_manager.RyuApp):
 
         datapath.send_msg(out)
 
-        if class_ != 4:
-            self.logger.info("[in] %f : 스위치 %s, class %s 의 %s번째 패킷,clk %s" % \
-                             (time.time(), switchid, class_, '-', clk))
-
         if (1 <= out_port <= 3) and ((switchid == 5) or (switchid == 6)):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
             df = pd.DataFrame([(delay_end_time, switchid, class_, '-', delay_end_time - delay_start_time,
                                 self.queue[switchid-1][out_port-1][class_-1])], columns=['arrival time', 'switch', 'class', 'number', 'delay', 'queue'])
             self.received_log = self.received_log.append(df)
+            if class_ != 4:
+                self.logger.info("[in] %f : 스위치 %s, class %s 의 %s번째 패킷,clk %s" % \
+                                 (time.time(), switchid, class_, '-', clk))
 
 
 
         if self.terminal == 6:
             # for d in range(len(self.dp)):
             #     self.send_flow_stats_request(self.dp[d+1])
-            print ("terminal")
             #self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.timeslot_start).seconds,(datetime.now() - self.timeslot_start).microseconds / 1000))
             self.generated_log.to_csv('switchlog0810_generated.csv')
             self.received_log.to_csv('switchlog0810_received.csv')
