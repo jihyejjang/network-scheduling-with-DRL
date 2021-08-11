@@ -82,10 +82,11 @@ class SimpleSwitch15(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
-        print("msg.data",msg.data)
-        packet=msg.data[ICMP]
+        #print("msg.data",msg.data)
+        #packet=msg.data[ICMP]
 
         pkt = packet.Packet(msg.data)
+        print ("pkt",pkt)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
 
         if eth.ethertype == ether_types.ETH_TYPE_LLDP:

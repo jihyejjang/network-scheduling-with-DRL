@@ -77,7 +77,7 @@ def runMyTopo(): #activate mininet topology after ping test
      #net.pingAll()
      for i in range(40):
         packet = Ether(src="00:00:00:00:00:01", dst="00:00:00:00:00:05") / ICMP() / str("class" + str(1) + ";" + str(1) + ";")
-        print ("")
+        print (packet[Ether].time,packet[ICMP].payload)
         send(packet)
         time.sleep(0.01)
 
