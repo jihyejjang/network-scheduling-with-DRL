@@ -42,7 +42,7 @@ class MyTopo(Topo):
         self.addLink(switch2, host4, cls=TCLink, bw = 10)
         self.addLink(switch2, switch3, cls=TCLink, bw = 10)
         self.addLink(switch3, switch4, cls=TCLink, bw = 10)
-        self.addLink(switch4, switch5, cls=TCLink, bw = 10
+        self.addLink(switch4, switch5, cls=TCLink, bw = 10)
         self.addLink(switch5, host5, cls=TCLink, bw = 10)
         self.addLink(switch5, host6, cls=TCLink, bw = 10)
         self.addLink(switch4, switch6, cls=TCLink, bw = 10)
@@ -55,14 +55,22 @@ class MyTopo(Topo):
 def runMyTopo(): #activate mininet topology after ping test
      	
      topo = MyTopo()
-     net = Mininet (topo=topo, controller = RemoteController , switch=OVSSwitch, autoSetMacs=True)
+     #net = Mininet (topo=topo, controller = RemoteController , switch=OVSSwitch, autoSetMacs=True)
+     net = Mininet (topo=topo, switch=OVSSwitch, autoSetMacs=True)
      net.start()
+     net.pingAll()
 
-     dumpNodeConnections(net.hosts)
-     dumpNodeConnections(net.switches)
+     net.iperf()
+     net.iperf((topo.host1, topo.host5), l4Type = 'UDP')
+
+     net.pingPairFull()
+
+     net.stop()
+     #dumpNodeConnections(net.hosts)
+     #dumpNodeConnections(net.switches) #연결 정보 확인
      #net.pingAll()
      #print("ping test completed")
-     CLI(net)
+     #CLI(net)
         
 if __name__ == '__main__':
     setLogLevel('info')
