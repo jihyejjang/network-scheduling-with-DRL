@@ -21,6 +21,7 @@ from ryu.ofproto import ofproto_v1_5
 from ryu.lib.packet import packet, ether_types, in_proto
 from ryu.lib.packet import ethernet,icmp
 from ryu.lib.packet import ether_types
+from scapy.all import ICMP,Ether
 
 def addr_table():  # address table dictionary is created manually
     H = ['00:00:00:00:00:0' + str(h) for h in range(1, 9)]  # hosts
@@ -81,6 +82,8 @@ class SimpleSwitch15(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
+        print("msg.data",msg.data)
+        packet=msg.data[ICMP]
 
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
