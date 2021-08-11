@@ -19,7 +19,7 @@ from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_5
 from ryu.lib.packet import packet
-from ryu.lib.packet import ethernet
+from ryu.lib.packet import ethernet,ipv4,icmp
 from ryu.lib.packet import ether_types
 
 
@@ -75,11 +75,13 @@ class SimpleSwitch15(app_manager.RyuApp):
             return
         dst = eth.dst
         src = eth.src
+        icmp = pkt.get_protocol(icmp.icmp)
+        print("icmp",icmp)
 
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
 
-        self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
+        self.logger.info("packet in 스위치%s 출발%s 도착%s %s", dpid, src, dst, in_port)
 
         # learn a mac address to avoid FLOOD next time.
         self.mac_to_port[dpid][src] = in_port

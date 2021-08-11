@@ -3,27 +3,14 @@
 
 from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.util import irange, dumpNodeConnections
 from mininet.log import setLogLevel
 from mininet.cli import CLI
 from mininet.node import RemoteController, OVSSwitch
 from mininet.link import TCLink
-from scapy.all import sendp, IP, Ether, ICMP,
-import time
-import concurrent.futures
-
-packet = Ether()
-packet[Ether].src
-packet[Ether].dst
-while True:
-    sendp(packets)
-    hub.sleep()
-
-def gen_():
-    packet = Ether('')
 
 
-class MyTopo(Topo):
+
+class mnTopo(Topo):
 
     def __init__(self):
         "Create custom loop topo."
