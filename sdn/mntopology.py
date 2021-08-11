@@ -35,6 +35,7 @@ class MyTopo(Topo):
         
         # Add hosts and switches
         c1 = self.addController('c1', controller = RemoteController)
+        c2 = self.addController('c2', controller = RemoteController)
         host1 = self.addHost('h1')
         host2 = self.addHost('h2')
         host3 = self.addHost('h3')
@@ -66,15 +67,6 @@ class MyTopo(Topo):
         self.addLink(switch6, host7, cls=TCLink, bw = 1000)
         self.addLink(switch6, host8, cls=TCLink, bw = 1000)
 
-        self.addLink(c1, switch1, cls=TCLink, bw=1000)
-        self.addLink(switch2, c1, cls=TCLink, bw=1000)
-        self.addLink(switch3, c1, cls=TCLink, bw=1000)
-        self.addLink(switch4, c1, cls=TCLink, bw=1000)
-        self.addLink(switch5, c1, cls=TCLink, bw=1000)
-        self.addLink(switch6, c1, cls=TCLink, bw=1000)
-
-
-        
         # Add controller
 	#cont1 = self.addController('c1', controller=Controller, port=6624)
 	
