@@ -14,13 +14,13 @@ import concurrent.futures
 
 
 #수신측에서 packet[icmp].time -> timestamp, packet[icmp].payload 로 데이터 확인 가능
-def gen_(src_,dst_,src_ip,dst_ip):
+def gen_(src_,dst_):
     n=1
     cnt=1
     period=0.005
     #"00:00:00:00:00:01","00:00:00:00:00:06","10.0.0.1","10.0.0.6"
-    while True:
-        packet = Ether(src=src_,dst=dst_)/ICMP()/"class"+str(n)+";"+str(cnt)+";"
+    for i in range(40):
+        packet = Ether(src=src_,dst=dst_)/ICMP()/str("class"+str(n)+";"+str(cnt)+";")
         send(packet)
         print("packet class1 전송",cnt)
         cnt+=1
@@ -28,7 +28,7 @@ def gen_(src_,dst_,src_ip,dst_ip):
 
 
 def mnNetwork():
-    net = Mininet (topo=None, build=False, controller = RemoteController , switch=OVSSwitch, autoSetMacs=True)
+    net = Mininet (topo=None, controller = RemoteController , switch=OVSSwitch, autoSetMacs=True)
     #net = Mininet(topo=None,build=False, switch=OVSSwitch, autoSetMacs=True)
 
     host1 = net.addHost('h1')
@@ -61,9 +61,9 @@ def mnNetwork():
     net.addLink(switch6, host7, cls=TCLink, bw=1000)
     net.addLink(switch6, host8, cls=TCLink, bw=1000)
 
-    gen_("00:00:00:00:00:01","00:00:00:00:00:06")
+    #gen_("00:00:00:00:00:01","00:00:00:00:00:06")
 
-    net.build()
+    net.start()
     CLI(net)
 
 if __name__=='__main__':

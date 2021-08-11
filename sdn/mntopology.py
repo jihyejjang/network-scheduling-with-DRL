@@ -8,21 +8,23 @@ from mininet.log import setLogLevel
 from mininet.cli import CLI
 from mininet.node import RemoteController, OVSSwitch
 from mininet.link import TCLink
-from scapy.all import sendp, IP, Ether, ICMP,
+from scapy.all import sendp, send, IP, Ether, ICMP
 import time
 import concurrent.futures
 
-packet = Ether()
-packet[Ether].src
-packet[Ether].dst
-while True:
-    sendp(packets)
-    hub.sleep()
 
-def gen_():
-    packet = Ether('')
-
-
+#수신측에서 packet[icmp].time -> timestamp, packet[icmp].payload 로 데이터 확인 가능
+# def gen_(src_,dst_):
+#     n=1
+#     cnt=1
+#     period=0.005
+#     #"00:00:00:00:00:01","00:00:00:00:00:06","10.0.0.1","10.0.0.6"
+#     for i in range(40):
+#         packet = Ether(src=src_,dst=dst_)/ICMP()/str("class"+str(n)+";"+str(cnt)+";")
+#         send(packet)
+#         print("packet class1 전송",cnt)
+#         cnt+=1
+#         time.sleep(period)
 class MyTopo(Topo):
 
     def __init__(self):
@@ -72,12 +74,14 @@ def runMyTopo(): #activate mininet topology after ping test
      #net = Mininet (topo=topo, controller = RemoteController , switch=OVSSwitch, autoSetMacs=True)
      net = Mininet (topo=topo, switch=OVSSwitch, autoSetMacs=True)
      net.start()
-     net.pingAll()
+     #net.pingAll()
 
-     net.iperf()
-     #net.iperf((net.host1, topo.host5), l4Type = 'UDP')
+     #net.iperf()
+     net.iperf((net.host1, net.host5), l4Type = 'UDP')
+     packet = Ether(src=net.host1, dst=net.host5) / ICMP() / str("class" + str(1) + ";" + str(1) + ";")
+     send(packet)
 
-     net.pingPairFull()
+     #net.pingPairFull()
 
      #net.stop()
      #dumpNodeConnections(net.hosts)
