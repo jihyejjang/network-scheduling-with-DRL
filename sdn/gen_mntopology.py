@@ -18,8 +18,9 @@ def gen_(src_,dst_,src_ip,dst_ip):
     n=1
     cnt=1
     period=0.005
+    #"00:00:00:00:00:01","00:00:00:00:00:06","10.0.0.1","10.0.0.6"
     while True:
-        packet = Ether(src=src_,dst=dst_)/IP(src=src_ip,dst=dst_ip)/ICMP()/"class"+str(n)+";"+str(cnt)+";"
+        packet = Ether(src=src_,dst=dst_)/ICMP()/"class"+str(n)+";"+str(cnt)+";"
         send(packet)
         print("packet class1 전송",cnt)
         cnt+=1
@@ -27,11 +28,10 @@ def gen_(src_,dst_,src_ip,dst_ip):
 
 
 def mnNetwork():
-    # net = Mininet (topo=None, controller = RemoteController , switch=OVSSwitch, autoSetMacs=True)
-    net = Mininet(topo=None,build=False switch=OVSSwitch, autoSetMacs=True)
+    net = Mininet (topo=None, build=False, controller = RemoteController , switch=OVSSwitch, autoSetMacs=True)
+    #net = Mininet(topo=None,build=False, switch=OVSSwitch, autoSetMacs=True)
 
     host1 = net.addHost('h1')
-    print("host1",host1)
     host2 = net.addHost('h2')
     host3 = net.addHost('h3')
     host4 = net.addHost('h4')
@@ -61,13 +61,15 @@ def mnNetwork():
     net.addLink(switch6, host7, cls=TCLink, bw=1000)
     net.addLink(switch6, host8, cls=TCLink, bw=1000)
 
+    gen_("00:00:00:00:00:01","00:00:00:00:00:06")
+
     net.build()
     CLI(net)
 
 if __name__=='__main__':
     setLogLevel('info')
     mnNetwork()
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-         cc1_process = [executor.submit(gen_,"00:00:00:00:00:01","00:00:00:00:00:06","10.0.0.1","10.0.0.6")]
+    # with concurrent.futures.ProcessPoolExecutor() as executor:
+    #      cc1_process = [executor.submit(gen_,"00:00:00:00:00:01","00:00:00:00:00:06","10.0.0.1","10.0.0.6")]
 
 
