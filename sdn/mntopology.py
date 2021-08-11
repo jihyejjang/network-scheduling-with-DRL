@@ -34,7 +34,7 @@ class MyTopo(Topo):
         Topo.__init__(self)
         
         # Add hosts and switches
-        c1 = self.addContorller('c1', controller = RemoteController)
+        c1 = self.addController('c1', controller = RemoteController)
         host1 = self.addHost('h1')
         host2 = self.addHost('h2')
         host3 = self.addHost('h3')
@@ -82,7 +82,7 @@ def runMyTopo(): #activate mininet topology after ping test
      	
      topo = MyTopo()
 
-     net = Mininet (topo=topo,controller=RemoteController, switch=OVSSwitch, autoSetMacs=True)
+     net = Mininet (topo=topo, controller=RemoteController, switch=OVSSwitch, autoSetMacs=True)
      net.start()
      time.sleep(1)
      #net.pingAll()

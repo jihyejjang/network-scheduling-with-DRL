@@ -6,7 +6,7 @@ from mininet.net import Mininet
 from mininet.util import irange, dumpNodeConnections
 from mininet.log import setLogLevel
 from mininet.cli import CLI
-from mininet.node import RemoteController, OVSSwitch
+from mininet.node import RemoteController, OVSSwitch, Controller
 from mininet.link import TCLink
 from scapy.all import sendp, send, IP, Ether, ICMP
 import time
@@ -14,23 +14,23 @@ import concurrent.futures
 
 
 #수신측에서 packet[icmp].time -> timestamp, packet[icmp].payload 로 데이터 확인 가능
-def gen_(src_,dst_):
-    n=1
-    cnt=1
-    period=0.005
-    #"00:00:00:00:00:01","00:00:00:00:00:06","10.0.0.1","10.0.0.6"
-    for i in range(40):
-        packet = Ether(src=src_,dst=dst_)/ICMP()/str("class"+str(n)+";"+str(cnt)+";")
-        send(packet)
-        print("packet class1 전송",cnt)
-        cnt+=1
-        time.sleep(period)
+# def gen_(src_,dst_):
+#     n=1
+#     cnt=1
+#     period=0.005
+#     #"00:00:00:00:00:01","00:00:00:00:00:06","10.0.0.1","10.0.0.6"
+#     for i in range(40):
+#         packet = Ether(src=src_,dst=dst_)/ICMP()/str("class"+str(n)+";"+str(cnt)+";")
+#         send(packet)
+#         print("packet class1 전송",cnt)
+#         cnt+=1
+#         time.sleep(period)
 
 
 def mnNetwork():
     net = Mininet (topo=None, controller = RemoteController , switch=OVSSwitch, autoSetMacs=True)
     #net = Mininet(topo=None,build=False, switch=OVSSwitch, autoSetMacs=True)
-
+    c1 = net.addController('c1', controller = RemoteController)
     host1 = net.addHost('h1')
     host2 = net.addHost('h2')
     host3 = net.addHost('h3')
@@ -60,10 +60,18 @@ def mnNetwork():
     net.addLink(switch4, switch6, cls=TCLink, bw=1000)
     net.addLink(switch6, host7, cls=TCLink, bw=1000)
     net.addLink(switch6, host8, cls=TCLink, bw=1000)
+    net.build()
+    c1.start()
+    switch1.start(c1)
+    switch2.start(c1)
+    switch3.start(c1)
+    switch4.start(c1)
+    switch5.start(c1)
+    switch6.start(c1)
+    net.start()
 
     #gen_("00:00:00:00:00:01","00:00:00:00:00:06")
 
-    net.start()
     CLI(net)
 
 if __name__=='__main__':
