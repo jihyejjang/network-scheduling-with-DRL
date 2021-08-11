@@ -18,8 +18,8 @@ from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_5
-from ryu.lib.packet import packet
-from ryu.lib.packet import ethernet,ipv4,icmp
+from ryu.lib.packet import packet, ether_types, in_proto
+from ryu.lib.packet import ethernet,icmp
 from ryu.lib.packet import ether_types
 
 
@@ -75,8 +75,8 @@ class SimpleSwitch15(app_manager.RyuApp):
             return
         dst = eth.dst
         src = eth.src
-        icmp = pkt.get_protocol(icmp.icmp)
-        print("icmp",icmp)
+        icmp_ = pkt.get_protocol(icmp.icmp)
+        print("icmp",icmp_)
 
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
