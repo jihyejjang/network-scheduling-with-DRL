@@ -202,8 +202,8 @@ class rl_switch(app_manager.RyuApp):
                 #self.logger.info("class %s packet" % (class_))
 
 
-        if not (src in self.mac_to_port[switchid]):
-            self.mac_to_port[switchid][src] = in_port
+        # if not (src in self.mac_to_port[switchid]):
+        #     self.mac_to_port[switchid][src] = in_port
 
         if dst in self.mac_to_port[switchid]:
             out_port = self.mac_to_port[switchid][dst]

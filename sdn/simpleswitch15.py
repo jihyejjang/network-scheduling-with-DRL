@@ -92,13 +92,9 @@ class SimpleSwitch15(app_manager.RyuApp):
         src = eth.src
         icmp_ = pkt.get_protocol(icmp.icmp)
         if icmp_ != None:
-            print("icmp",icmp_)
+            print("@icmp@",icmp_)
 
         dpid = datapath.id
-        self.mac_to_port.setdefault(dpid, {})
-
-        # learn a mac address to avoid FLOOD next time.
-        self.mac_to_port[dpid][src] = in_port
 
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]

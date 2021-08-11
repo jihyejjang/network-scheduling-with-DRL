@@ -71,23 +71,14 @@ class MyTopo(Topo):
 def runMyTopo(): #activate mininet topology after ping test
      	
      topo = MyTopo()
-     #net = Mininet (topo=topo, controller = RemoteController , switch=OVSSwitch, autoSetMacs=True)
+
      net = Mininet (topo=topo,controller=RemoteController, switch=OVSSwitch, autoSetMacs=True)
      net.start()
      #net.pingAll()
 
-     #net.iperf()
-     #net.iperf((net.host1, net.host5), l4Type = 'UDP')
      packet = Ether(src="00:00:00:00:00:01", dst="00:00:00:00:00:05") / ICMP() / str("class" + str(1) + ";" + str(1) + ";")
      send(packet)
 
-     #net.pingPairFull()
-
-     #net.stop()
-     #dumpNodeConnections(net.hosts)
-     #dumpNodeConnections(net.switches) #연결 정보 확인
-     #net.pingAll()
-     #print("ping test completed")
      CLI(net)
         
 if __name__ == '__main__':
