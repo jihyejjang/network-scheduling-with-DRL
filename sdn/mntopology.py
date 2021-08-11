@@ -78,7 +78,7 @@ def runMyTopo(): #activate mininet topology after ping test
 
      #net.iperf()
      #net.iperf((net.host1, net.host5), l4Type = 'UDP')
-     packet = Ether(src=net.host1, dst=net.host5) / ICMP() / str("class" + str(1) + ";" + str(1) + ";")
+     packet = Ether(src=net.h1, dst=net.h5) / ICMP() / str("class" + str(1) + ";" + str(1) + ";")
      send(packet)
 
      #net.pingPairFull()
