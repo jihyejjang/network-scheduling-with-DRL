@@ -8,7 +8,7 @@ from mininet.log import setLogLevel
 from mininet.cli import CLI
 from mininet.node import RemoteController, OVSSwitch
 from mininet.link import TCLink
-from scapy.all import sendp, send, IP, Ether, ICMP
+from scapy.all import sendp, send,  Ether, ICMP
 import time
 import concurrent.futures
 
@@ -72,12 +72,12 @@ def runMyTopo(): #activate mininet topology after ping test
      	
      topo = MyTopo()
      #net = Mininet (topo=topo, controller = RemoteController , switch=OVSSwitch, autoSetMacs=True)
-     net = Mininet (topo=topo, switch=OVSSwitch, autoSetMacs=True)
+     net = Mininet (topo=topo,controller=RemoteController, switch=OVSSwitch, autoSetMacs=True)
      net.start()
      #net.pingAll()
 
      #net.iperf()
-     net.iperf((net.host1, net.host5), l4Type = 'UDP')
+     #net.iperf((net.host1, net.host5), l4Type = 'UDP')
      packet = Ether(src=net.host1, dst=net.host5) / ICMP() / str("class" + str(1) + ";" + str(1) + ";")
      send(packet)
 
