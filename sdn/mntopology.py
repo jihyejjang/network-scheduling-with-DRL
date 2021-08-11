@@ -74,12 +74,13 @@ def runMyTopo(): #activate mininet topology after ping test
 
      net = Mininet (topo=topo,controller=RemoteController, switch=OVSSwitch, autoSetMacs=True)
      net.start()
+     time.sleep(1)
      #net.pingAll()
      for i in range(40):
         packet = Ether(src="00:00:00:00:00:01", dst="00:00:00:00:00:05") / ICMP() / str("class" + str(1) + ";" + str(1) + ";")
         print (packet[Ether].time,packet[ICMP].payload)
-        send(packet)
-        time.sleep(0.01)
+        sendp(packet)
+        time.sleep(1)
 
      CLI(net)
         

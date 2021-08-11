@@ -87,6 +87,7 @@ class SimpleSwitch15(app_manager.RyuApp):
 
         pkt = packet.Packet(msg.data)
         print ("pkt",pkt)
+
         eth = pkt.get_protocols(ethernet.ethernet)[0]
 
         if eth.ethertype == ether_types.ETH_TYPE_LLDP:

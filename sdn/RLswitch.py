@@ -13,7 +13,7 @@ from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_5
 
 from ryu.lib.packet import packet, ether_types, in_proto
-from ryu.lib.packet import ethernet, icmp, ipv4
+from ryu.lib.packet import ethernet, icmp, ipv4, ipv6
 import numpy as np
 
 #from tensorflow import keras
@@ -179,6 +179,9 @@ class rl_switch(app_manager.RyuApp):
 
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
+        ipv6_ = pkt.get_protocol(ipv6.ipv6)
+        if ipv6_!= None:
+            return
         dst = eth.dst
         src = eth.src
 
