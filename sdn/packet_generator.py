@@ -39,11 +39,11 @@ def addr_table():  # address table dictionary is created manually
             mac_to_port[s][H[h]] = port[s - 1][h]
     return mac_to_port
 
-class rl_switch(app_manager.RyuApp):
+class rl_switch2(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_5.OFP_VERSION]
 
     def __init__(self, *args, **kwargs):
-        super(rl_switch, self).__init__(*args, **kwargs)
+        super(rl_switch2, self).__init__(*args, **kwargs)
 
         self.generated_log = pd.DataFrame(columns=['switch','class','number','time','queue'])#{'switch','class','arrival time','queue'}
         self.received_log = pd.DataFrame(columns=['arrival time','switch','class','number','delay','queue'])
@@ -81,7 +81,6 @@ class rl_switch(app_manager.RyuApp):
         self.cc_period = 5  # to 80
         self.vd_period = 33
         self.ad_period = 1  # milliseconds
-        self.action_thread = Process(target=self.gcl_cycle)
 
         self.timeslot_start = 0
 
@@ -147,15 +146,15 @@ class rl_switch(app_manager.RyuApp):
     #
     #
     # # flow table entry 업데이트 - timeout(설정)
-    # def add_flow(self, datapath, priority, match, actions,buffer_id=None):
-    #     ofproto = datapath.ofproto
-    #     parser = datapath.ofproto_parser
-    #     inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-    #                                          actions)]
-    #
-    #     mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
-    #                                 match=match, instructions=inst,buffer_id=buffer_id)
-    #     datapath.send_msg(mod)
+    def add_flow(self, datapath, priority, match, actions,buffer_id=None):
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+
+        mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
+                                    match=match, instructions=inst,buffer_id=buffer_id)
+        datapath.send_msg(mod)
     #
     # # packet-in handler에서는 gcl의 Open정보와 현재 timeslot cnt를 비교하여 delay후 전송한다.
     # @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)

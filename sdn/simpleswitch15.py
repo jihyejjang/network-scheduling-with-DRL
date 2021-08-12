@@ -21,6 +21,7 @@ from ryu.ofproto import ofproto_v1_5
 from ryu.lib.packet import packet, ether_types, in_proto
 from ryu.lib.packet import ethernet,icmp
 from ryu.lib.packet import ether_types
+import time
 from scapy.all import ICMP,Ether
 
 def addr_table():  # address table dictionary is created manually
@@ -103,7 +104,7 @@ class SimpleSwitch15(app_manager.RyuApp):
 
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]
-            self.logger.info("packet in 스위치%s 출발%s 도착%s %s", dpid, src, dst, in_port)
+            self.logger.info("%s packet in 스위치%s 출발%s 도착%s %s",time.time(), dpid, src, dst, in_port)
         else:
             out_port = ofproto.OFPP_FLOOD
 

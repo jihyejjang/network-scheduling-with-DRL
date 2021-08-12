@@ -56,7 +56,7 @@ def mnNetwork():
     net.addLink(switch2, switch3, cls=TCLink, bw=1000)
     net.addLink(switch3, switch4, cls=TCLink, bw=1000)
     net.addLink(switch4, switch5, cls=TCLink, bw=1000)
-    net.addLink(switch5, host5, cls=TCLink, bw=10)
+    net.addLink(switch5, host5, cls=TCLink, bw=1000)
     net.addLink(switch5, host6, cls=TCLink, bw=1000)
     net.addLink(switch4, switch6, cls=TCLink, bw=1000)
     net.addLink(switch6, host7, cls=TCLink, bw=1000)
