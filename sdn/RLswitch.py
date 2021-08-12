@@ -1,6 +1,5 @@
 
 import time
-# from datetime import datetime
 import pandas as pd
 from ryu.lib import hub
 from multiprocessing import Process
@@ -17,11 +16,6 @@ from ryu.lib.packet import ethernet, icmp, ipv4, ipv6
 import numpy as np
 
 #from tensorflow import keras
-
-# deadline 구현 -> Latency(flow 별 전송시간)구하기 : 모든 packet들이 다 전송되는 데 걸리는 시간
-# TODO: dqn model 연결
-# openflow 1.3 -> 1.5 : buffer 미지원
-# 모든 flow들이 다 전송되면 프로그램을 종료
 
 def addr_table():  # address table dictionary is created manually
     H = ['00:00:00:00:00:0' + str(h) for h in range(1, 9)]  # hosts
@@ -69,7 +63,7 @@ class rl_switch(app_manager.RyuApp):
                     4: ['1111111111', '1111111111', '1111111111', '1111111111'],
                     5: ['1111111111', '1111111111', '1111111111', '1111111111'],
                     6: ['1111111111', '1111111111', '1111111111', '1111111111'],
-                    } #스위치 첫 연결 시 action은 FIFO
+                    } #최초 action
 
         # flow attribute
         #self.best_effort = 30  # best effort traffic (Even)
@@ -86,7 +80,6 @@ class rl_switch(app_manager.RyuApp):
         self.cc_period = 5  # to 80
         self.vd_period = 33
         self.ad_period = 1  # milliseconds
-        self.action_thread = Process(target=self.gcl_cycle)
 
         self.timeslot_start = 0
 
@@ -101,16 +94,12 @@ class rl_switch(app_manager.RyuApp):
         parser = datapath.ofproto_parser
 
         match = parser.OFPMatch()
-        # controller에 전송하고 flow entry modify하는 명령 : 빈 매치를 modify해서 flow-miss를 controller로 보내는 명령
         actions = [parser.OFPActionOutput(port=ofproto.OFPP_CONTROLLER,
                                           max_len=ofproto.OFPCML_NO_BUFFER)]
         self.add_flow(datapath,0,match,actions,ofproto.OFP_NO_BUFFER)
 
-        #switch가 모두 연결됨과 동시에 flow들을 주기마다 생성, queue state 요청 메세지
-        #동시 실행인지, 순차적 실행인지..? - multithreading이기 때문에 동시실행으로 추측
         if len(self.dp)==6:
             self.timeslot_start = time.time()
-            #self.action_thread.start()
             #self.action_thread = hub.spawn(self.gcl_cycle)
             self.cc_thread = hub.spawn(self._cc_gen1)
             self.cc_thread2 = hub.spawn(self._cc_gen2)
@@ -120,27 +109,23 @@ class rl_switch(app_manager.RyuApp):
             self.vd_thread2 = hub.spawn(self._vd_gen2)
 
 
-    # self.queue 구현해서 대기중인 flow 구하고, gcl 함수호출로 실행, 스위치 첫연결시 gcl은 FIFO
-    # 0.5밀리초마다 타임슬롯 함수를 실행하는게 아니라 절대시간을 보고 몇번째 timeslot인지 계산한다. gcl도 마찬가지로,0.5ms*9에 갱신한다.
     def timeslot(self, time):  # timeslot 진행 횟수를 알려주는 함수
         msec = round((time - self.timeslot_start)*1000,1)
         slots = int(msec / self.timeslot_size)
-        cyc = int(slots / self.cycle)  # 몇번째 cycle인지
-        clk = cyc % self.cycle  # 몇번째 timeslot인지
+        cyc = int(slots / self.cycle)
+        clk = cyc % self.cycle
         return cyc, clk
 
     def gcl_cycle(self):
         time.sleep(0.005)
 
         while True:
-            print("dqn 관측@@@@@@@@@@@@@@@@@@@@@")
             time.sleep(0.001 * self.timeslot_size * 9)
             #state 관측
+            #TODO: state 수정
             for switch in range(len(self.state)):
                 for queue in range(len(self.state[0])): #switch 별 state : len(state[0]) = 4
                     self.state[switch][queue] = sum(self.queue[switch, :, queue])
-
-            #TODO: model dqn 추가하면 이부분을 수정(아랫부분을 주석처리 하면 gcl은 FIFO역할을 하게 됨)
 
             for s in range(len(self.dp)):
                 self.gcl[s] = [format(np.argmax(self.model1.predict(self.state[s].reshape(-1,4))), '010b'),
@@ -151,7 +136,6 @@ class rl_switch(app_manager.RyuApp):
 
 
 
-    # flow table entry 업데이트 - timeout(설정)
     def add_flow(self, datapath, priority, match, actions,buffer_id=None):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -180,6 +164,7 @@ class rl_switch(app_manager.RyuApp):
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         ipv6_ = pkt.get_protocol(ipv6.ipv6)
+
         if ipv6_!= None:
             return
         dst = eth.dst
@@ -204,9 +189,6 @@ class rl_switch(app_manager.RyuApp):
                 class_ = 3
                 #self.logger.info("class %s packet" % (class_))
 
-
-        # if not (src in self.mac_to_port[switchid]):
-        #     self.mac_to_port[switchid][src] = in_port
 
         if dst in self.mac_to_port[switchid]:
             out_port = self.mac_to_port[switchid][dst]
@@ -257,16 +239,12 @@ class rl_switch(app_manager.RyuApp):
             self.received_log = self.received_log.append(df)
 
             if class_ != 4:
-                self.logger.info("length %s",len(msg.data))
                 self.logger.info("[in] %f : 스위치 %s, class %s 의 %s번째 패킷,clk %s" % \
                                  (time.time(), switchid, class_, '-', clk))
 
 
 
         if self.terminal == 6:
-            # for d in range(len(self.dp)):
-            #     self.send_flow_stats_request(self.dp[d+1])
-            #self.logger.info("simulation terminated, duration %s.%0.1f" % ((datetime.now() - self.timeslot_start).seconds,(datetime.now() - self.timeslot_start).microseconds / 1000))
             self.generated_log.to_csv('switchlog0810_generated.csv')
             self.received_log.to_csv('switchlog0810_received.csv')
             #self.terminal = False
