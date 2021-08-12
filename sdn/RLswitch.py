@@ -257,6 +257,7 @@ class rl_switch(app_manager.RyuApp):
             self.received_log = self.received_log.append(df)
 
             if class_ != 4:
+                self.logger.info("length %s",len(msg.data))
                 self.logger.info("[in] %f : 스위치 %s, class %s 의 %s번째 패킷,clk %s" % \
                                  (time.time(), switchid, class_, '-', clk))
 
