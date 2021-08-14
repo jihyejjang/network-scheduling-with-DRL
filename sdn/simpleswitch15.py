@@ -21,10 +21,7 @@ from ryu.ofproto import ofproto_v1_5
 from ryu.lib.packet import packet, ether_types, in_proto
 from ryu.lib.packet import ethernet,icmp
 from ryu.lib import hub
-
-from ryu.lib.packet import ether_types
 import time
-from scapy.all import ICMP,Ether
 
 def addr_table():  # address table dictionary is created manually
     H = ['00:00:00:00:00:0' + str(h) for h in range(1, 9)]  # hosts
@@ -84,14 +81,15 @@ class SimpleSwitch15(app_manager.RyuApp):
         self.add_flow(datapath, 0, match, actions)
 
         if len(self.dp)==6:
+            print("@@@@simulation started@@@@")
             self.timeslot_start = time.time()
             #self.action_thread = hub.spawn(self.gcl_cycle)
             self.cc_thread = hub.spawn(self._cc_gen1)
-            self.cc_thread2 = hub.spawn(self._cc_gen2)
-            self.ad_thread = hub.spawn(self._ad_gen1)
-            self.ad_thread2 = hub.spawn(self._ad_gen2)
-            self.vd_thread = hub.spawn(self._vd_gen1)
-            self.vd_thread2 = hub.spawn(self._vd_gen2)
+            # self.cc_thread2 = hub.spawn(self._cc_gen2)
+            # self.ad_thread = hub.spawn(self._ad_gen1)
+            # self.ad_thread2 = hub.spawn(self._ad_gen2)
+            # self.vd_thread = hub.spawn(self._vd_gen1)
+            # self.vd_thread2 = hub.spawn(self._vd_gen2)
 
     def add_flow(self, datapath, priority, match, actions):
         ofproto = datapath.ofproto
@@ -172,7 +170,7 @@ class SimpleSwitch15(app_manager.RyuApp):
         match = parser.OFPMatch(in_port=2, eth_dst=self.H[5])
         actions = [parser.OFPActionOutput(3)]
         self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
-        match = parser.OFPMatch(in_port=2)
+        #match = parser.OFPMatch(in_port=2)
         data = pkt.data
 
         out = parser.OFPPacketOut(datapath=datapath,
