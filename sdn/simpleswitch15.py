@@ -61,29 +61,25 @@ class SimpleSwitch15(app_manager.RyuApp):
         self.ad_period = 1  # milliseconds
         self.timeslot_start = 0
 
-
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
-    def switch_features_handler(self, ev):
-        datapath = ev.msg.datapath
+    def _switch_features_handler(self, ev):
+        msg = ev.msg
+        datapath = msg.datapath
+        self.dp[datapath.id] = datapath
+        self.logger.info("스위치 %s 연결" % datapath.id)
+
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        self.dp[datapath.id]=datapath
-        # install table-miss flow entry
-        #
-        # We specify NO BUFFER to max_len of the output action due to
-        # OVS bug. At this moment, if we specify a lesser number, e.g.,
-        # 128, OVS will send Packet-In with invalid buffer_id and
-        # truncated packet data. In that case, we cannot output packets
-        # correctly.  The bug has been fixed in OVS v2.1.0.
-        match = parser.OFPMatch()
-        actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
-                                          ofproto.OFPCML_NO_BUFFER)]
-        self.add_flow(datapath, 0, match, actions)
 
-        if len(self.dp)==6:
-            print("@@@@simulation started@@@@")
+        match = parser.OFPMatch()
+        actions = [parser.OFPActionOutput(port=ofproto.OFPP_CONTROLLER,
+                                          max_len=ofproto.OFPCML_NO_BUFFER)]
+        self.add_flow(datapath, 0, match, actions, ofproto.OFP_NO_BUFFER)
+
+        if len(self.dp) == 6:
+            print ("simulation started")
             self.timeslot_start = time.time()
-            #self.action_thread = hub.spawn(self.gcl_cycle)
+            # self.action_thread = hub.spawn(self.gcl_cycle)
             self.cc_thread = hub.spawn(self._cc_gen1)
             # self.cc_thread2 = hub.spawn(self._cc_gen2)
             # self.ad_thread = hub.spawn(self._ad_gen1)
