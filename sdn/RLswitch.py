@@ -196,7 +196,6 @@ class rl_switch(app_manager.RyuApp):
         else:
             out_port = ofproto.OFPP_FLOOD
 
-
         actions = [parser.OFPActionOutput(out_port)]
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst)

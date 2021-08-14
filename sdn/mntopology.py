@@ -67,12 +67,16 @@ class MyTopo(Topo):
 
 	
 def runMyTopo(): #activate mininet topology after ping test
-     	
-     topo = MyTopo()
 
-     net = Mininet (topo=topo, controller=RemoteController, switch=OVSSwitch, autoSetMacs=True)
-     net.start()
-     time.sleep(1)
+    topo = MyTopo()
+
+    net = Mininet (topo=topo, controller=RemoteController, switch=OVSSwitch, autoSetMacs=True)
+    net.start()
+    hosts = net.hosts
+    for h in hosts:
+        h.cmd('%s wireshark &'%h)
+
+     #time.sleep(1)
      #net.pingAll()
      # for i in range(40):
      #    packet = Ether(src="00:00:00:00:00:01", dst="00:00:00:00:00:05") / ICMP() / str("class" + str(1) + ";" + str(1) + ";")
@@ -80,7 +84,7 @@ def runMyTopo(): #activate mininet topology after ping test
      #    sendp(packet)
      #    time.sleep(1)
 
-     CLI(net)
+    CLI(net)
         
 if __name__ == '__main__':
     setLogLevel('info')
