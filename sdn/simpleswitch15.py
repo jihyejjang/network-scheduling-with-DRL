@@ -67,9 +67,7 @@ class SimpleSwitch15(app_manager.RyuApp):
         datapath = ev.msg.datapath
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-
         self.dp[datapath.id]=datapath
-
         # install table-miss flow entry
         #
         # We specify NO BUFFER to max_len of the output action due to
