@@ -148,6 +148,7 @@ class SimpleSwitch15(app_manager.RyuApp):
 
 
     def _cc_gen1(self):
+        hub.sleep(3)
         datapath = self.dp[1]
         pkt = packet.Packet()
         pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
