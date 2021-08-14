@@ -87,15 +87,14 @@ class SimpleSwitch15(app_manager.RyuApp):
             # self.vd_thread = hub.spawn(self._vd_gen1)
             # self.vd_thread2 = hub.spawn(self._vd_gen2)
 
-    def add_flow(self, datapath, priority, match, actions):
+    def add_flow(self, datapath, priority, match, actions, buffer_id=None):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
 
         mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
-                                match=match, instructions=inst)
+                                match=match, instructions=inst, buffer_id=buffer_id)
         datapath.send_msg(mod)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
