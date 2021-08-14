@@ -195,7 +195,7 @@ class SimpleSwitch15(app_manager.RyuApp):
             hub.sleep(self.cc_period / 1000)
 
             if (self.cc_cnt >= self.command_control):
-                self.terminal += 1
+                # self.terminal += 1
                 break
     #
     # #traffic monitoring
