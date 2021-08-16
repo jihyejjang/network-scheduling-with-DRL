@@ -176,7 +176,7 @@ class rl_switch(app_manager.RyuApp):
         # info = payload.split(';')
 
         class_ = 4 #best effort
-        print("dst",dst)
+        #print("dst",dst)
 
         if (dst in self.H) and (src in self.H):
 
@@ -199,7 +199,7 @@ class rl_switch(app_manager.RyuApp):
 
         actions = [parser.OFPActionOutput(out_port)]
         if out_port != ofproto.OFPP_FLOOD:
-            match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5], eth_src=self.H[1],
+            match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5],
                                     eth_type=ether_types.ETH_TYPE_IEEE802_3)
             self.add_flow(datapath, 1000,match, actions, ofproto.OFP_NO_BUFFER)
             # # verify if we have a valid buffer_id, if yes avoid to send both
