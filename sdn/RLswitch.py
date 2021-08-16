@@ -201,7 +201,6 @@ class rl_switch(app_manager.RyuApp):
 
         print("outport",out_port)
         actions = [parser.OFPActionOutput(out_port)]
-
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5],
                                     eth_type=ether_types.ETH_TYPE_IEEE802_3)
@@ -234,7 +233,6 @@ class rl_switch(app_manager.RyuApp):
                                   match=match, actions=actions, data=msg.data)
 
         datapath.send_msg(out)
-
 
         if (1 <= out_port <= 3):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
@@ -273,7 +271,7 @@ class rl_switch(app_manager.RyuApp):
         match = parser.OFPMatch(in_port=2, eth_dst=self.H[5], eth_src = self.H[1], eth_type = ether_types.ETH_TYPE_IEEE802_3)
         actions = [parser.OFPActionOutput(3)]
         self.add_flow(datapath, 1000, match, actions, ofproto.OFP_NO_BUFFER)
-        match = parser.OFPMatch(in_port=2)
+        #match = parser.OFPMatch(in_port=2)
         data = pkt.data
 
         out = parser.OFPPacketOut(datapath=datapath,
