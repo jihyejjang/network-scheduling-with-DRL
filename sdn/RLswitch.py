@@ -170,6 +170,8 @@ class rl_switch(app_manager.RyuApp):
         dst = eth.dst
         src = eth.src
 
+        print ("packet-in", dst)
+
         # icmp_packet = pkt.get_protocol(icmp.icmp)
         # print (icmp_packet)
         # payload = icmp_packet.data
@@ -197,14 +199,23 @@ class rl_switch(app_manager.RyuApp):
             out_port = ofproto.OFPP_FLOOD
 
         actions = [parser.OFPActionOutput(out_port)]
-        if out_port != ofproto.OFPP_FLOOD:
-            match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
-            self.add_flow(datapath, 1,match, actions,ofproto.OFP_NO_BUFFER)
-            # # verify if we have a valid buffer_id, if yes avoid to send both
-            # # flow_mod & packet_out
-            if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-                self.add_flow(datapath, 1, match, actions, msg.buffer_id)
-                return
+        # if out_port != ofproto.OFPP_FLOOD:
+        #     match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
+        #     self.add_flow(datapath, 1,match, actions,ofproto.OFP_NO_BUFFER)
+        #     # # verify if we have a valid buffer_id, if yes avoid to send both
+        #     # # flow_mod & packet_out
+        #     if msg.buffer_id != ofproto.OFP_NO_BUFFER:
+        #         self.add_flow(datapath, 1, match, actions, msg.buffer_id)
+        #         return
+
+        match=parser.OFPMatch()
+        if eth.ethertype == ether_types.ETH_TYPE_IP:
+            ip = pkt.get_protocol(ipv4.ipv4)
+            match = parser.OFPMatch(in_port= in_port,
+                                    eth_type=ether_types.ETH_TYPE_IP, ipv4_src=ip.src,
+                                    ipv4_dst=ip.dst)
+            self.add_flow(datapath, 10000, match, actions)
+
 
         # while True:
         #     try:
@@ -218,7 +229,7 @@ class rl_switch(app_manager.RyuApp):
 
         hub.sleep(delay/1000) #delay
 
-        match = parser.OFPMatch(in_port = in_port)
+        #match = parser.OFPMatch(in_port = in_port)
         #flow가 match와 일치하면 match생성시에 지정해준 action으로 packet out한다.
         delay_end_time = 0
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
@@ -249,24 +260,28 @@ class rl_switch(app_manager.RyuApp):
             #self.terminal = False
 
     def _cc_gen1(self):
+        hub.sleep(3)
         datapath = self.dp[1]
         pkt = packet.Packet()
-        pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
+        pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IP,
                                            dst=self.H[5],
                                            src=self.H[1]))
 
-        # pkt.add_protocol(ipv4.ipv4(proto=in_proto.IPPROTO_ICMP,
-        #                            src='10.0.0.2',
-        #                            dst='10.0.0.6'))
+        pkt.add_protocol(ipv4.ipv4(proto=in_proto.IPPROTO_ICMP,
+                                   src=self.ip[1],
+                                   dst=self.ip[5]))
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         pkt.serialize()
 
-        match = parser.OFPMatch(in_port=2, eth_dst=self.H[5])
+        match = parser.OFPMatch(in_port = 2, eth_type = ether_types.ETH_TYPE_IP, ipv4_src=self.ip[1],
+                                ipv4_dst=self.ip[5])
+
         actions = [parser.OFPActionOutput(3)]
-        self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
-        match = parser.OFPMatch(in_port=2)
+
+        self.add_flow(datapath, 10000, match, actions, ofproto.OFP_NO_BUFFER)
+        #match = parser.OFPMatch(in_port=2)
         data = pkt.data
 
         out = parser.OFPPacketOut(datapath=datapath,
@@ -288,15 +303,65 @@ class rl_switch(app_manager.RyuApp):
 
             self.logger.info("%f : C&C1 generated %s, 스위치%s " % (time.time(), self.cc_cnt, datapath.id))
 
-            df = pd.DataFrame([(datapath.id, 1, self.cc_cnt, time.time(), 'x')],
-                              columns=['switch', 'class', 'number', 'time', 'queue'])
-            self.generated_log = self.generated_log.append(df)
+            # df = pd.DataFrame([(datapath.id, 1, self.cc_cnt, time.time(), 'x')],
+            #                   columns=['switch', 'class', 'number', 'time', 'queue'])
+            # self.generated_log = self.generated_log.append(df)
 
             hub.sleep(self.cc_period / 1000)
 
             if (self.cc_cnt >= self.command_control):
-                self.terminal += 1
+                # self.terminal += 1
                 break
+    # def _cc_gen1(self):
+    #     hub.sleep(3)
+    #     datapath = self.dp[1]
+    #     pkt = packet.Packet()
+    #     pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
+    #                                        dst=self.H[5],
+    #                                        src=self.H[1]))
+    #
+    #     # pkt.add_protocol(ipv4.ipv4(proto=in_proto.IPPROTO_ICMP,
+    #     #                            src='10.0.0.2',
+    #     #                            dst='10.0.0.6'))
+    #
+    #     ofproto = datapath.ofproto
+    #     parser = datapath.ofproto_parser
+    #     pkt.serialize()
+    #
+    #     match = parser.OFPMatch(in_port=2, eth_dst=self.H[5])
+    #     actions = [parser.OFPActionOutput(3)]
+    #     self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
+    #     match = parser.OFPMatch(in_port=2)
+    #     data = pkt.data
+    #
+    #     out = parser.OFPPacketOut(datapath=datapath,
+    #                               buffer_id=ofproto.OFP_NO_BUFFER,
+    #                               match=match,
+    #                               actions=actions, data=data)
+    #     while True:
+    #         self.cc_cnt += 1
+    #         # payload = str('%d;%f' % (self.cc_cnt, time.time())).encode('ascii')
+    #         # print ("payload",payload)
+    #         # payload_ = icmp.echo(data=payload)
+    #         #pkt.add_protocol(icmp.icmp(data=payload_))
+    #         # pkt.serialize()
+    #         # out = parser.OFPPacketOut(datapath=datapath,
+    #         #                           buffer_id=ofproto.OFP_NO_BUFFER,
+    #         #                           match=match,
+    #         #                           actions=actions, data=pkt.data)
+    #         datapath.send_msg(out)
+    #
+    #         self.logger.info("%f : C&C1 generated %s, 스위치%s " % (time.time(), self.cc_cnt, datapath.id))
+    #
+    #         df = pd.DataFrame([(datapath.id, 1, self.cc_cnt, time.time(), 'x')],
+    #                           columns=['switch', 'class', 'number', 'time', 'queue'])
+    #         self.generated_log = self.generated_log.append(df)
+    #
+    #         hub.sleep(self.cc_period / 1000)
+    #
+    #         if (self.cc_cnt >= self.command_control):
+    #             self.terminal += 1
+    #             break
 
     def _cc_gen2(self):
         datapath = self.dp[2]
