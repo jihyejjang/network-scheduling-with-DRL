@@ -281,7 +281,7 @@ class rl_switch(app_manager.RyuApp):
             # match = parser.OFPMatch(in_port=2)
             # data = str(time.time()).encode()
             eth = pkt.get_protocols(ethernet.ethernet)[0]
-            eth.serialize(payload=str(time.time()).encode())
+            eth.serialize(payload=str(time.time()).encode(),prev=None)
             # pkt.serialize(payload=time.time())
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
