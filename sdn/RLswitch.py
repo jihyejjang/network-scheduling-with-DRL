@@ -136,14 +136,14 @@ class rl_switch(app_manager.RyuApp):
 
 
 
-    def add_flow(self, datapath, priority, match, actions,buffer_id=None):
+    def add_flow(self, datapath, priority, match, actions):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
 
         mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
-                                    match=match, instructions=inst,buffer_id=buffer_id)
+                                    match=match, instructions=inst)
         datapath.send_msg(mod)
 
     # packet-in handler에서는 gcl의 Open정보와 현재 timeslot cnt를 비교하여 delay후 전송한다.
@@ -203,11 +203,11 @@ class rl_switch(app_manager.RyuApp):
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5],
                                     eth_type=0x05dc)
-            self.add_flow(datapath, 1000, match, actions, ofproto.OFP_NO_BUFFER)
+            self.add_flow(datapath, 1000, match, actions)
             # # verify if we have a valid buffer_id, if yes avoid to send both
             # # flow_mod & packet_out
             if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-                self.add_flow(datapath, 1000, match, actions, msg.buffer_id)
+                self.add_flow(datapath, 1000, match, actions)
                 return
 
         # while True:
