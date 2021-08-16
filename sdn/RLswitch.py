@@ -275,13 +275,13 @@ class rl_switch(app_manager.RyuApp):
 
         while True:
             self.cc_cnt += 1
-            pkt.serialize(time.time())
+
             match = parser.OFPMatch(in_port=2, eth_type=0x05dc)
             actions = [parser.OFPActionOutput(3)]
             self.add_flow(datapath, 1000, match, actions)
             # match = parser.OFPMatch(in_port=2)
-            data = pkt.data
-
+            data = bytearray(time.time()) + pkt.data
+            pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
                                       match=match,
