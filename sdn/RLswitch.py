@@ -158,7 +158,7 @@ class rl_switch(app_manager.RyuApp):
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
 
-        print("match",msg.match)
+        #print("match",msg.match)
 
         switchid = datapath.id
         #bufferid = msg.buffer_id
@@ -205,7 +205,8 @@ class rl_switch(app_manager.RyuApp):
         if out_port != ofproto.OFPP_FLOOD:
             # match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5],
             #                         eth_type=0x05dc)
-            match = parser.OFPMatch(in_port=in_port)
+            print("match",msg.match)
+            match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5])
             self.add_flow(datapath, 1000, match, actions)
             # # verify if we have a valid buffer_id, if yes avoid to send both
             # # flow_mod & packet_out
@@ -272,7 +273,7 @@ class rl_switch(app_manager.RyuApp):
         pkt.serialize()
 
         # match = parser.OFPMatch(in_port=2,eth_type=0x05dc)
-        match = parser.OFPMatch(in_port=2)
+        match = parser.OFPMatch(in_port=2, eth_dst = self.H[5])
         actions = [parser.OFPActionOutput(3)]
         self.add_flow(datapath, 1000, match, actions)
         #match = parser.OFPMatch(in_port=2)
