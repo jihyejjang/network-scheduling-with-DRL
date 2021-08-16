@@ -19,7 +19,7 @@ from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_5
 from ryu.lib.packet import packet, ether_types, in_proto
-from ryu.lib.packet import ethernet,icmp
+from ryu.lib.packet import ethernet,ipv4,icmp
 from ryu.lib import hub
 import time
 
@@ -46,6 +46,7 @@ class SimpleSwitch15(app_manager.RyuApp):
         super(SimpleSwitch15, self).__init__(*args, **kwargs)
         self.mac_to_port = addr_table()
         self.H = ['00:00:00:00:00:0' + str(h) for h in range(1, 9)]  # hosts
+        self.ip = ['10.0.0.'+str(h) for h in range(1,9)]
         self.dp = {}
         self.command_control = 20  # c&c flow number (Even)
         self.cc_cnt = 0
@@ -127,23 +128,32 @@ class SimpleSwitch15(app_manager.RyuApp):
             out_port = self.mac_to_port[dpid][dst]
             self.logger.info("%s packet in 스위치%s 출발%s 도착%s %s,buffer %s",time.time(), dpid, src, dst, in_port,msg.buffer_id)
         else:
-            out_port = ofproto.OFPP_FLOOD
+            #out_port = ofproto.OFPP_FLOOD
+            return
 
         actions = [parser.OFPActionOutput(out_port)]
 
+        match = parser.OFPMatch()
         # install a flow to avoid packet_in next time
-        if out_port != ofproto.OFPP_FLOOD:
-            match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
-            self.add_flow(datapath, 1, match, actions)
+        if eth.ethertype == ether_types.ETH_TYPE_IP:
+            ip = pkt.get_protocol(ipv4.ipv4)
+            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ipv4_src=ip.src,
+                                    ipv4_dst=ip.dst)
+            self.add_flow(datapath, 10000, match, actions)
+
+        # if out_port != ofproto.OFPP_FLOOD:
+        #     match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
+        #     self.add_flow(datapath, 1, match, actions)
 
         data = None
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             data = msg.data
 
-        match = parser.OFPMatch(in_port=in_port)
+        #match = parser.OFPMatch(in_port=in_port)
 
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   match=match, actions=actions, data=data)
+
         datapath.send_msg(out)
 
 
@@ -151,21 +161,24 @@ class SimpleSwitch15(app_manager.RyuApp):
         hub.sleep(3)
         datapath = self.dp[1]
         pkt = packet.Packet()
-        pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
+        pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IP,
                                            dst=self.H[5],
                                            src=self.H[1]))
 
-        # pkt.add_protocol(ipv4.ipv4(proto=in_proto.IPPROTO_ICMP,
-        #                            src='10.0.0.2',
-        #                            dst='10.0.0.6'))
+        pkt.add_protocol(ipv4.ipv4(proto=in_proto.IPPROTO_ICMP,
+                                   src=self.ip[1],
+                                   dst=self.ip[5]))
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         pkt.serialize()
 
-        match = parser.OFPMatch(in_port=2, eth_dst=self.H[5])
+        match = parser.OFPMatch(eth_type = ether_types.ETH_TYPE_IP, ipv4_src=self.ip[1],
+                                ipv4_dst=self.ip[5])
+
         actions = [parser.OFPActionOutput(3)]
-        self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
+
+        self.add_flow(datapath, 10000, match, actions, ofproto.OFP_NO_BUFFER)
         #match = parser.OFPMatch(in_port=2)
         data = pkt.data
 
