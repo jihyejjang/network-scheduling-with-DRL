@@ -128,7 +128,6 @@ class SimpleSwitch15(app_manager.RyuApp):
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]
             self.logger.info("%s packet in 스위치%s 출발%s 도착%s %s,buffer %s",time.time(), dpid, src, dst, in_port,msg.buffer_id)
-
         else:
             #out_port = ofproto.OFPP_FLOOD
             return
@@ -137,11 +136,14 @@ class SimpleSwitch15(app_manager.RyuApp):
 
         match = parser.OFPMatch()
         # install a flow to avoid packet_in next time
-        if eth.ethertype == ether_types.ETH_TYPE_IP:
-            ip = pkt.get_protocol(ipv4.ipv4)
-            match = parser.OFPMatch(in_port= in_port,
-                                    eth_type=ether_types.ETH_TYPE_IP, ipv4_src=ip.src,
-                                    ipv4_dst=ip.dst)
+        if eth.ethertype == ether_types.ETH_TYPE:
+            match = parser.OFPMatch(in_port=in_port, eth_type=ether_types.ETH_TYPE_IEEE802_3,
+                                    eth_src=self.H[1], eth_dst=self.H[5])
+            # ip = pkt.get_protocol(ipv4.ipv4)
+            # match = parser.OFPMatch(in_port= in_port,
+            #                         eth_type=ether_types.ETH_TYPE_IP,
+            #                         ipv4_src=ip.src,
+            #                         ipv4_dst=ip.dst)
             self.add_flow(datapath, 10000, match, actions)
 
         # if out_port != ofproto.OFPP_FLOOD:
@@ -164,24 +166,24 @@ class SimpleSwitch15(app_manager.RyuApp):
         hub.sleep(3)
         datapath = self.dp[1]
         pkt = packet.Packet()
-        pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IP,
+        pkt.add_protocol(ethernet.ethernet(ethertype=ether_types.ETH_TYPE_IEEE802_3,
                                            dst=self.H[5],
                                            src=self.H[1]))
 
-        pkt.add_protocol(ipv4.ipv4(proto=in_proto.IPPROTO_ICMP,
-                                   src=self.ip[1],
-                                   dst=self.ip[5]))
-
-        echo_payload='%f'%(time.time())
-        payload=icmp.echo(data=echo_payload.encode())
-        pkt.add_protocol(icmp.icmp(data=payload))
+        # pkt.add_protocol(ipv4.ipv4(proto=in_proto.IPPROTO_ICMP,
+        #                            src=self.ip[1],
+        #                            dst=self.ip[5]))
+        #
+        # echo_payload='%f'%(time.time())
+        # payload=icmp.echo(data=echo_payload.encode())
+        # pkt.add_protocol(icmp.icmp(data=payload))
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         pkt.serialize()
 
-        match = parser.OFPMatch(in_port = 2, eth_type = ether_types.ETH_TYPE_IP, ipv4_src=self.ip[1],
-                                ipv4_dst=self.ip[5])
+        match = parser.OFPMatch(in_port = 2, eth_type = ether_types.ETH_TYPE_IEEE802_3,
+                                eth_src=self.H[1],eth_dst=self.H[5])
 
         actions = [parser.OFPActionOutput(3)]
 
