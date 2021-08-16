@@ -73,8 +73,9 @@ def runMyTopo(): #activate mininet topology after ping test
     net = Mininet (topo=topo, controller=RemoteController, switch=OVSSwitch, autoSetMacs=True)
     net.start()
     hosts = net.hosts
-    hosts[5].cmd('wireshark &')
-
+    switchs = net.switchs
+    #hosts[5].cmd('wireshark &')
+    switchs[2].cmd('wireshark &')
     # for h in hosts:
     #     print("dd")
     #     h.cmd('%s wireshark &'%h)
