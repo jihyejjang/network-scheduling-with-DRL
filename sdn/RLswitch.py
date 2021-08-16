@@ -280,7 +280,10 @@ class rl_switch(app_manager.RyuApp):
             self.add_flow(datapath, 1000, match, actions)
             # match = parser.OFPMatch(in_port=2)
             # data = str(time.time()).encode()
-            pkt.serialize(payload=time.time())
+            eth = pkt.get_protocols(ethernet.ethernet)[0]
+            eth.serialize(payload=str(time.time()).encode())
+            # pkt.serialize(payload=time.time())
+            pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
                                       in_port = 2,
