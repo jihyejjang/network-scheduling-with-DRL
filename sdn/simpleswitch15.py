@@ -123,10 +123,12 @@ class SimpleSwitch15(app_manager.RyuApp):
         #     print("@icmp@",icmp_)
 
         dpid = datapath.id
+        print ("packet-in", dst)
 
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]
             self.logger.info("%s packet in 스위치%s 출발%s 도착%s %s,buffer %s",time.time(), dpid, src, dst, in_port,msg.buffer_id)
+
         else:
             #out_port = ofproto.OFPP_FLOOD
             return
