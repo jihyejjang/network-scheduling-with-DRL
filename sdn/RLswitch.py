@@ -158,6 +158,8 @@ class rl_switch(app_manager.RyuApp):
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
 
+        print("match",msg.match)
+
         switchid = datapath.id
         #bufferid = msg.buffer_id
 
@@ -169,8 +171,8 @@ class rl_switch(app_manager.RyuApp):
             return
         dst = eth.dst
         src = eth.src
-        print("src",src)
-        print("inport",in_port)
+        #print("src",src)
+        #print("inport",in_port)
 
         # icmp_packet = pkt.get_protocol(icmp.icmp)
         # print (icmp_packet)
@@ -198,11 +200,12 @@ class rl_switch(app_manager.RyuApp):
             self.queue[switchid - 1][out_port - 1][class_ - 1] += 1
         else:
             out_port = ofproto.OFPP_FLOOD
-        print("out_port",out_port)
+        #print("out_port",out_port)
         actions = [parser.OFPActionOutput(out_port)]
         if out_port != ofproto.OFPP_FLOOD:
-            match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5],
-                                    eth_type=0x05dc)
+            # match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5],
+            #                         eth_type=0x05dc)
+            match = parser.OFPMatch(in_port=in_port)
             self.add_flow(datapath, 1000, match, actions)
             # # verify if we have a valid buffer_id, if yes avoid to send both
             # # flow_mod & packet_out
@@ -268,7 +271,8 @@ class rl_switch(app_manager.RyuApp):
         parser = datapath.ofproto_parser
         pkt.serialize()
 
-        match = parser.OFPMatch(in_port=2,eth_type=0x05dc)
+        # match = parser.OFPMatch(in_port=2,eth_type=0x05dc)
+        match = parser.OFPMatch(in_port=2)
         actions = [parser.OFPActionOutput(3)]
         self.add_flow(datapath, 1000, match, actions)
         #match = parser.OFPMatch(in_port=2)
