@@ -9,7 +9,7 @@ from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 
-from ryu.ofproto import ofproto_v1_5
+from ryu.ofproto import ofproto_v1_3
 
 from ryu.lib.packet import packet, ether_types, in_proto
 from ryu.lib.packet import ethernet, icmp, ipv4, ipv6
@@ -34,7 +34,7 @@ def addr_table():  # address table dictionary is created manually
     return mac_to_port
 
 class rl_switch(app_manager.RyuApp):
-    OFP_VERSIONS = [ofproto_v1_5.OFP_VERSION]
+    OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
     def __init__(self, *args, **kwargs):
         super(rl_switch, self).__init__(*args, **kwargs)
@@ -275,17 +275,16 @@ class rl_switch(app_manager.RyuApp):
 
         while True:
             self.cc_cnt += 1
-
             match = parser.OFPMatch(in_port=2, eth_type=0x05dc)
             actions = [parser.OFPActionOutput(3)]
             self.add_flow(datapath, 1000, match, actions)
             # match = parser.OFPMatch(in_port=2)
-            data = str(time.time()).encode()
-            pkt.serialize()
+            # data = str(time.time()).encode()
+            pkt.serialize(payload=time.time())
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
-                                      match=match,
-                                      actions=actions, data=data)
+                                      in_port = 2,
+                                      actions=actions, data=pkt.data)
             datapath.send_msg(out)
 
             self.logger.info("%f : C&C1 generated %s, 스위치%s " % (time.time(), self.cc_cnt, datapath.id))
