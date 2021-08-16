@@ -52,6 +52,7 @@ class rl_switch(app_manager.RyuApp):
         self.state=np.zeros((6,4))
         self.mac_to_port = addr_table()
         self.H = ['00:00:00:00:00:0' + str(h) for h in range(1, 9)]  # hosts
+        self.ip = ['10.0.0.' + str(h) for h in range(1, 9)]
         self.dp={}
         self.queue = np.zeros((6,3,4)) #switch, (output)port, priority queue
         self.timeslot_size = 0.5 #ms
@@ -248,12 +249,9 @@ class rl_switch(app_manager.RyuApp):
                               columns=['arrival time', 'switch', 'class', 'number', 'delay', 'queue'])
             self.received_log = self.received_log.append(df)
 
-            if class_ != 4:
+            if class_ == 4:
                 self.logger.info("[in] %f : 스위치 %s, class %s 의 %s번째 패킷,clk %s" % \
                                  (time.time(), switchid, class_, '-', clk))
-
-
-
         if self.terminal == 6:
             self.generated_log.to_csv('switchlog0810_generated.csv')
             self.received_log.to_csv('switchlog0810_received.csv')
