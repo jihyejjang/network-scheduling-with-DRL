@@ -173,7 +173,7 @@ class SimpleSwitch15(app_manager.RyuApp):
                                    dst=self.ip[5]))
 
         echo_payload='%f'%(time.time())
-        payload=icmp.echo(data=echo_payload)
+        payload=icmp.echo(data=echo_payload.encode())
         pkt.add_protocol(icmp.icmp(data=payload))
 
         ofproto = datapath.ofproto
