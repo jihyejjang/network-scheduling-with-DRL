@@ -272,30 +272,20 @@ class rl_switch(app_manager.RyuApp):
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        pkt.serialize()
 
-        # match = parser.OFPMatch(in_port=2,eth_type=0x05dc)
-        match = parser.OFPMatch(in_port=2)
-        actions = [parser.OFPActionOutput(3)]
-        self.add_flow(datapath, 1000, match, actions)
-        #match = parser.OFPMatch(in_port=2)
-        data = pkt.data
-
-        out = parser.OFPPacketOut(datapath=datapath,
-                                  buffer_id=ofproto.OFP_NO_BUFFER,
-                                  match=match,
-                                  actions=actions, data=data)
         while True:
             self.cc_cnt += 1
-            # payload = str('%d;%f' % (self.cc_cnt, time.time())).encode('ascii')
-            # print ("payload",payload)
-            # payload_ = icmp.echo(data=payload)
-            #pkt.add_protocol(icmp.icmp(data=payload_))
-            # pkt.serialize()
-            # out = parser.OFPPacketOut(datapath=datapath,
-            #                           buffer_id=ofproto.OFP_NO_BUFFER,
-            #                           match=match,
-            #                           actions=actions, data=pkt.data)
+            pkt.serialize(time.time())
+            match = parser.OFPMatch(in_port=2, eth_type=0x05dc)
+            actions = [parser.OFPActionOutput(3)]
+            self.add_flow(datapath, 1000, match, actions)
+            # match = parser.OFPMatch(in_port=2)
+            data = pkt.data
+
+            out = parser.OFPPacketOut(datapath=datapath,
+                                      buffer_id=ofproto.OFP_NO_BUFFER,
+                                      match=match,
+                                      actions=actions, data=data)
             datapath.send_msg(out)
 
             self.logger.info("%f : C&C1 generated %s, 스위치%s " % (time.time(), self.cc_cnt, datapath.id))
