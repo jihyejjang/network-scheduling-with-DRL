@@ -169,6 +169,8 @@ class rl_switch(app_manager.RyuApp):
             return
         dst = eth.dst
         src = eth.src
+        print("src",src)
+        print("inport",in_port)
 
         # icmp_packet = pkt.get_protocol(icmp.icmp)
         # print (icmp_packet)
@@ -201,7 +203,7 @@ class rl_switch(app_manager.RyuApp):
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5],
                                     eth_type=ether_types.ETH_TYPE_IEEE802_3)
-            self.add_flow(datapath, 1000,match, actions, ofproto.OFP_NO_BUFFER)
+            self.add_flow(datapath, 1000, match, actions, ofproto.OFP_NO_BUFFER)
             # # verify if we have a valid buffer_id, if yes avoid to send both
             # # flow_mod & packet_out
             if msg.buffer_id != ofproto.OFP_NO_BUFFER:
