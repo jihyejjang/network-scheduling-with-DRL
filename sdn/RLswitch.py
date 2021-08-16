@@ -102,11 +102,11 @@ class rl_switch(app_manager.RyuApp):
             self.timeslot_start = time.time()
             #self.action_thread = hub.spawn(self.gcl_cycle)
             self.cc_thread = hub.spawn(self._cc_gen1)
-            self.cc_thread2 = hub.spawn(self._cc_gen2)
-            self.ad_thread = hub.spawn(self._ad_gen1)
-            self.ad_thread2 = hub.spawn(self._ad_gen2)
-            self.vd_thread = hub.spawn(self._vd_gen1)
-            self.vd_thread2 = hub.spawn(self._vd_gen2)
+            # self.cc_thread2 = hub.spawn(self._cc_gen2)
+            # self.ad_thread = hub.spawn(self._ad_gen1)
+            # self.ad_thread2 = hub.spawn(self._ad_gen2)
+            # self.vd_thread = hub.spawn(self._vd_gen1)
+            # self.vd_thread2 = hub.spawn(self._vd_gen2)
 
 
     def timeslot(self, time):  # timeslot 진행 횟수를 알려주는 함수
