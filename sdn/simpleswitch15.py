@@ -123,7 +123,7 @@ class SimpleSwitch15(app_manager.RyuApp):
         #     print("@icmp@",icmp_)
 
         dpid = datapath.id
-        print ("packet-in", dst)
+        #print ("packet-in", dst)
 
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]

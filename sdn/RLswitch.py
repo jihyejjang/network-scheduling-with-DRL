@@ -176,6 +176,7 @@ class rl_switch(app_manager.RyuApp):
         # info = payload.split(';')
 
         class_ = 4 #best effort
+        print("dst",dst)
 
         if (dst in self.H) and (src in self.H):
 
@@ -198,12 +199,13 @@ class rl_switch(app_manager.RyuApp):
 
         actions = [parser.OFPActionOutput(out_port)]
         if out_port != ofproto.OFPP_FLOOD:
-            match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
-            self.add_flow(datapath, 1,match, actions,ofproto.OFP_NO_BUFFER)
+            match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5], eth_src=self.H[1],
+                                    eth_type=ether_types.ETH_TYPE_IEEE802_3)
+            self.add_flow(datapath, 1000,match, actions, ofproto.OFP_NO_BUFFER)
             # # verify if we have a valid buffer_id, if yes avoid to send both
             # # flow_mod & packet_out
             if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-                self.add_flow(datapath, 1, match, actions, msg.buffer_id)
+                self.add_flow(datapath, 1000, match, actions, msg.buffer_id)
                 return
 
         # while True:
@@ -218,7 +220,7 @@ class rl_switch(app_manager.RyuApp):
 
         hub.sleep(delay/1000) #delay
 
-        match = parser.OFPMatch(in_port = in_port)
+        # match = parser.OFPMatch(in_port = in_port)
         #flow가 match와 일치하면 match생성시에 지정해준 action으로 packet out한다.
         delay_end_time = 0
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
@@ -264,9 +266,9 @@ class rl_switch(app_manager.RyuApp):
         parser = datapath.ofproto_parser
         pkt.serialize()
 
-        match = parser.OFPMatch(in_port=2, eth_dst=self.H[5])
+        match = parser.OFPMatch(in_port=2, eth_dst=self.H[5], eth_src = self.H[1], eth_type = ether_types.ETH_TYPE_IEEE802_3)
         actions = [parser.OFPActionOutput(3)]
-        self.add_flow(datapath, 1, match, actions, ofproto.OFP_NO_BUFFER)
+        self.add_flow(datapath, 1000, match, actions, ofproto.OFP_NO_BUFFER)
         match = parser.OFPMatch(in_port=2)
         data = pkt.data
 
