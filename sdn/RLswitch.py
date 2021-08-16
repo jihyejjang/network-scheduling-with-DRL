@@ -235,7 +235,7 @@ class rl_switch(app_manager.RyuApp):
             delay_end_time = time.time()
 
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
-                                  match=match, actions=actions, data=msg.data)
+                                  in_port=in_port, actions=actions, data=pkt.data)
 
         datapath.send_msg(out)
 
