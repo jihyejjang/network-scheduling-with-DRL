@@ -198,7 +198,7 @@ class rl_switch(app_manager.RyuApp):
             self.queue[switchid - 1][out_port - 1][class_ - 1] += 1
         else:
             out_port = ofproto.OFPP_FLOOD
-
+        print("outport",out_port)
         actions = [parser.OFPActionOutput(out_port)]
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5],
