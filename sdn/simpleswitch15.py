@@ -137,7 +137,8 @@ class SimpleSwitch15(app_manager.RyuApp):
         # install a flow to avoid packet_in next time
         if eth.ethertype == ether_types.ETH_TYPE_IP:
             ip = pkt.get_protocol(ipv4.ipv4)
-            match = parser.OFPMatch(in_port= in_port, eth_type=ether_types.ETH_TYPE_IP, ipv4_src=ip.src,
+            match = parser.OFPMatch(in_port= in_port,
+                                    eth_type=ether_types.ETH_TYPE_IP, ipv4_src=ip.src,
                                     ipv4_dst=ip.dst)
             self.add_flow(datapath, 10000, match, actions)
 
@@ -173,7 +174,7 @@ class SimpleSwitch15(app_manager.RyuApp):
         parser = datapath.ofproto_parser
         pkt.serialize()
 
-        match = parser.OFPMatch(in_port = eth_type = ether_types.ETH_TYPE_IP, ipv4_src=self.ip[1],
+        match = parser.OFPMatch(in_port = 2, eth_type = ether_types.ETH_TYPE_IP, ipv4_src=self.ip[1],
                                 ipv4_dst=self.ip[5])
 
         actions = [parser.OFPActionOutput(3)]
