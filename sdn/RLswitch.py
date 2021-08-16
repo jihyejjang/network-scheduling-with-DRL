@@ -268,7 +268,7 @@ class rl_switch(app_manager.RyuApp):
         parser = datapath.ofproto_parser
         pkt.serialize()
 
-        match = parser.OFPMatch(in_port=2, eth_dst=self.H[5], eth_src = self.H[1], eth_type =0x05dc)
+        match = parser.OFPMatch(in_port=2,eth_type=0x05dc)
         actions = [parser.OFPActionOutput(3)]
         self.add_flow(datapath, 1000, match, actions)
         #match = parser.OFPMatch(in_port=2)
