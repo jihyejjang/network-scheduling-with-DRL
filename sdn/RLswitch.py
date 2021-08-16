@@ -206,7 +206,9 @@ class rl_switch(app_manager.RyuApp):
             # match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5],
             #                         eth_type=0x05dc)
             #print("match",msg.match)
-            match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5])
+            match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
+            # match = parser.OFPMatch(in_port=in_port,
+            #                         eth_type=0x05dc)
             self.add_flow(datapath, 1000, match, actions)
             # # verify if we have a valid buffer_id, if yes avoid to send both
             # # flow_mod & packet_out
@@ -273,7 +275,7 @@ class rl_switch(app_manager.RyuApp):
         pkt.serialize()
 
         # match = parser.OFPMatch(in_port=2,eth_type=0x05dc)
-        match = parser.OFPMatch(in_port=2, eth_dst = self.H[5])
+        match = parser.OFPMatch(in_port=2)
         actions = [parser.OFPActionOutput(3)]
         self.add_flow(datapath, 1000, match, actions)
         #match = parser.OFPMatch(in_port=2)
