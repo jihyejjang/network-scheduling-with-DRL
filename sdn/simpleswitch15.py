@@ -171,6 +171,8 @@ class SimpleSwitch15(app_manager.RyuApp):
         pkt.add_protocol(ipv4.ipv4(proto=in_proto.IPPROTO_ICMP,
                                    src=self.ip[1],
                                    dst=self.ip[5]))
+        payload=icmp.echo(data='%f'%(time.time))
+        pkt.add_protocol(icmp.icmp(data=payload))
 
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
