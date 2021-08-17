@@ -134,6 +134,8 @@ class rl_switch(app_manager.RyuApp):
                        format(np.argmax(self.model4.predict(self.state[s].reshape(-1,4))), '010b')]
                 print(self.gcl[s])
 
+
+
     def add_flow(self, datapath, priority, match, actions):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -155,8 +157,8 @@ class rl_switch(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
-        #print('match',msg.match)
-        #print("match", msg.match['eth_type'])
+        #print("match", msg.match)
+        #print("match",msg.match)
 
         switchid = datapath.id
         #bufferid = msg.buffer_id
@@ -201,11 +203,10 @@ class rl_switch(app_manager.RyuApp):
         #print("out_port",out_port)
         actions = [parser.OFPActionOutput(out_port)]
         if out_port != ofproto.OFPP_FLOOD:
-            # match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5],
-            #                         eth_type=0x05dc)
+            match = parser.OFPMatch(in_port=in_port, eth_dst=self.H[5],
+                                    eth_type=0x05dc)
             #print("match",msg.match)
             # match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
-            match = parser.OFPMatch(in_port=in_port, eth_type=0x05dc)
             # match = parser.OFPMatch(in_port=in_port,
             #                         eth_type=0x05dc)
             self.add_flow(datapath, 1000, match, actions)
@@ -238,6 +239,7 @@ class rl_switch(app_manager.RyuApp):
 
         datapath.send_msg(out)
 
+
         if (1 <= out_port <= 3):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
             df = pd.DataFrame([(delay_end_time, switchid, class_, '-', delay_end_time - delay_start_time,
@@ -264,6 +266,10 @@ class rl_switch(app_manager.RyuApp):
                                            dst=self.H[5],
                                            src=self.H[1]))
 
+        # pkt.add_protocol(ipv4.ipv4(proto=in_proto.IPPROTO_ICMP,
+        #                            src='10.0.0.2',
+        #                            dst='10.0.0.6'))
+
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
@@ -272,9 +278,10 @@ class rl_switch(app_manager.RyuApp):
             match = parser.OFPMatch(in_port=2, eth_type=0x05dc)
             actions = [parser.OFPActionOutput(3)]
             self.add_flow(datapath, 1000, match, actions)
+            # match = parser.OFPMatch(in_port=2)
             # data = str(time.time()).encode()
-            # eth = pkt.get_protocols(ethernet.ethernet)[0]
-            # eth.serialize(payload=[str(time.time())],prev=None)
+            eth = pkt.get_protocols(ethernet.ethernet)[0]
+            eth.serialize(payload=[str(time.time())],prev=None)
             # pkt.serialize(payload=time.time())
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
