@@ -134,8 +134,6 @@ class rl_switch(app_manager.RyuApp):
                        format(np.argmax(self.model4.predict(self.state[s].reshape(-1,4))), '010b')]
                 print(self.gcl[s])
 
-
-
     def add_flow(self, datapath, priority, match, actions):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -157,7 +155,7 @@ class rl_switch(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
-        print('match',msg.match)
+        #print('match',msg.match)
         #print("match", msg.match['eth_type'])
 
         switchid = datapath.id
@@ -235,7 +233,7 @@ class rl_switch(app_manager.RyuApp):
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             delay_end_time = time.time()
 
-        out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id, eth_type=0x05dc,
+        out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   in_port=in_port, actions=actions, data=pkt.data)
 
         datapath.send_msg(out)
@@ -275,13 +273,13 @@ class rl_switch(app_manager.RyuApp):
             actions = [parser.OFPActionOutput(3)]
             self.add_flow(datapath, 1000, match, actions)
             # data = str(time.time()).encode()
-            eth = pkt.get_protocols(ethernet.ethernet)[0]
-            eth.serialize(payload=[str(time.time())],prev=None)
+            # eth = pkt.get_protocols(ethernet.ethernet)[0]
+            # eth.serialize(payload=[str(time.time())],prev=None)
             # pkt.serialize(payload=time.time())
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
-                                      in_port = 2, eth_type=0x05dc,
+                                      in_port = 2,
                                       actions=actions, data=pkt.data)
             datapath.send_msg(out)
 
