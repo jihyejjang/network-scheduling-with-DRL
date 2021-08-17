@@ -157,8 +157,7 @@ class rl_switch(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
-        print("match", msg.match)
-        #print("match",msg.match)
+        print("match", msg.match['eth_type'])
 
         switchid = datapath.id
         #bufferid = msg.buffer_id
@@ -239,7 +238,6 @@ class rl_switch(app_manager.RyuApp):
                                   in_port=in_port, actions=actions, data=pkt.data)
 
         datapath.send_msg(out)
-
 
         if (1 <= out_port <= 3):
             self.queue[switchid-1][out_port-1][class_-1] -= 1
