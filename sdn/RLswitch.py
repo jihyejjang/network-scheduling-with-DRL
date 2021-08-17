@@ -99,6 +99,7 @@ class rl_switch(app_manager.RyuApp):
         self.add_flow(datapath,0,match,actions)
 
         if len(self.dp)==6:
+            hub.sleep(7)
             self.timeslot_start = time.time()
             #self.action_thread = hub.spawn(self.gcl_cycle)
             self.cc_thread = hub.spawn(self._cc_gen1)
