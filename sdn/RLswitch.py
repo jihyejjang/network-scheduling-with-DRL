@@ -164,7 +164,7 @@ class rl_switch(app_manager.RyuApp):
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         eth_type = eth.ethertype
-        type_ = 0
+        # type_ = 0
         # ipv6_ = pkt.get_protocol(ipv6.ipv6)
         #
         # if ipv6_!= None:
@@ -181,20 +181,23 @@ class rl_switch(app_manager.RyuApp):
 
         class_ = 4 #best effort
         #print("dst",dst)
-
+        match = parser.OFPMatch(in_port = in_port)
         if (dst in self.H) and (src in self.H):
 
             if eth_type == ether_types.ETH_TYPE_IEEE802_3:
+                match = parser.OFPMatch(in_port=in_port, eth_type=0x05dc)
                 class_ = 1
-                type_ = 0x05dc
+                # type_ = 0x05dc
                 #self.logger.info("class %s packet" % (class_))
             elif eth_type == ether_types.ETH_TYPE_8021AD:
+                match = parser.OFPMatch(in_port=in_port, eth_type=0x88a8)
                 class_ = 2
-                type_ = 0x88a8
+                # type_ = 0x88a8
                 #self.logger.info("class %s packet" % (class_))
             elif eth_type == ether_types.ETH_TYPE_8021AH:
+                match = parser.OFPMatch(in_port=in_port, eth_type=0x88e7)
                 class_ = 3
-                type_ = 0x88e7
+                # type_ = 0x88e7
                 #self.logger.info("class %s packet" % (class_))
 
         if dst in self.mac_to_port[switchid]:
@@ -204,14 +207,16 @@ class rl_switch(app_manager.RyuApp):
             out_port = ofproto.OFPP_FLOOD
         #print("out_port",out_port)
         actions = [parser.OFPActionOutput(out_port)]
-        if out_port != ofproto.OFPP_FLOOD:
-            match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_type=type_)
-            if class_ != 4 :
-                self.add_flow(datapath, 1000, match, actions)
-                print("add flow entry")
-        # if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-        #     self.add_flow(datapath, 1000, match, actions)
-        #     return
+        self.add_flow(datapath, 1000, match, actions)
+
+        # if out_port != ofproto.OFPP_FLOOD:
+        #     match = parser.OFPMatch(in_port=in_port, eth_type=type_)
+        #     if class_ != 4 :
+        #         self.add_flow(datapath, 1000, match, actions)
+        #         print("add flow entry")
+        if msg.buffer_id != ofproto.OFP_NO_BUFFER:
+            # self.add_flow(datapath, 1000, match, actions)
+            return
 
         # while True:
         #     try:

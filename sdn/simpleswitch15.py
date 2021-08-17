@@ -182,7 +182,7 @@ class SimpleSwitch15(app_manager.RyuApp):
         parser = datapath.ofproto_parser
         pkt.serialize()
 
-        match = parser.OFPMatch(in_port = 2, eth_type = ether_types.ETH_TYPE_IEEE802_3,
+        match = parser.OFPMatch(in_port = 2, eth_type = 0x05dc,
                                 eth_src=self.H[1],eth_dst=self.H[5])
 
         actions = [parser.OFPActionOutput(3)]
