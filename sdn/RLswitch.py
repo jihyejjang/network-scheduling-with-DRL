@@ -157,7 +157,7 @@ class rl_switch(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
-        print("match", msg.match['eth_type'])
+        #print("match", msg.match['eth_type'])
 
         switchid = datapath.id
         #bufferid = msg.buffer_id
@@ -234,7 +234,7 @@ class rl_switch(app_manager.RyuApp):
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             delay_end_time = time.time()
 
-        out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
+        out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id, eth_type=0x05dc,
                                   in_port=in_port, actions=actions, data=pkt.data)
 
         datapath.send_msg(out)
@@ -280,7 +280,7 @@ class rl_switch(app_manager.RyuApp):
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
-                                      in_port = 2,
+                                      in_port = 2, eth_type=0x05dc,
                                       actions=actions, data=pkt.data)
             datapath.send_msg(out)
 
