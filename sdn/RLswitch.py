@@ -157,6 +157,7 @@ class rl_switch(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
+        print('match',msg.match)
         #print("match", msg.match['eth_type'])
 
         switchid = datapath.id
