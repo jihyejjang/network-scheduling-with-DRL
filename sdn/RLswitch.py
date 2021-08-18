@@ -140,6 +140,7 @@ class rl_switch(app_manager.RyuApp):
         return cyc, clk
 
     def action_sw1(self):
+        hub.sleep(3)
         datapath = self.dp[1]
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -153,22 +154,22 @@ class rl_switch(app_manager.RyuApp):
             gate=self.gcl_[datapath.id][:,clk]
 
             #class 1
-            match1 = parser.OFPMatch(in_port=2, eth_type=0x05dc, eth_dst=self.H[5])
+            match1 = parser.OFPMatch(in_port=2, eth_type=0x05dc)
             if gate[0] == '0' : action = [parser.OFPActionSetQueue(1)]
             inst1 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,action)]
             mod1 = parser.OFPFlowMod(datapath=datapath, priority = 1000, match = match1, instructions = inst1 )
 
             # class 2
-            match2 = parser.OFPMatch(in_port=1, eth_type=0x88a8, eth_dst=self.H[4])
+            match2 = parser.OFPMatch(in_port=1, eth_type=0x88a8)
             if gate[1] == '0': action = [parser.OFPActionSetQueue(2)]
             inst2 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action)]
             mod2 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match2, instructions=inst2)
 
             # class 3
-            match3 = parser.OFPMatch(in_port=1, eth_type=0x88e7, eth_dst=self.H[4])
+            match3 = parser.OFPMatch(in_port=1, eth_type=0x88e7)
             if gate[2] == '0': action = [parser.OFPActionSetQueue(3)]
             inst3 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action)]
-            mod3 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match3, instructions=inst3)
+            mod3 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match3, instructions=inst3 )
 
             #TODO : class 4
             datapath.send_msg(mod1)
@@ -267,8 +268,10 @@ class rl_switch(app_manager.RyuApp):
         else:
             out_port = ofproto.OFPP_FLOOD
         #print("out_port",out_port)
-        actions = [parser.OFPActionOutput(out_port)]
+        # actions = [parser.OFPActionOutput(out_port)]
+        actions = [parser.OFPActionSetQueue(class_)]
         self.add_flow(datapath, 1000, match, actions)
+
         #print("add_flow")
 
         # if out_port != ofproto.OFPP_FLOOD:
