@@ -65,6 +65,14 @@ class rl_switch(app_manager.RyuApp):
                     6: ['1111111111', '1111111111', '1111111111', '1111111111'],
                     } #최초 action
 
+        self.gcl_={1: np.array([list(l) for l in self.gcl[1]]),
+                   2: np.array([list(l) for l in self.gcl[2]]),
+                   3: np.array([list(l) for l in self.gcl[3]]),
+                   4: np.array([list(l) for l in self.gcl[4]]),
+                   5: np.array([list(l) for l in self.gcl[5]]),
+                   6: np.array([list(l) for l in self.gcl[6]])
+                   }
+
         # flow attribute
         #self.best_effort = 30  # best effort traffic (Even)
         #self.cnt1 = 0  # 전송된 flow 개수 카운트
@@ -102,21 +110,65 @@ class rl_switch(app_manager.RyuApp):
             hub.sleep(7)
             self.timeslot_start = time.time()
             #self.action_thread = hub.spawn(self.gcl_cycle)
+            self.action_1 = hub.spawn(self.action_sw1)
             self.cc_thread = hub.spawn(self._cc_gen1)
             self.cc_thread2 = hub.spawn(self._cc_gen2)
             self.ad_thread = hub.spawn(self._ad_gen1)
             self.ad_thread2 = hub.spawn(self._ad_gen2)
-            self.vd_thread = hub.spawn(self._vd_gen1)
+            self.spawn = hub.spawn(self._vd_gen1)
+            self.vd_thread = self.spawn
             self.vd_thread2 = hub.spawn(self._vd_gen2)
 
+
     #TODO: GCL 적용하기
-    # def timeslot(self, time):  # timeslot 진행 횟수를 알려주는 함수
-    #     msec = round((time - self.timeslot_start)*1000,1)
-    #     slots = int(msec / self.timeslot_size)
-    #     cyc = int(slots / self.cycle)
-    #     clk = cyc % self.cycle
-    #     return cyc, clk
+
+    # def gcl_update(self):
     #
+
+    def timeslot(self, time):  # timeslot 진행 횟수를 알려주는 함수
+        msec = round((time - self.timeslot_start)*1000,1)
+        slots = int(msec / self.timeslot_size)
+        cyc = int(slots / self.cycle)
+        clk = cyc % self.cycle
+        return cyc, clk
+
+    def action_sw1(self):
+        datapath = self.dp[1]
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        out_port = 3
+        action = [parser.OFPActionOutput(out_port)]
+        # close = [parser.OFPActionSetQueue()]
+
+        while True:
+            _,clk = self.timeslot(time.time())
+            gate=self.gcl_[datapath.id][:,clk]
+
+            #class 1
+            match1 = parser.OFPMatch(in_port=2, eth_type=0x05dc, eth_dst=self.H[5])
+            if gate[0] == '0' : action = [parser.OFPActionSetQueue(1)]
+            inst1 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,action)]
+            mod1 = parser.OFPFlowMod(datapath=datapath, priority = 1000, match = match1, instructions = inst1 )
+
+            # class 2
+            match2 = parser.OFPMatch(in_port=1, eth_type=0x88a8, eth_dst=self.H[4])
+            if gate[1] == '0': action = [parser.OFPActionSetQueue(2)]
+            inst2 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action)]
+            mod2 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match2, instructions=inst2)
+
+            # class 3
+            match3 = parser.OFPMatch(in_port=1, eth_type=0x88e7, eth_dst=self.H[4])
+            if gate[2] == '0': action = [parser.OFPActionSetQueue(3)]
+            inst3 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action)]
+            mod3 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match3, instructions=inst3)
+
+            #TODO : class 4
+            datapath.send_msg(mod1)
+            datapath.send_msg(mod2)
+            datapath.send_msg(mod3)
+
+            hub.sleep(0.0004)
+
     # def gcl_cycle(self):
     #     time.sleep(0.005)
     #
@@ -209,6 +261,7 @@ class rl_switch(app_manager.RyuApp):
         #print("out_port",out_port)
         actions = [parser.OFPActionOutput(out_port)]
         self.add_flow(datapath, 1000, match, actions)
+        print("add_flow")
 
         # if out_port != ofproto.OFPP_FLOOD:
         #     match = parser.OFPMatch(in_port=in_port, eth_type=type_)
