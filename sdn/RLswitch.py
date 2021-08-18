@@ -144,11 +144,12 @@ class rl_switch(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         out_port = 3
-        action = [parser.OFPActionOutput(out_port)]
+
         # close = [parser.OFPActionSetQueue()]
 
         while True:
-            print("md")
+            #print("md")
+            action = [parser.OFPActionOutput(out_port)]
             _,clk = self.timeslot(time.time())
             gate=self.gcl_[datapath.id][:,clk]
 
