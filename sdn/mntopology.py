@@ -75,7 +75,7 @@ def runMyTopo(): #activate mininet topology after ping test
     hosts = net.hosts
     # switches = net.switches
     hosts[4].cmd('wireshark &')
-    hosts[5].cmd('wireshark &')
+    #hosts[5].cmd('wireshark &')
 
     # net.pingAll()
     # switches[2].cmd('wireshark &')

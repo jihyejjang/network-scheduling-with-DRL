@@ -57,11 +57,11 @@ class rl_switch(app_manager.RyuApp):
         self.timeslot_size = 0.5 #ms
         self.cycle = 10
         self.ts_cnt=0
-        self.gcl = {1: ['1111111111', '1111111111', '1111111111', '1111111111'],
-                    2: ['1111111111', '1111111111', '1111111111', '1111111111'],
-                    3: ['1111111111', '1111111111', '1111111111', '1111111111'],
-                    4: ['1111111111', '1111111111', '1111111111', '1111111111'],
-                    5: ['1111111111', '1111111111', '1111111111', '1111111111'],
+        self.gcl = {1: ['1000011111', '1000011111', '1111111111', '1111111111'],
+                    2: ['0000011111', '1000011111', '1111111111', '1111111111'],
+                    3: ['1111010111', '1000011111', '1111111111', '1111111111'],
+                    4: ['1111110000', '1000011111', '1111111111', '1111111111'],
+                    5: ['1111110000', '1111110000', '1111111111', '1111111111'],
                     6: ['1111111111', '1111111111', '1111111111', '1111111111'],
                     } #최초 action
 
@@ -141,6 +141,7 @@ class rl_switch(app_manager.RyuApp):
         # close = [parser.OFPActionSetQueue()]
 
         while True:
+            print("md")
             _,clk = self.timeslot(time.time())
             gate=self.gcl_[datapath.id][:,clk]
 
@@ -261,7 +262,7 @@ class rl_switch(app_manager.RyuApp):
         #print("out_port",out_port)
         actions = [parser.OFPActionOutput(out_port)]
         self.add_flow(datapath, 1000, match, actions)
-        print("add_flow")
+        #print("add_flow")
 
         # if out_port != ofproto.OFPP_FLOOD:
         #     match = parser.OFPMatch(in_port=in_port, eth_type=type_)
