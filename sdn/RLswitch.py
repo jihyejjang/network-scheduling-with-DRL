@@ -57,19 +57,19 @@ class rl_switch(app_manager.RyuApp):
         self.timeslot_size = 0.5 #ms
         self.cycle = 10
         self.ts_cnt=0
-        # self.gcl = {1: ['1000000000', '1000000000', '1000000000', '1000000000'],
-        #             2: ['0000000000', '0000000000', '0000000000', '1111111111'],
-        #             3: ['0000000000', '0000000000', '0000000000', '1111111111'],
-        #             4: ['0000000000', '0000000000', '0000000000', '1111111111'],
-        #             5: ['0000000000', '0000000000', '0000000000', '1111111111'],
-        #             6: ['0000000000', '0000000000', '0000000000', '1111111111']} #최초 action
-        self.gcl = {1: ['1111111111', '1111111111', '1111111111', '1111111111'],
-                    2: ['0000011111', '1000011111', '1111111111', '1111111111'],
-                    3: ['1111010111', '1000011111', '1111111111', '1111111111'],
-                    4: ['1111110000', '1000011111', '1111111111', '1111111111'],
-                    5: ['1111110000', '1111110000', '1111111111', '1111111111'],
-                    6: ['1111111111', '1111111111', '1111111111', '1111111111'],
-                    } #최초 action
+        self.gcl = {1: ['1000000000', '1000000000', '1000000000', '1000000000'],
+                    2: ['0000000000', '0000000000', '0000000000', '1111111111'],
+                    3: ['0000000000', '0000000000', '0000000000', '1111111111'],
+                    4: ['0000000000', '0000000000', '0000000000', '1111111111'],
+                    5: ['0000000000', '0000000000', '0000000000', '1111111111'],
+                    6: ['0000000000', '0000000000', '0000000000', '1111111111']} #최초 action
+        # self.gcl = {1: ['1111111111', '1111111111', '1111111111', '1111111111'],
+        #             2: ['0000011111', '1000011111', '1111111111', '1111111111'],
+        #             3: ['1111010111', '1000011111', '1111111111', '1111111111'],
+        #             4: ['1111110000', '1000011111', '1111111111', '1111111111'],
+        #             5: ['1111110000', '1111110000', '1111111111', '1111111111'],
+        #             6: ['1111111111', '1111111111', '1111111111', '1111111111']
+        #             } #최초 action
 
         self.gcl_={1: np.array([list(l) for l in self.gcl[1]]),
                    2: np.array([list(l) for l in self.gcl[2]]),
@@ -155,20 +155,29 @@ class rl_switch(app_manager.RyuApp):
 
             #class 1
             match1 = parser.OFPMatch(in_port=2, eth_type=0x05dc)
-            if gate[0] == '0' : action = [parser.OFPActionSetQueue(1)]
-            inst1 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,action)]
+            if gate[0] == '0' :
+                action1 = [parser.OFPActionSetQueue(1)]
+            else :
+                action1 = action
+            inst1 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action1)]
             mod1 = parser.OFPFlowMod(datapath=datapath, priority = 1000, match = match1, instructions = inst1 )
 
             # class 2
             match2 = parser.OFPMatch(in_port=1, eth_type=0x88a8)
-            if gate[1] == '0': action = [parser.OFPActionSetQueue(2)]
-            inst2 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action)]
+            if gate[1] == '0':
+                action2 = [parser.OFPActionSetQueue(2)]
+            else :
+                action2 = action
+            inst2 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action2)]
             mod2 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match2, instructions=inst2)
 
             # class 3
             match3 = parser.OFPMatch(in_port=1, eth_type=0x88e7)
-            if gate[2] == '0': action = [parser.OFPActionSetQueue(3)]
-            inst3 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action)]
+            if gate[2] == '0':
+                action3 = [parser.OFPActionSetQueue(3)]
+            else :
+                action3 = action
+            inst3 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action3)]
             mod3 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match3, instructions=inst3 )
 
             #TODO : class 4
