@@ -116,7 +116,7 @@ class rl_switch(app_manager.RyuApp):
             hub.sleep(7)
             self.timeslot_start = time.time()
             #self.action_thread = hub.spawn(self.gcl_cycle)
-            self.action_1 = hub.spawn(self.action_sw1)
+            #self.action_1 = hub.spawn(self.action_sw1)
             self.cc_thread = hub.spawn(self._cc_gen1)
             self.cc_thread2 = hub.spawn(self._cc_gen2)
             self.ad_thread = hub.spawn(self._ad_gen1)
@@ -487,7 +487,7 @@ class rl_switch(app_manager.RyuApp):
                                       actions=actions, data=pkt.data)
             datapath.send_msg(out)
             self.logger.info("%f : %s번 째 Video1 generated in switch%s " % (time.time(), self.vd_cnt, datapath.id))
-            df = pd.DataFrame([(datapath.id, 2, self.vd_cnt, time.time(), 'x')],
+            df = pd.DataFrame([(datapath.id, 3, self.vd_cnt, time.time(), 'x')],
                               columns=['switch', 'class', 'number', 'time', 'queue'])
             self.generated_log = self.generated_log.append(df)
             hub.sleep(self.vd_period / 1000)
@@ -518,8 +518,8 @@ class rl_switch(app_manager.RyuApp):
                                       in_port=2,
                                       actions=actions, data=pkt.data)
             datapath.send_msg(out)
-            self.logger.info("%f : %s번 째 Audio2 generated in switch%s " % (time.time(), self.vd_cnt2, datapath.id))
-            df = pd.DataFrame([(datapath.id, 2, self.vd_cnt2, time.time(), 'x')],
+            self.logger.info("%f : %s번 째 Video2 generated in switch%s " % (time.time(), self.vd_cnt2, datapath.id))
+            df = pd.DataFrame([(datapath.id, 3, self.vd_cnt2, time.time(), 'x')],
                               columns=['switch', 'class', 'number', 'time', 'queue'])
             self.generated_log = self.generated_log.append(df)
             hub.sleep(self.vd_period / 1000)
