@@ -366,6 +366,8 @@ class rl_switch(app_manager.RyuApp):
 
             if (self.cc_cnt >= self.command_control):
                 self.terminal += 1
+                if self.terminal == 6:
+                    self.generated_log.to_csv('switchlog0818_generated.csv')
                 break
 
     def _cc_gen2(self):
@@ -398,6 +400,8 @@ class rl_switch(app_manager.RyuApp):
 
             if (self.cc_cnt2 >= self.command_control):
                 self.terminal += 1
+                if self.terminal == 6:
+                    self.generated_log.to_csv('switchlog0818_generated.csv')
                 break
 
     def _ad_gen1(self):
@@ -527,6 +531,7 @@ class rl_switch(app_manager.RyuApp):
             if (self.vd_cnt2 >= self.video):
                 self.terminal += 1
                 break
+
 
     #
     # def _vd_gen2(self):
