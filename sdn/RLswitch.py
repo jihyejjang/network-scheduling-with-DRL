@@ -187,6 +187,9 @@ class rl_switch(app_manager.RyuApp):
 
             hub.sleep(0.0004)
 
+            if self.terminal == 6:
+                self.generated_log.to_csv('switchlog0818_generated.csv')
+
     # def gcl_cycle(self):
     #     time.sleep(0.005)
     #
@@ -327,7 +330,7 @@ class rl_switch(app_manager.RyuApp):
                                  (time.time(), switchid, class_))
 
         if self.terminal == 6:
-            self.generated_log.to_csv('switchlog0817_generated.csv')
+            self.generated_log.to_csv('switchlog0818_generated.csv')
             # self.received_log.to_csv('switchlog0810_received.csv')
             #self.terminal = False
 
