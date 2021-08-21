@@ -173,7 +173,7 @@ class rl_switch(app_manager.RyuApp):
                 action2 = [parser.OFPActionSetQueue(2)]
             else :
                 action2 = action
-            inst2 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action2)]
+            inst2 = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS, action2)]
             mod2 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match2, instructions=inst2)
 
             # class 3
@@ -182,7 +182,7 @@ class rl_switch(app_manager.RyuApp):
                 action3 = [parser.OFPActionSetQueue(3)]
             else :
                 action3 = action
-            inst3 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action3)]
+            inst3 = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS, action3)]
             mod3 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match3, instructions=inst3 )
 
             #TODO : class 4
