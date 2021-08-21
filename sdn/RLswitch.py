@@ -142,7 +142,9 @@ class rl_switch(app_manager.RyuApp):
         hub.sleep(4)
         datapath = self.dp[1]
         ofproto = datapath.ofproto
+        print(ofproto)
         parser = datapath.ofproto_parser
+        print(ofproto_parser)
         out_port = 3
 
         # close = [parser.OFPActionSetQueue()]
@@ -229,9 +231,9 @@ class rl_switch(app_manager.RyuApp):
         msg = ev.msg
         datapath = msg.datapath
         ofproto = datapath.ofproto
-        print("ofproto",ofproto)
+        # print("ofproto",ofproto)
         parser = datapath.ofproto_parser
-        print("ofproto_parser",parser)
+        # print("ofproto_parser",parser)
         in_port = msg.match['in_port']
         #print("match", msg.match)
         #print("match",msg.match)
