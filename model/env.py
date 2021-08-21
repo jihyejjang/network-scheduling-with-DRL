@@ -272,8 +272,8 @@ class GateControllEnv(object):
                 i=0
                 for agent in self.agents:
                     i+=1
-                    agent.model.save_model("./result/0808_1_train/"+ "agent[" + str(i) +"]"+ str(np.mean(loss)) + ".h5")
-                self.log.to_csv("./result/0808_1_train/log_0808_train_1.csv")
+                    agent.model.save_model("./result/0819_1_train/"+ "agent[" + str(i) +"]"+ str(np.mean(loss)) + ".h5")
+                self.log.to_csv("./result/0819_1_train/log_0819_train_1.csv")
 
             self.log = self.log.append(log_,ignore_index=True)
             
@@ -282,9 +282,9 @@ class GateControllEnv(object):
     def reward(self,state,flows):
         #state = [전송된 패킷, 생성해야 할 전체 패킷의 개수, 생성한 패킷의 개수]
 
-        w1 = [6,4,2]
-        w2 = 5
-        w3 = -20
+        w1 = [6,3,2]
+        w2 = 4
+        w3 = 10
 
         # reward 1
         # 생성해야할 패킷 대비 전송된 패킷 : 전송된 패킷이 많아질 수록 점수를 많이 부여하기 때문에 빨리 전송할 수록 보상이 많이 주어짐
@@ -354,8 +354,8 @@ class GateControllEnv(object):
         i = 0
         for agent in self.agents:
             i += 1
-            agent.model.save_model("./result/0808_1_train/" + "agent[" + str(i) + "]" + str(min(self.minloss)) + ".h5")
-        self.log.to_csv("./result/0808_1_train/log_0808_train_1.csv")
+            agent.model.save_model("./result/0819_1_train/" + "agent[" + str(i) + "]" + str(min(self.minloss)) + ".h5")
+        self.log.to_csv("./result/0819_1_train/log_0819_train_1.csv")
         
 if __name__ =="__main__":
     env_ = GateControllEnv()

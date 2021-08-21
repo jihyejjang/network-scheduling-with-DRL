@@ -280,8 +280,9 @@ class rl_switch(app_manager.RyuApp):
         else:
             out_port = ofproto.OFPP_FLOOD
         # print("out_port",out_port)
-        actions = [parser.OFPActionOutput(out_port)]
-        # actions = [parser.OFPActionSetQueue(class_)]
+        actions = [parser.OFPActionSetQueue(class_)]
+        actions += [parser.OFPActionOutput(out_port)]
+        #actions = [parser.OFPActionSetQueue(class_)]
         self.add_flow(datapath, 1000, match, actions)
 
         #print("add_flow")
