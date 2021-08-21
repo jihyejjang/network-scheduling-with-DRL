@@ -149,6 +149,7 @@ class rl_switch(app_manager.RyuApp):
 
         while True:
             #print("md")
+            datapath = self.dp[1]
             action = [parser.OFPActionOutput(out_port)]
             _,clk = self.timeslot(time.time())
             gate=self.gcl_[datapath.id][:,clk]
@@ -228,7 +229,9 @@ class rl_switch(app_manager.RyuApp):
         msg = ev.msg
         datapath = msg.datapath
         ofproto = datapath.ofproto
+        print("ofproto",ofproto)
         parser = datapath.ofproto_parser
+        print("ofproto_parser",parser)
         in_port = msg.match['in_port']
         #print("match", msg.match)
         #print("match",msg.match)
