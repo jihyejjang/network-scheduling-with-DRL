@@ -142,9 +142,9 @@ class rl_switch(app_manager.RyuApp):
         hub.sleep(4)
         datapath = self.dp[1]
         ofproto = datapath.ofproto
-        print(ofproto)
+        # print(ofproto)
         parser = datapath.ofproto_parser
-        print(parser)
+        # print(parser)
         out_port = 3
 
         # close = [parser.OFPActionSetQueue()]
@@ -158,16 +158,17 @@ class rl_switch(app_manager.RyuApp):
             # print("gate:",gate)
 
             #class 1
-            match1 = parser.OFPMatch(in_port=2, eth_type=0x05dc)
+            match1 = parser.OFPMatch(eth_type=0x05dc)
             if gate[0] == '0' :
                 action1 = [parser.OFPActionSetQueue(1)]
             else :
                 action1 = action
-            inst1 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action1)]
+            inst1 = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS, [])]
+            #inst1 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action1)]
             mod1 = parser.OFPFlowMod(datapath=datapath, priority = 1000, match = match1, instructions = inst1 )
 
             # class 2
-            match2 = parser.OFPMatch(in_port=1, eth_type=0x88a8)
+            match2 = parser.OFPMatch(eth_type=0x88a8)
             if gate[1] == '0':
                 action2 = [parser.OFPActionSetQueue(2)]
             else :
@@ -176,7 +177,7 @@ class rl_switch(app_manager.RyuApp):
             mod2 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match2, instructions=inst2)
 
             # class 3
-            match3 = parser.OFPMatch(in_port=1, eth_type=0x88e7)
+            match3 = parser.OFPMatch(eth_type=0x88e7)
             if gate[2] == '0':
                 action3 = [parser.OFPActionSetQueue(3)]
             else :
