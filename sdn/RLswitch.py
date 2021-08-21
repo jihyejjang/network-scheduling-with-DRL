@@ -144,7 +144,7 @@ class rl_switch(app_manager.RyuApp):
         ofproto = datapath.ofproto
         print(ofproto)
         parser = datapath.ofproto_parser
-        print(ofproto_parser)
+        print(parser)
         out_port = 3
 
         # close = [parser.OFPActionSetQueue()]
