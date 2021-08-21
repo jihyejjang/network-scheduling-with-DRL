@@ -156,28 +156,28 @@ class rl_switch(app_manager.RyuApp):
 
             #class 1
             match1 = parser.OFPMatch(in_port=2, eth_type=0x05dc)
-            if gate[0] == '0' :
-                action1 = [parser.OFPActionSetQueue(1)]
-            else :
-                action1 = action
+            # if gate[0] == '0' :
+            #     action1 = [parser.OFPActionSetQueue(1)]
+            # else :
+            action1 = action
             inst1 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action1)]
             mod1 = parser.OFPFlowMod(datapath=datapath, priority = 1000, match = match1, instructions = inst1 )
 
             # class 2
             match2 = parser.OFPMatch(in_port=1, eth_type=0x88a8)
-            if gate[1] == '0':
-                action2 = [parser.OFPActionSetQueue(2)]
-            else :
-                action2 = action
+            # if gate[1] == '0':
+            #     action2 = [parser.OFPActionSetQueue(2)]
+            # else :
+            action2 = action
             inst2 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action2)]
             mod2 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match2, instructions=inst2)
 
             # class 3
             match3 = parser.OFPMatch(in_port=1, eth_type=0x88e7)
-            if gate[2] == '0':
-                action3 = [parser.OFPActionSetQueue(3)]
-            else :
-                action3 = action
+            # if gate[2] == '0':
+            #     action3 = [parser.OFPActionSetQueue(3)]
+            # else :
+            action3 = action
             inst3 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action3)]
             mod3 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match3, instructions=inst3 )
 
@@ -277,12 +277,12 @@ class rl_switch(app_manager.RyuApp):
 
         if dst in self.mac_to_port[switchid]:
             out_port = self.mac_to_port[switchid][dst]
+            print("inport %s,out_port %s" % (in_port, out_port))
             # self.queue[switchid - 1][out_port - 1][class_ - 1] += 1
         else:
             out_port = ofproto.OFPP_FLOOD
-        print("inport %s,out_port %s"%(in_port,out_port))
         actions = [parser.OFPActionSetQueue(class_)]
-        actions += [parser.OFPActionOutput(out_port)]
+        # actions += [parser.OFPActionOutput(out_port)]
         #actions = [parser.OFPActionSetQueue(class_)]
         self.add_flow(datapath, 1000, match, actions)
 
