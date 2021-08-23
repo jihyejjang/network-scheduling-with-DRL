@@ -297,11 +297,16 @@ class GateControllEnv(object):
         #reward 2
         # 생성한 패킷 대비 전송된 패킷 : 생성한 패킷이 모두 전송완료될때까지 panelty
         reward2 = 0
+        # for i in range(3):
+        #     if state[i][1] != 0:
+        #         #print("state", state[i][0],state[i][2])
+        #         r = w2 * (1 - state[i][1])
+        #         reward2 -= r*(3-i)*(3-i)
         for i in range(3):
-            if state[i][1] != 0:
+            # if state[i][1] != 0:
                 #print("state", state[i][0],state[i][2])
-                r = w2 * (1 - state[i][1])
-                reward2 -= r*(3-i)*(3-i)
+                # r = w2 * (1 - state[i][1])
+            reward2 += state[i][1] * w1[i]
         #print("reward2", reward2)
         #
         # #reward 3

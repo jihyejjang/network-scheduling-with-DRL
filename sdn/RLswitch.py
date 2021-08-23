@@ -2,11 +2,12 @@
 import time
 import pandas as pd
 from ryu.lib import hub
+from ryu import utils
 from multiprocessing import Process
 
 from ryu.base import app_manager
 from ryu.controller import ofp_event
-from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
+from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER, HANDSHAKE_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 
 from ryu.ofproto import ofproto_v1_3
@@ -130,6 +131,35 @@ class rl_switch(app_manager.RyuApp):
 
     # def gcl_update(self):
     #
+    # def _request_stats(self, datapath):
+    #     self.logger.debug('send stats request: %016x', datapath.id)
+    #     ofproto = datapath.ofproto
+    #     parser = datapath.ofproto_parser
+    #
+    #     req = parser.OFPFlowStatsRequest(datapath)
+    #     datapath.send_msg(req)
+    #
+    #     req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
+    #     datapath.send_msg(req)
+
+    # @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
+    # def _flow_stats_reply_handler(self, ev):
+    #     body = ev.msg.body
+    #
+    #     self.logger.info('datapath         '
+    #                      'in-port  eth-dst           '
+    #                      'out-port packets  bytes')
+    #     self.logger.info('---------------- '
+    #                      '-------- ----------------- '
+    #                      '-------- -------- --------')
+    #     for stat in sorted([flow for flow in body if flow.priority == 1],
+    #                        key=lambda flow: (flow.match['in_port'],
+    #                                          flow.match['eth_dst'])):
+    #         self.logger.info('%016x %8x %17s %8x %8d %8d',
+    #                          ev.msg.datapath.id,
+    #                          stat.match['in_port'], stat.match['eth_dst'],
+    #                          stat.instructions[0].actions[0].port,
+    #                          stat.packet_count, stat.byte_count)
 
     def timeslot(self, time):  # timeslot 진행 횟수를 알려주는 함수
         msec = round((time - self.timeslot_start)*1000,1)
@@ -139,7 +169,7 @@ class rl_switch(app_manager.RyuApp):
         return cyc, clk
 
     def action_sw1(self):
-        hub.sleep(4)
+        hub.sleep(3)
         datapath = self.dp[1]
         ofproto = datapath.ofproto
         # print(ofproto)
@@ -173,7 +203,7 @@ class rl_switch(app_manager.RyuApp):
                 action2 = [parser.OFPActionSetQueue(2)]
             else :
                 action2 = action
-            inst2 = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS, action2)]
+            inst2 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action2)]
             mod2 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match2, instructions=inst2)
 
             # class 3
@@ -182,7 +212,7 @@ class rl_switch(app_manager.RyuApp):
                 action3 = [parser.OFPActionSetQueue(3)]
             else :
                 action3 = action
-            inst3 = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS, action3)]
+            inst3 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action3)]
             mod3 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match3, instructions=inst3 )
 
             #TODO : class 4
@@ -213,6 +243,15 @@ class rl_switch(app_manager.RyuApp):
     #                    format(np.argmax(self.model3.predict(self.state[s].reshape(-1,4))), '010b'),
     #                    format(np.argmax(self.model4.predict(self.state[s].reshape(-1,4))), '010b')]
     #             print(self.gcl[s])
+
+    @set_ev_cls(ofp_event.EventOFPErrorMsg,
+                [HANDSHAKE_DISPATCHER, CONFIG_DISPATCHER, MAIN_DISPATCHER])
+    def error_msg_handler(self, ev):
+        msg = ev.msg
+
+        self.logger.debug('OFPErrorMsg received: type=0x%02x code=0x%02x '
+                          'message=%s',
+                          msg.type, msg.code, utils.hex_array(msg.data))
 
     def add_flow(self, datapath, priority, match, actions):
         ofproto = datapath.ofproto
@@ -269,16 +308,19 @@ class rl_switch(app_manager.RyuApp):
             if eth_type == ether_types.ETH_TYPE_IEEE802_3:
                 match = parser.OFPMatch(in_port=in_port, eth_type=0x05dc)
                 class_ = 1
+                print("class_1")
                 # type_ = 0x05dc
                 #self.logger.info("class %s packet" % (class_))
             elif eth_type == ether_types.ETH_TYPE_8021AD:
                 match = parser.OFPMatch(in_port=in_port, eth_type=0x88a8)
                 class_ = 2
+                print("class_2")
                 # type_ = 0x88a8
                 #self.logger.info("class %s packet" % (class_))
             elif eth_type == ether_types.ETH_TYPE_8021AH:
                 match = parser.OFPMatch(in_port=in_port, eth_type=0x88e7)
                 class_ = 3
+                print("class_3")
                 # type_ = 0x88e7
                 #self.logger.info("class %s packet" % (class_))
 
