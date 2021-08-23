@@ -170,7 +170,7 @@ class rl_switch(app_manager.RyuApp):
 
     def action_sw1(self):
         hub.sleep(3)
-        datapath = self.dp[1]
+        datapath = self.dp[3]
         ofproto = datapath.ofproto
         # print(ofproto)
         parser = datapath.ofproto_parser
@@ -181,7 +181,7 @@ class rl_switch(app_manager.RyuApp):
 
         while True:
             #print("md")
-            datapath = self.dp[1]
+            datapath = self.dp[3]
             action = [parser.OFPActionOutput(out_port)]
             _,clk = self.timeslot(time.time())
             gate=self.gcl_[datapath.id][:,clk]
@@ -263,42 +263,26 @@ class rl_switch(app_manager.RyuApp):
                                     match=match, instructions=inst)
         datapath.send_msg(mod)
 
-    # packet-in handler에서는 gcl의 Open정보와 현재 timeslot cnt를 비교하여 delay후 전송한다. -X
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
-        # delay_start_time = time.time()
-        # _,clk = self.timeslot(delay_start_time)
-
         msg = ev.msg
         datapath = msg.datapath
         ofproto = datapath.ofproto
-        # print("ofproto",ofproto)
         parser = datapath.ofproto_parser
-        # print("ofproto_parser",parser)
         in_port = msg.match['in_port']
-        #print("match", msg.match)
-        #print("match",msg.match)
-
+        table_id = msg.table_id
+        fields = msg.match.fields
         switchid = datapath.id
         #bufferid = msg.buffer_id
+
+        print ("table_id", table_id)
+        print ("fields", fields)
 
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         eth_type = eth.ethertype
-        # type_ = 0
-        # ipv6_ = pkt.get_protocol(ipv6.ipv6)
-        #
-        # if ipv6_!= None:
-        #     return
         dst = eth.dst
         src = eth.src
-        #print("src",src)
-        #print("inport",in_port)
-
-        # icmp_packet = pkt.get_protocol(icmp.icmp)
-        # print (icmp_packet)
-        # payload = icmp_packet.data
-        # info = payload.split(';')
 
         class_ = 4 #best effort
         #print("dst",dst)
@@ -308,19 +292,19 @@ class rl_switch(app_manager.RyuApp):
             if eth_type == ether_types.ETH_TYPE_IEEE802_3:
                 match = parser.OFPMatch(in_port=in_port, eth_type=0x05dc)
                 class_ = 1
-                print("class_1")
+                print("class_1,inport",in_port)
                 # type_ = 0x05dc
                 #self.logger.info("class %s packet" % (class_))
             elif eth_type == ether_types.ETH_TYPE_8021AD:
                 match = parser.OFPMatch(in_port=in_port, eth_type=0x88a8)
                 class_ = 2
-                print("class_2")
+                print("class_2,inport",in_port)
                 # type_ = 0x88a8
                 #self.logger.info("class %s packet" % (class_))
             elif eth_type == ether_types.ETH_TYPE_8021AH:
                 match = parser.OFPMatch(in_port=in_port, eth_type=0x88e7)
                 class_ = 3
-                print("class_3")
+                print("class_3,inport",in_port)
                 # type_ = 0x88e7
                 #self.logger.info("class %s packet" % (class_))
 
