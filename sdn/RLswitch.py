@@ -193,7 +193,7 @@ class rl_switch(app_manager.RyuApp):
                 action1 = [parser.OFPActionSetQueue(1)]
             else :
                 action1 = action
-            inst1 = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS, action1)]
+            inst1 = [parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, action1),]
             #inst1 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action1)]
             mod1 = parser.OFPFlowMod(datapath=datapath, priority = 1000, match = match1, instructions = inst1 )
 
@@ -203,7 +203,7 @@ class rl_switch(app_manager.RyuApp):
                 action2 = [parser.OFPActionSetQueue(2)]
             else :
                 action2 = action
-            inst2 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action2)]
+            inst2 = [parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, action2)]
             mod2 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match2, instructions=inst2)
 
             # class 3
@@ -212,7 +212,7 @@ class rl_switch(app_manager.RyuApp):
                 action3 = [parser.OFPActionSetQueue(3)]
             else :
                 action3 = action
-            inst3 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action3)]
+            inst3 = [parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, action3)]
             mod3 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match3, instructions=inst3 )
 
             #TODO : class 4
@@ -330,10 +330,10 @@ class rl_switch(app_manager.RyuApp):
             # self.queue[switchid - 1][out_port - 1][class_ - 1] += 1
         else:
             out_port = ofproto.OFPP_FLOOD
-        actions = [parser.OFPActionSetQueue(class_)]
-        #actions = [parser.OFPActionOutput(out_port)]
         #actions = [parser.OFPActionSetQueue(class_)]
-        self.add_flow(datapath, 1000, match, actions)
+        actions = [parser.OFPActionOutput(out_port)]
+        #actions = [parser.OFPActionSetQueue(class_)]
+        #self.add_flow(datapath, 1000, match, actions)
 
         #print("add_flow")
 
