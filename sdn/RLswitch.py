@@ -283,8 +283,8 @@ class rl_switch(app_manager.RyuApp):
         eth_type = eth.ethertype
         dst = eth.dst
         src = eth.src
-        print("ofproto.OXM_OF_IN_PORT",ofproto.OXM_OF_IN_PORT)
-        print("ofproto.OXM_OF_ETH_SRC",ofproto.OXM_OF_ETH_SRC)
+        #print("ofproto.OXM_OF_IN_PORT",ofproto.OXM_OF_IN_PORT)
+        #print("ofproto.OXM_OF_ETH_SRC",ofproto.OXM_OF_ETH_SRC)
 
         class_ = 4 #best effort
         #print("dst",dst)
@@ -304,7 +304,7 @@ class rl_switch(app_manager.RyuApp):
                 # type_ = 0x88a8
                 #self.logger.info("class %s packet" % (class_))
             elif eth_type == ether_types.ETH_TYPE_8021AH:
-                match = parser.OFPMatch( eth_type=0x88e7)
+                match = parser.OFPMatch(eth_type=0x88e7)
                 class_ = 3
                 print("class_3,inport",in_port)
                 # type_ = 0x88e7
@@ -316,8 +316,8 @@ class rl_switch(app_manager.RyuApp):
             # self.queue[switchid - 1][out_port - 1][class_ - 1] += 1
         else:
             out_port = ofproto.OFPP_FLOOD
-        actions = [parser.OFPActionSetQueue(class_)]
-        #actions = [parser.OFPActionOutput(out_port)]
+        #actions = [parser.OFPActionSetQueue(class_)]
+        actions = [parser.OFPActionOutput(out_port)]
         #actions = [parser.OFPActionSetQueue(class_)]
         #print("match",match)
         self.add_flow(datapath, 1000, match, actions)
