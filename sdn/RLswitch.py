@@ -270,13 +270,13 @@ class rl_switch(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
-        table_id = msg.table_id
-        fields = msg.match.fields
+        #table_id = msg.table_id
+        #fields = msg.match.fields
         switchid = datapath.id
         #bufferid = msg.buffer_id
 
-        print ("table_id", table_id)
-        print ("fields", fields)
+        #print ("table_id", table_id)
+        #print ("fields", fields)
 
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
@@ -317,7 +317,7 @@ class rl_switch(app_manager.RyuApp):
         actions = [parser.OFPActionSetQueue(class_)]
         #actions = [parser.OFPActionOutput(out_port)]
         #actions = [parser.OFPActionSetQueue(class_)]
-        #self.add_flow(datapath, 1000, match, actions)
+        self.add_flow(datapath, 1000, match, actions)
 
         #print("add_flow")
 
