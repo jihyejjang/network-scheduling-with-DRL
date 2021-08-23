@@ -330,8 +330,8 @@ class rl_switch(app_manager.RyuApp):
             # self.queue[switchid - 1][out_port - 1][class_ - 1] += 1
         else:
             out_port = ofproto.OFPP_FLOOD
-        #actions = [parser.OFPActionSetQueue(class_)]
-        actions = [parser.OFPActionOutput(out_port)]
+        actions = [parser.OFPActionSetQueue(class_)]
+        #actions = [parser.OFPActionOutput(out_port)]
         #actions = [parser.OFPActionSetQueue(class_)]
         #self.add_flow(datapath, 1000, match, actions)
 
