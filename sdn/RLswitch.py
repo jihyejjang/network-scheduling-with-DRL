@@ -99,6 +99,7 @@ class rl_switch(app_manager.RyuApp):
         self.timeslot_start = 0
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
+    #TODO: 집컴퓨터로 해보기, flow mod 있을때랑 없을 때 속도 비교해보기, table id 추가해보기,
     def _switch_features_handler(self, ev):
         msg = ev.msg
         datapath = msg.datapath
@@ -111,13 +112,15 @@ class rl_switch(app_manager.RyuApp):
         match = parser.OFPMatch()
         actions = [parser.OFPActionOutput(port=ofproto.OFPP_CONTROLLER,
                                           max_len=ofproto.OFPCML_NO_BUFFER)]
-        self.add_flow(datapath,0,match,actions)
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+        self.add_flow(datapath,0,match,0,inst)
 
         if len(self.dp)==6:
             hub.sleep(3)
             self.timeslot_start = time.time()
             #self.action_thread = hub.spawn(self.gcl_cycle)
-            self.action_1 = hub.spawn(self.action_sw1)
+            #self.action_1 = hub.spawn(self.action_sw1)
             self.cc_thread = hub.spawn(self._cc_gen1)
             self.cc_thread2 = hub.spawn(self._cc_gen2)
             self.ad_thread = hub.spawn(self._ad_gen1)
@@ -243,24 +246,21 @@ class rl_switch(app_manager.RyuApp):
     #                    format(np.argmax(self.model3.predict(self.state[s].reshape(-1,4))), '010b'),
     #                    format(np.argmax(self.model4.predict(self.state[s].reshape(-1,4))), '010b')]
     #             print(self.gcl[s])
+    #
+    # @set_ev_cls(ofp_event.EventOFPErrorMsg,
+    #             [HANDSHAKE_DISPATCHER, CONFIG_DISPATCHER, MAIN_DISPATCHER])
+    # def error_msg_handler(self, ev):
+    #     msg = ev.msg
+    #
+    #     self.logger.debug('OFPErrorMsg received: type=0x%02x code=0x%02x '
+    #                       'message=%s',
+    #                       msg.type, msg.code, utils.hex_array(msg.data))
 
-    @set_ev_cls(ofp_event.EventOFPErrorMsg,
-                [HANDSHAKE_DISPATCHER, CONFIG_DISPATCHER, MAIN_DISPATCHER])
-    def error_msg_handler(self, ev):
-        msg = ev.msg
-
-        self.logger.debug('OFPErrorMsg received: type=0x%02x code=0x%02x '
-                          'message=%s',
-                          msg.type, msg.code, utils.hex_array(msg.data))
-
-    def add_flow(self, datapath, priority, match, actions):
+    def add_flow(self, datapath, priority, match, tableid, inst):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-
-        mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
-                                    match=match, instructions=inst)
+        mod = parser.OFPFlowMod(datapath=datapath, table_id = tableid, priority=priority,
+                                    match=match, instructions = inst)
         datapath.send_msg(mod)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
@@ -294,6 +294,8 @@ class rl_switch(app_manager.RyuApp):
             if eth_type == ether_types.ETH_TYPE_IEEE802_3:
                 match = parser.OFPMatch(eth_type=0x05dc)
                 class_ = 1
+
+
                 #print("class_1, inport",in_port)
                 # type_ = 0x05dc
                 #self.logger.info("class %s packet" % (class_))
@@ -316,11 +318,17 @@ class rl_switch(app_manager.RyuApp):
             # self.queue[switchid - 1][out_port - 1][class_ - 1] += 1
         else:
             out_port = ofproto.OFPP_FLOOD
-        #actions = [parser.OFPActionSetQueue(class_)]
-        actions = [parser.OFPActionOutput(out_port)]
-        #actions = [parser.OFPActionSetQueue(class_)]
-        #print("match",match)
-        self.add_flow(datapath, 1000, match, actions)
+
+        goto = parser.OFPInstructionGotoTable(1)
+        actions1 = parser.OFPActionOutput(out_port)
+        actions2 = parser.OFPActionSetQueue(class_)
+        inst1 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS,[actions1])
+        inst2 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS,[actions2])
+
+        self.add_flow(datapath, 1000, match, 1, inst1)
+        self.add_flow(datapath, 1000, match, 2, inst2)
+        self.add_flow(datapath, 1000, match, 0, [goto])
+
 
         #print("add_flow")
 
