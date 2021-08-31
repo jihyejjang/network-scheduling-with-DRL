@@ -346,7 +346,7 @@ class rl_switch(app_manager.RyuApp):
         # if msg.buffer_id == ofproto.OFP_NO_BUFFER:
         #     delay_end_time = time.time()
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
-                                  in_port=in_port, actions=actions1, data=pkt.data)
+                                  in_port=in_port, actions=[actions1], data=pkt.data)
 
         datapath.send_msg(out)
 
@@ -611,7 +611,7 @@ class rl_switch(app_manager.RyuApp):
                 #     self.terminal=True
                 #     break
 
-            # 
+            #
             # if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
             #         self.ad_cnt >= self.audio) \
             #         and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
