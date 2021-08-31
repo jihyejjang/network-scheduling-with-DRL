@@ -175,17 +175,13 @@ class rl_switch(app_manager.RyuApp):
         hub.sleep(3)
         datapath = self.dp[3]
         ofproto = datapath.ofproto
-        # print(ofproto)
         parser = datapath.ofproto_parser
-        # print(parser)
         out_port = 3
-
         # close = [parser.OFPActionSetQueue()]
-
         while True:
             #print("md")
             datapath = self.dp[3]
-            action = [parser.OFPActionOutput(out_port)]
+            goto = parser.OFPInstructionGotoTable(1)
             _,clk = self.timeslot(time.time())
             gate=self.gcl_[datapath.id][:,clk]
             # print("gate:",gate)
@@ -193,36 +189,29 @@ class rl_switch(app_manager.RyuApp):
             #class 1
             match1 = parser.OFPMatch(eth_type=0x05dc)
             if gate[0] == '0' :
-                action1 = [parser.OFPActionSetQueue(1)]
+                action1 = parser.OFPInstructionGotoTable(2)
             else :
-                action1 = action
-            inst1 = [parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, action1),]
-            #inst1 = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, action1)]
-            mod1 = parser.OFPFlowMod(datapath=datapath, priority = 1000, match = match1, instructions = inst1 )
+                action1 = goto
+            self.add_flow(datapath, 1000, match1, 0, [action1])
 
             # class 2
             match2 = parser.OFPMatch(eth_type=0x88a8)
             if gate[1] == '0':
-                action2 = [parser.OFPActionSetQueue(2)]
+                action2 = parser.OFPInstructionGotoTable(2)
             else :
-                action2 = action
-            inst2 = [parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, action2)]
-            mod2 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match2, instructions=inst2)
+                action2 = goto
+
+            self.add_flow(datapath, 1000, match2, 0, [action2])
 
             # class 3
             match3 = parser.OFPMatch(eth_type=0x88e7)
             if gate[2] == '0':
-                action3 = [parser.OFPActionSetQueue(3)]
+                action3 = parser.OFPInstructionGotoTable(2)
             else :
-                action3 = action
-            inst3 = [parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, action3)]
-            mod3 = parser.OFPFlowMod(datapath=datapath, priority=1000, match=match3, instructions=inst3 )
+                action3 = goto
+            self.add_flow(datapath, 1000, match3, 0, [action3])
 
             #TODO : class 4
-            datapath.send_msg(mod1)
-            datapath.send_msg(mod2)
-            datapath.send_msg(mod3)
-            #print("modified")
 
             hub.sleep(0.0004)
 
@@ -294,8 +283,6 @@ class rl_switch(app_manager.RyuApp):
             if eth_type == ether_types.ETH_TYPE_IEEE802_3:
                 match = parser.OFPMatch(eth_type=0x05dc)
                 class_ = 1
-
-
                 #print("class_1, inport",in_port)
                 # type_ = 0x05dc
                 #self.logger.info("class %s packet" % (class_))
@@ -325,8 +312,8 @@ class rl_switch(app_manager.RyuApp):
         inst1 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS,[actions1])
         inst2 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS,[actions2])
 
-        self.add_flow(datapath, 1000, match, 1, inst1)
-        self.add_flow(datapath, 1000, match, 2, inst2)
+        self.add_flow(datapath, 1000, match, 1, [inst1])
+        self.add_flow(datapath, 1000, match, 2, [inst2])
         self.add_flow(datapath, 1000, match, 0, [goto])
 
 
@@ -359,7 +346,7 @@ class rl_switch(app_manager.RyuApp):
         # if msg.buffer_id == ofproto.OFP_NO_BUFFER:
         #     delay_end_time = time.time()
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
-                                  in_port=in_port, actions=actions, data=pkt.data)
+                                  in_port=in_port, actions=actions1, data=pkt.data)
 
         datapath.send_msg(out)
 
