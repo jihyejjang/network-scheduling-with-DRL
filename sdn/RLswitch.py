@@ -324,9 +324,9 @@ class rl_switch(app_manager.RyuApp):
         #     if class_ != 4 :
         #         self.add_flow(datapath, 1000, match, actions)
         #         print("add flow entry")
-        if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-            # self.add_flow(datapath, 1000, match, actions)
-            return
+        # if msg.buffer_id != ofproto.OFP_NO_BUFFER:
+        #     # self.add_flow(datapath, 1000, match, actions)
+        #     return
 
         # while True:
         #     try:
