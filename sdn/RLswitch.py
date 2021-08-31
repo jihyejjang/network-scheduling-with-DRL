@@ -384,7 +384,7 @@ class rl_switch(app_manager.RyuApp):
             self.cc_cnt += 1
             match = parser.OFPMatch(in_port=2, eth_type=0x05dc, eth_dst=self.H[5])
             actions = [parser.OFPActionOutput(3)]
-            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions])
+            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)
             self.add_flow(datapath, 1000, match, 0, [inst])
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
@@ -419,7 +419,7 @@ class rl_switch(app_manager.RyuApp):
             self.cc_cnt2 += 1
             match = parser.OFPMatch(in_port=1, eth_type=0x05dc, eth_dst=self.H[6])
             actions = [parser.OFPActionOutput(3)]
-            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions])
+            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)
             self.add_flow(datapath, 1000, match, 0, [inst])
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
@@ -454,7 +454,7 @@ class rl_switch(app_manager.RyuApp):
             self.ad_cnt += 1
             match = parser.OFPMatch(in_port=1, eth_type=0x88a8, eth_dst=self.H[4])
             actions = [parser.OFPActionOutput(3)]
-            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions])
+            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)
             self.add_flow(datapath, 1000, match, 0, [inst])
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
@@ -487,7 +487,7 @@ class rl_switch(app_manager.RyuApp):
             self.ad_cnt2 += 1
             match = parser.OFPMatch(in_port=2, eth_type=0x88a8, eth_dst=self.H[7])
             actions = [parser.OFPActionOutput(3)]
-            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions])
+            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)
             self.add_flow(datapath, 1000, match, 0, [inst])
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
@@ -520,7 +520,7 @@ class rl_switch(app_manager.RyuApp):
             self.vd_cnt += 1
             match = parser.OFPMatch(in_port=1, eth_type=0x88e7, eth_dst=self.H[4])
             actions = [parser.OFPActionOutput(3)]
-            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions])
+            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)
             self.add_flow(datapath, 1000, match, 0, [inst])
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
@@ -553,7 +553,7 @@ class rl_switch(app_manager.RyuApp):
             self.vd_cnt2 += 1
             match = parser.OFPMatch(in_port=2, eth_type=0x88e7, eth_dst=self.H[7])
             actions = [parser.OFPActionOutput(3)]
-            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions])
+            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)
             self.add_flow(datapath, 1000, match, 0, [inst])
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
