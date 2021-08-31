@@ -384,7 +384,8 @@ class rl_switch(app_manager.RyuApp):
             self.cc_cnt += 1
             match = parser.OFPMatch(in_port=2, eth_type=0x05dc, eth_dst=self.H[5])
             actions = [parser.OFPActionOutput(3)]
-            self.add_flow(datapath, 1000, match, actions)
+            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions])
+            self.add_flow(datapath, 1000, match, 0, [inst])
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
@@ -418,7 +419,8 @@ class rl_switch(app_manager.RyuApp):
             self.cc_cnt2 += 1
             match = parser.OFPMatch(in_port=1, eth_type=0x05dc, eth_dst=self.H[6])
             actions = [parser.OFPActionOutput(3)]
-            self.add_flow(datapath, 1000, match, actions)
+            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions])
+            self.add_flow(datapath, 1000, match, 0, [inst])
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
@@ -452,7 +454,8 @@ class rl_switch(app_manager.RyuApp):
             self.ad_cnt += 1
             match = parser.OFPMatch(in_port=1, eth_type=0x88a8, eth_dst=self.H[4])
             actions = [parser.OFPActionOutput(3)]
-            self.add_flow(datapath, 1000, match, actions)
+            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions])
+            self.add_flow(datapath, 1000, match, 0, [inst])
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
@@ -484,7 +487,8 @@ class rl_switch(app_manager.RyuApp):
             self.ad_cnt2 += 1
             match = parser.OFPMatch(in_port=2, eth_type=0x88a8, eth_dst=self.H[7])
             actions = [parser.OFPActionOutput(3)]
-            self.add_flow(datapath, 1000, match, actions)
+            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions])
+            self.add_flow(datapath, 1000, match, 0, [inst])
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
@@ -516,7 +520,8 @@ class rl_switch(app_manager.RyuApp):
             self.vd_cnt += 1
             match = parser.OFPMatch(in_port=1, eth_type=0x88e7, eth_dst=self.H[4])
             actions = [parser.OFPActionOutput(3)]
-            self.add_flow(datapath, 1000, match, actions)
+            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions])
+            self.add_flow(datapath, 1000, match, 0, [inst])
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
@@ -548,7 +553,8 @@ class rl_switch(app_manager.RyuApp):
             self.vd_cnt2 += 1
             match = parser.OFPMatch(in_port=2, eth_type=0x88e7, eth_dst=self.H[7])
             actions = [parser.OFPActionOutput(3)]
-            self.add_flow(datapath, 1000, match, actions)
+            inst = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions])
+            self.add_flow(datapath, 1000, match, 0, [inst])
             pkt.serialize()
             out = parser.OFPPacketOut(datapath=datapath,
                                       buffer_id=ofproto.OFP_NO_BUFFER,
@@ -605,7 +611,7 @@ class rl_switch(app_manager.RyuApp):
                 #     self.terminal=True
                 #     break
 
-            #
+            # 
             # if (self.cc_cnt >= self.command_control) and (self.cc_cnt2 >= self.command_control) and (
             #         self.ad_cnt >= self.audio) \
             #         and (self.ad_cnt2 >= self.audio) and (self.vd_cnt >= self.video) and (self.vd_cnt2 >= self.video):
