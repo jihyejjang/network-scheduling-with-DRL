@@ -120,10 +120,10 @@ class rl_switch(app_manager.RyuApp):
             hub.sleep(3)
             self.timeslot_start = time.time()
             #self.action_thread = hub.spawn(self.gcl_cycle)
-            self.action_1 = hub.spawn(self.gcl_, self.dp[3])
-            self.action_2 = hub.spawn(self.gcl_, self.dp[4])
-            self.action_3 = hub.spawn(self.gcl_, self.dp[5])
-            self.action_4 = hub.spawn(self.gcl_, self.dp[6])
+            self.action_1 = hub.spawn(self.gcl_3)
+            self.action_2 = hub.spawn(self.gcl_4)
+            self.action_3 = hub.spawn(self.gcl_5)
+            self.action_4 = hub.spawn(self.gcl_6)
             self.cc_thread = hub.spawn(self._cc_gen1)
             self.cc_thread2 = hub.spawn(self._cc_gen2)
             self.ad_thread = hub.spawn(self._ad_gen1)
@@ -174,9 +174,9 @@ class rl_switch(app_manager.RyuApp):
     #     clk = cyc % self.cycle
     #     return cyc, clk
 
-    def gcl_(self,switch):
+    def gcl_3(self):
         hub.sleep(3)
-        datapath = switch
+        datapath = self.dp[3]
         #ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         while True:
@@ -218,6 +218,133 @@ class rl_switch(app_manager.RyuApp):
 
             if self.terminal == 6:
                 self.generated_log.to_csv('switchlog0818_generated.csv')
+
+    def gcl_4(self):
+        hub.sleep(3)
+        datapath = self.dp[4]
+        #ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        while True:
+            goto = parser.OFPInstructionGotoTable(1)
+            _,clk = self.timeslot(time.time())
+            gate=self.gcl_[datapath.id][:,clk]
+            # print("gate:",gate)
+
+            #class 1
+            match1 = parser.OFPMatch(eth_type=0x05dc)
+            if gate[0] == '0' :
+                action1 = parser.OFPInstructionGotoTable(2)
+            else :
+                action1 = goto
+            #print(action1)
+            self.add_flow(datapath, 1000, match1, 0, [action1])
+
+            # class 2
+            match2 = parser.OFPMatch(eth_type=0x88a8)
+            if gate[1] == '0':
+                action2 = parser.OFPInstructionGotoTable(2)
+            else :
+                action2 = goto
+            #print(action2)
+            self.add_flow(datapath, 1000, match2, 0, [action2])
+
+            # class 3
+            match3 = parser.OFPMatch(eth_type=0x88e7)
+            if gate[2] == '0':
+                action3 = parser.OFPInstructionGotoTable(2)
+            else :
+                action3 = goto
+            #print(action3)
+            self.add_flow(datapath, 1000, match3, 0, [action3])
+
+            #TODO : class 4
+
+            hub.sleep(0.0004)
+
+    def gcl_5(self):
+        hub.sleep(3)
+        datapath = self.dp[5]
+        #ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        while True:
+            goto = parser.OFPInstructionGotoTable(1)
+            _,clk = self.timeslot(time.time())
+            gate=self.gcl_[datapath.id][:,clk]
+            # print("gate:",gate)
+
+            #class 1
+            match1 = parser.OFPMatch(eth_type=0x05dc)
+            if gate[0] == '0' :
+                action1 = parser.OFPInstructionGotoTable(2)
+            else :
+                action1 = goto
+            #print(action1)
+            self.add_flow(datapath, 1000, match1, 0, [action1])
+
+            # class 2
+            match2 = parser.OFPMatch(eth_type=0x88a8)
+            if gate[1] == '0':
+                action2 = parser.OFPInstructionGotoTable(2)
+            else :
+                action2 = goto
+            #print(action2)
+            self.add_flow(datapath, 1000, match2, 0, [action2])
+
+            # class 3
+            match3 = parser.OFPMatch(eth_type=0x88e7)
+            if gate[2] == '0':
+                action3 = parser.OFPInstructionGotoTable(2)
+            else :
+                action3 = goto
+            #print(action3)
+            self.add_flow(datapath, 1000, match3, 0, [action3])
+
+            #TODO : class 4
+
+            hub.sleep(0.0004)
+
+    def gcl_6(self):
+        hub.sleep(3)
+        datapath = self.dp[6]
+        #ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        while True:
+            goto = parser.OFPInstructionGotoTable(1)
+            _,clk = self.timeslot(time.time())
+            gate=self.gcl_[datapath.id][:,clk]
+            # print("gate:",gate)
+
+            #class 1
+            match1 = parser.OFPMatch(eth_type=0x05dc)
+            if gate[0] == '0' :
+                action1 = parser.OFPInstructionGotoTable(2)
+            else :
+                action1 = goto
+            #print(action1)
+            self.add_flow(datapath, 1000, match1, 0, [action1])
+
+            # class 2
+            match2 = parser.OFPMatch(eth_type=0x88a8)
+            if gate[1] == '0':
+                action2 = parser.OFPInstructionGotoTable(2)
+            else :
+                action2 = goto
+            #print(action2)
+            self.add_flow(datapath, 1000, match2, 0, [action2])
+
+            # class 3
+            match3 = parser.OFPMatch(eth_type=0x88e7)
+            if gate[2] == '0':
+                action3 = parser.OFPInstructionGotoTable(2)
+            else :
+                action3 = goto
+            #print(action3)
+            self.add_flow(datapath, 1000, match3, 0, [action3])
+
+            #TODO : class 4
+
+            hub.sleep(0.0004)
+
 
     # def gcl_cycle(self):
     #     time.sleep(0.005)
