@@ -192,7 +192,7 @@ class rl_switch(app_manager.RyuApp):
                 action1 = parser.OFPInstructionGotoTable(2)
             else :
                 action1 = goto
-            print(action1)
+            #print(action1)
             self.add_flow(datapath, 1000, match1, 0, [action1])
 
             # class 2
