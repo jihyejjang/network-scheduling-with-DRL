@@ -473,7 +473,7 @@ class rl_switch(app_manager.RyuApp):
 
         self.add_flow(datapath, 100, match1, 1, [inst1])
         # self.add_flow(datapath, 100, match, 2, [inst2])
-        self.add_flow(datapath, 100, match, 0, [goto])
+        self.add_flow(datapath, 100, match, 0, [inst1])
         # match = parser.OFPMatch(in_port=in_port)
         # goto = parser.OFPInstructionGotoTable(1)
         # self.add_flow(datapath, 100, match, 0, [goto])
