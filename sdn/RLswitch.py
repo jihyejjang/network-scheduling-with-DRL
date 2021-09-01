@@ -403,19 +403,19 @@ class rl_switch(app_manager.RyuApp):
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         eth_type = eth.ethertype
-        print("packet in", eth.ethertype)
+        #print("packet in", eth.ethertype)
         dst = eth.dst
-        print("eth.dst",dst)
+        #print("eth.dst",dst)
         src = eth.src
-        print("eth.src",src)
+        #print("eth.src",src)
         #print("ofproto.OXM_OF_IN_PORT",ofproto.OXM_OF_IN_PORT)
         #print("ofproto.OXM_OF_ETH_SRC",ofproto.OXM_OF_ETH_SRC)
 
         class_ = 4 #best effort
         #print("dst",dst)
-        match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
+        match = parser.OFPMatch(in_port=in_port, eth_dst=dst,eth_type=int(hex(eth_type)))
         if (dst in self.H) and (src in self.H):
-            print("dd")
+            #print("dd")
             if eth_type == ether_types.ETH_TYPE_IEEE802_3:
                 #match = parser.OFPMatch(eth_type=0x05dc)
                 class_ = 1
