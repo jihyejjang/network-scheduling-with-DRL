@@ -471,7 +471,7 @@ class rl_switch(app_manager.RyuApp):
         inst1 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions1])
         # inst2 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, [actions2])
 
-        self.add_flow(datapath, 100, match1, 1, [inst1])
+        #self.add_flow(datapath, 100, match1, 1, [inst1])
         # self.add_flow(datapath, 100, match, 2, [inst2])
         self.add_flow(datapath, 100, match, 0, [inst1])
         # match = parser.OFPMatch(in_port=in_port)
