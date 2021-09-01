@@ -61,19 +61,20 @@ class SimpleSwitch13(app_manager.RyuApp):
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
         fields = msg.match.fields
-        for f in fields:
-            if f.header == ofproto.OXM_OF_IN_PORT:
-                in_port = f.value
-                print ("in_port",in_port)
-            elif f.header == ofproto.OXM_OF_ETH_SRC:
-                eth_src = f.value
-                print("eth_src",eth_src)
-            elif f.header == ofproto.OXM_OF_ETH_DST:
-                eth_dst = f.value
-                print("eth_dst", eth_dst)
-            elif f.header == ofproto.OXM_OF_ETH_TYPE:
-                et_ty = f.value
-                print("eth_type", et_ty)
+        print (fields)
+        # for f in fields:
+        #     if f.header == ofproto.OXM_OF_IN_PORT:
+        #         in_port = f.value
+        #         print ("in_port",in_port)
+        #     elif f.header == ofproto.OXM_OF_ETH_SRC:
+        #         eth_src = f.value
+        #         print("eth_src",eth_src)
+        #     elif f.header == ofproto.OXM_OF_ETH_DST:
+        #         eth_dst = f.value
+        #         print("eth_dst", eth_dst)
+        #     elif f.header == ofproto.OXM_OF_ETH_TYPE:
+        #         et_ty = f.value
+        #         print("eth_type", et_ty)
 
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]

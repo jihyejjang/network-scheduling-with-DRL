@@ -389,24 +389,25 @@ class rl_switch(app_manager.RyuApp):
     def _packet_in_handler(self, ev):
         msg = ev.msg
         fields = msg.match.fields
+        print(fields)
         datapath = msg.datapath
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        #in_port = msg.match['in_port']
+        in_port = msg.match['in_port']
 
-        for f in fields:
-            if f.header == ofproto.OXM_OF_IN_PORT:
-                in_port = f.value
-                print ("in_port",in_port)
-            elif f.header == ofproto.OXM_OF_ETH_SRC:
-                eth_src = f.value
-                print("eth_src",eth_src)
-            elif f.header == ofproto.OXM_OF_ETH_DST:
-                eth_dst = f.value
-                print("eth_dst", eth_dst)
-            elif f.header == ofproto.OXM_OF_ETH_TYPE:
-                et_ty = f.value
-                print("eth_type", et_ty)
+        # for f in fields:
+        #     if f.header == ofproto.OXM_OF_IN_PORT:
+        #         in_port = f.value
+        #         print ("in_port",in_port)
+        #     elif f.header == ofproto.OXM_OF_ETH_SRC:
+        #         eth_src = f.value
+        #         print("eth_src",eth_src)
+        #     elif f.header == ofproto.OXM_OF_ETH_DST:
+        #         eth_dst = f.value
+        #         print("eth_dst", eth_dst)
+        #     elif f.header == ofproto.OXM_OF_ETH_TYPE:
+        #         et_ty = f.value
+        #         print("eth_type", et_ty)
 
         #table_id = msg.table_id
         #fields = msg.match.fields
@@ -429,7 +430,11 @@ class rl_switch(app_manager.RyuApp):
 
         class_ = 4 #best effort
         #print("dst",dst)
-        match = parser.OFPMatch(in_port = in_port, eth_type=eth_type_)
+        #match = parser.OFPMatch(in_port = in_port, eth_type=eth_type_)
+
+        match = parser.OFPMatch()
+        match.append_field(ofproto.OXM_OF_IN_PORT, in_port)
+        match.append_field(ofproto.OXM_OF_ETH_TYPE, eth_type_)
         if (dst in self.H) and (src in self.H):
             #print("dd")
             if eth_type_ == ether_types.ETH_TYPE_IEEE802_3:
