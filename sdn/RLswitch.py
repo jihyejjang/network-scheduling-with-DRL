@@ -388,11 +388,26 @@ class rl_switch(app_manager.RyuApp):
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         msg = ev.msg
-        print("msg.match",msg.match)
+        fields = msg.match.fields
         datapath = msg.datapath
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        in_port = msg.match['in_port']
+        #in_port = msg.match['in_port']
+
+        for f in fields:
+            if f.header == ofproto.OXM_OF_IN_PORT:
+                in_port = f.value
+                print ("in_port",in_port)
+            elif f.header == ofproto.OXM_OF_ETH_SRC:
+                eth_src = f.value
+                print("eth_src",eth_src)
+            elif f.header == ofproto.OXM_OF_ETH_DST:
+                eth_dst = f.value
+                print("eth_dst", eth_dst)
+            elif f.header == ofproto.OXM_OF_ETH_TYPE:
+                et_ty = f.value
+                print("eth_type", et_ty)
+
         #table_id = msg.table_id
         #fields = msg.match.fields
         switchid = datapath.id
