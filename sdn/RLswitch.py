@@ -402,7 +402,7 @@ class rl_switch(app_manager.RyuApp):
 
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
-        eth_type = eth.ethertype
+        eth_type_ = eth.ethertype
         #print("packet in", eth.ethertype)
         dst = eth.dst
         #print("eth.dst",dst)
@@ -413,22 +413,22 @@ class rl_switch(app_manager.RyuApp):
 
         class_ = 4 #best effort
         #print("dst",dst)
-        match = parser.OFPMatch(in_port=in_port, eth_dst=dst,eth_type=int(hex(eth_type)))
+        match = parser.OFPMatch(in_port=in_port, eth_dst=dst,eth_type=eth_type_)
         if (dst in self.H) and (src in self.H):
             #print("dd")
-            if eth_type == ether_types.ETH_TYPE_IEEE802_3:
+            if eth_type_ == ether_types.ETH_TYPE_IEEE802_3:
                 #match = parser.OFPMatch(eth_type=0x05dc)
                 class_ = 1
                 print("class_1, inport",in_port)
                 # type_ = 0x05dc
                 #self.logger.info("class %s packet" % (class_))
-            elif eth_type == ether_types.ETH_TYPE_8021AD:
+            elif eth_type_ == ether_types.ETH_TYPE_8021AD:
                 #match = parser.OFPMatch(eth_type=0x88a8)
                 class_ = 2
                 print("class_2,inport",in_port)
                 # type_ = 0x88a8
                 #self.logger.info("class %s packet" % (class_))
-            elif eth_type == ether_types.ETH_TYPE_8021AH:
+            elif eth_type_ == ether_types.ETH_TYPE_8021AH:
                 #match = parser.OFPMatch(eth_type=0x88e7)
                 class_ = 3
                 print("class_3,inport",in_port)
