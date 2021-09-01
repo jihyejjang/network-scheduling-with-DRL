@@ -472,7 +472,7 @@ class rl_switch(app_manager.RyuApp):
         actions2 = parser.OFPActionSetQueue(1)
 
         inst1 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions1])
-        inst2 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, [actions2])
+        inst2 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions2])
 
         self.add_flow(datapath, 100, match, 1, [inst1])
         self.add_flow(datapath, 100, match, 2, [inst2])
