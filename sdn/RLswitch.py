@@ -58,18 +58,18 @@ class rl_switch(app_manager.RyuApp):
         self.timeslot_size = 0.5 #ms
         self.cycle = 10
         self.ts_cnt=0
-        # self.gcl = {1: ['0000000000', '0000000000', '0000000000', '1000000000'],
-        #             2: ['0000000000', '0000000000', '0000000000', '1111111111'],
-        #             3: ['0000000000', '0000000000', '0000000000', '1111111111'],
-        #             4: ['0000000000', '0000000000', '0000000000', '1111111111'],
-        #             5: ['0000000000', '0000000000', '0000000000', '1111111111'],
-        #             6: ['0000000000', '0000000000', '0000000000', '1111111111']} #최초 action
-        self.gcl = {1: ['1111111111', '1111111111', '1111111111', '1111111111'],
-                    2: ['1111111111', '1111111111', '1111111111', '1111111111'],
-                    3: ['1111111111', '1111111111', '1111111111', '1111111111'],
-                    4: ['1111111111', '1111111111', '1111111111', '1111111111'],
-                    5: ['1111111111', '1111111111', '1111111111', '1111111111'],
-                    6: ['1111111111', '1111111111', '1111111111', '1111111111']
+        self.gcl = {1: ['0000000000', '0000000000', '0000000000', '1000000000'],
+                    2: ['0000000000', '0000000000', '0000000000', '1111111111'],
+                    3: ['0000000000', '0000000000', '0000000000', '1111111111'],
+                    4: ['0000000000', '0000000000', '0000000000', '1111111111'],
+                    5: ['0000000000', '0000000000', '0000000000', '1111111111'],
+                    6: ['0000000000', '0000000000', '0000000000', '1111111111']} #최초 action
+        # self.gcl = {1: ['1111111111', '1111111111', '1111111111', '1111111111'],
+        #             2: ['1111111111', '1111111111', '1111111111', '1111111111'],
+        #             3: ['1111111111', '1111111111', '1111111111', '1111111111'],
+        #             4: ['1111111111', '1111111111', '1111111111', '1111111111'],
+        #             5: ['1111111111', '1111111111', '1111111111', '1111111111'],
+        #             6: ['1111111111', '1111111111', '1111111111', '1111111111']
                     } #최초 action
 
         self.gcl_={1: np.array([list(l) for l in self.gcl[1]]),
@@ -120,10 +120,10 @@ class rl_switch(app_manager.RyuApp):
             hub.sleep(3)
             self.timeslot_start = time.time()
             #self.action_thread = hub.spawn(self.gcl_cycle)
-            # self.action_1 = hub.spawn(self.gcl_3)
-            # self.action_2 = hub.spawn(self.gcl_4)
-            # self.action_3 = hub.spawn(self.gcl_5)
-            # self.action_4 = hub.spawn(self.gcl_6)
+            self.action_1 = hub.spawn(self.gcl_3)
+            self.action_2 = hub.spawn(self.gcl_4)
+            self.action_3 = hub.spawn(self.gcl_5)
+            self.action_4 = hub.spawn(self.gcl_6)
             self.cc_thread = hub.spawn(self._cc_gen1)
             self.cc_thread2 = hub.spawn(self._cc_gen2)
             self.ad_thread = hub.spawn(self._ad_gen1)
@@ -192,7 +192,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action1 = goto
             #print(action1)
-            self.add_flow(datapath, 1000, match1, 0, [action1])
+            self.add_flow_(datapath, 1000, match1, 0, [action1])
 
             # class 2
             match2 = parser.OFPMatch(eth_type=0x88a8)
@@ -201,7 +201,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action2 = goto
             #print(action2)
-            self.add_flow(datapath, 1000, match2, 0, [action2])
+            self.add_flow_(datapath, 1000, match2, 0, [action2])
 
             # class 3
             match3 = parser.OFPMatch(eth_type=0x88e7)
@@ -210,7 +210,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action3 = goto
             #print(action3)
-            self.add_flow(datapath, 1000, match3, 0, [action3])
+            self.add_flow_(datapath, 1000, match3, 0, [action3])
 
             #TODO : class 4
 
@@ -237,7 +237,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action1 = goto
             #print(action1)
-            self.add_flow(datapath, 1000, match1, 0, [action1])
+            self.add_flow_(datapath, 1000, match1, 0, [action1])
 
             # class 2
             match2 = parser.OFPMatch(eth_type=0x88a8)
@@ -246,7 +246,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action2 = goto
             #print(action2)
-            self.add_flow(datapath, 1000, match2, 0, [action2])
+            self.add_flow_(datapath, 1000, match2, 0, [action2])
 
             # class 3
             match3 = parser.OFPMatch(eth_type=0x88e7)
@@ -255,7 +255,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action3 = goto
             #print(action3)
-            self.add_flow(datapath, 1000, match3, 0, [action3])
+            self.add_flow_(datapath, 1000, match3, 0, [action3])
 
             #TODO : class 4
 
@@ -279,7 +279,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action1 = goto
             #print(action1)
-            self.add_flow(datapath, 1000, match1, 0, [action1])
+            self.add_flow_(datapath, 1000, match1, 0, [action1])
 
             # class 2
             match2 = parser.OFPMatch(eth_type=0x88a8)
@@ -288,7 +288,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action2 = goto
             #print(action2)
-            self.add_flow(datapath, 1000, match2, 0, [action2])
+            self.add_flow_(datapath, 1000, match2, 0, [action2])
 
             # class 3
             match3 = parser.OFPMatch(eth_type=0x88e7)
@@ -297,7 +297,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action3 = goto
             #print(action3)
-            self.add_flow(datapath, 1000, match3, 0, [action3])
+            self.add_flow_(datapath, 1000, match3, 0, [action3])
 
             #TODO : class 4
 
@@ -321,7 +321,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action1 = goto
             #print(action1)
-            self.add_flow(datapath, 1000, match1, 0, [action1])
+            self.add_flow_(datapath, 1000, match1, 0, [action1])
 
             # class 2
             match2 = parser.OFPMatch(eth_type=0x88a8)
@@ -330,7 +330,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action2 = goto
             #print(action2)
-            self.add_flow(datapath, 1000, match2, 0, [action2])
+            self.add_flow_(datapath, 1000, match2, 0, [action2])
 
             # class 3
             match3 = parser.OFPMatch(eth_type=0x88e7)
@@ -339,7 +339,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action3 = goto
             #print(action3)
-            self.add_flow(datapath, 1000, match3, 0, [action3])
+            self.add_flow_(datapath, 1000, match3, 0, [action3])
 
             #TODO : class 4
 
@@ -373,14 +373,19 @@ class rl_switch(app_manager.RyuApp):
     #                       'message=%s',
     #                       msg.type, msg.code, utils.hex_array(msg.data))
 
+    def add_flow_(self, datapath, priority, match, tableid, inst):
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        mod = parser.OFPFlowMod(datapath=datapath, table_id = tableid, priority=priority, command = ofproto.OFPFC_MODIFY,
+                                    match=match, instructions = inst)
+        datapath.send_msg(mod)
+
     def add_flow(self, datapath, priority, match, tableid, inst):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         mod = parser.OFPFlowMod(datapath=datapath, table_id = tableid, priority=priority,
                                     match=match, instructions = inst)
         datapath.send_msg(mod)
-
-        #command = ofproto.OFPFC_MODIFY,
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
