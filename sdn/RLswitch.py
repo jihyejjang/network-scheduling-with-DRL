@@ -175,7 +175,7 @@ class rl_switch(app_manager.RyuApp):
         return cyc, clk
 
     def gcl_3(self):
-        hub.sleep(3)
+        hub.sleep(3.05)
         datapath = self.dp[3]
         #ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -220,7 +220,7 @@ class rl_switch(app_manager.RyuApp):
                 self.generated_log.to_csv('switchlog0818_generated.csv')
 
     def gcl_4(self):
-        hub.sleep(3)
+        hub.sleep(3.05)
         datapath = self.dp[4]
         #ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -262,7 +262,7 @@ class rl_switch(app_manager.RyuApp):
             hub.sleep(0.0004)
 
     def gcl_5(self):
-        hub.sleep(3)
+        hub.sleep(3.05)
         datapath = self.dp[5]
         #ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -304,7 +304,7 @@ class rl_switch(app_manager.RyuApp):
             hub.sleep(0.0004)
 
     def gcl_6(self):
-        hub.sleep(3)
+        hub.sleep(3.05)
         datapath = self.dp[6]
         #ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
