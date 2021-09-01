@@ -124,11 +124,11 @@ class rl_switch(app_manager.RyuApp):
             # self.action_3 = hub.spawn(self.gcl_5)
             # self.action_4 = hub.spawn(self.gcl_6)
             self.cc_thread = hub.spawn(self._cc_gen1)
-            self.cc_thread2 = hub.spawn(self._cc_gen2)
+            # self.cc_thread2 = hub.spawn(self._cc_gen2)
             self.ad_thread = hub.spawn(self._ad_gen1)
-            self.ad_thread2 = hub.spawn(self._ad_gen2)
-            self.vd_thread =  hub.spawn(self._vd_gen1)
-            self.vd_thread2 = hub.spawn(self._vd_gen2)
+            # self.ad_thread2 = hub.spawn(self._ad_gen2)
+            # self.vd_thread =  hub.spawn(self._vd_gen1)
+            # self.vd_thread2 = hub.spawn(self._vd_gen2)
 
 
     #TODO: GCL 적용하기
@@ -185,31 +185,31 @@ class rl_switch(app_manager.RyuApp):
 
             #class 1
             #match1 = parser.OFPMatch(eth_type=0x05dc)
-            match1 = parser.OFPMatch()
+            match1 = parser.OFPMatch(in_port = 1, eth_dst = self.H[4])
             if gate[0] == '0' :
                 action1 = parser.OFPInstructionGotoTable(2)
             else :
                 action1 = goto
             #print(action1)
-            self.add_flow_(datapath, 1000, match1, 0, [action1])
+            self.add_flow(datapath, 1000, match1, 0, [action1])
 
             # class 2
-            match2 = parser.OFPMatch(eth_type=0x88a8)
+            match2 = parser.OFPMatch(in_port = 1, eth_dst = self.H[5])
             if gate[1] == '0':
                 action2 = parser.OFPInstructionGotoTable(2)
             else :
                 action2 = goto
             #print(action2)
-            self.add_flow_(datapath, 1000, match2, 0, [action2])
+            self.add_flow(datapath, 1000, match2, 0, [action2])
 
             # class 3
-            match3 = parser.OFPMatch(eth_type=0x88e7)
-            if gate[2] == '0':
-                action3 = parser.OFPInstructionGotoTable(2)
-            else :
-                action3 = goto
-            #print(action3)
-            self.add_flow_(datapath, 1000, match3, 0, [action3])
+            # match3 = parser.OFPMatch()
+            # if gate[2] == '0':
+            #     action3 = parser.OFPInstructionGotoTable(2)
+            # else :
+            #     action3 = goto
+            # #print(action3)
+            # self.add_flow(datapath, 1000, match3, 0, [action3])
 
             #TODO : class 4
 
