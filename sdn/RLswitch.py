@@ -99,7 +99,6 @@ class rl_switch(app_manager.RyuApp):
         self.timeslot_start = 0
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
-    #TODO: 집컴퓨터로 해보기, flow mod 있을때랑 없을 때 속도 비교해보기, table id 추가해보기,
     def _switch_features_handler(self, ev):
         msg = ev.msg
         datapath = msg.datapath
@@ -120,10 +119,10 @@ class rl_switch(app_manager.RyuApp):
             hub.sleep(3)
             self.timeslot_start = time.time()
             #self.action_thread = hub.spawn(self.gcl_cycle)
-            self.action_1 = hub.spawn(self.gcl_3)
-            self.action_2 = hub.spawn(self.gcl_4)
-            self.action_3 = hub.spawn(self.gcl_5)
-            self.action_4 = hub.spawn(self.gcl_6)
+            # self.action_1 = hub.spawn(self.gcl_3)
+            # self.action_2 = hub.spawn(self.gcl_4)
+            # self.action_3 = hub.spawn(self.gcl_5)
+            # self.action_4 = hub.spawn(self.gcl_6)
             self.cc_thread = hub.spawn(self._cc_gen1)
             self.cc_thread2 = hub.spawn(self._cc_gen2)
             self.ad_thread = hub.spawn(self._ad_gen1)
@@ -376,7 +375,7 @@ class rl_switch(app_manager.RyuApp):
     def add_flow_(self, datapath, priority, match, tableid, inst):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        mod = parser.OFPFlowMod(datapath=datapath, table_id = tableid, priority=priority, command = ofproto.OFPFC_MODIFY,
+        mod = parser.OFPFlowMod(datapath=datapath, table_id = tableid, priority=priority, command = ofproto.OFPFC_MODIFY_STRICT,
                                     match=match, instructions = inst)
         datapath.send_msg(mod)
 
@@ -405,6 +404,7 @@ class rl_switch(app_manager.RyuApp):
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         eth_type = eth.ethertype
+        print("packet in", eth.ethertype)
         dst = eth.dst
         src = eth.src
         #print("ofproto.OXM_OF_IN_PORT",ofproto.OXM_OF_IN_PORT)
@@ -414,7 +414,7 @@ class rl_switch(app_manager.RyuApp):
         #print("dst",dst)
         match = parser.OFPMatch(in_port = in_port)
         if (dst in self.H) and (src in self.H):
-
+            print("dd")
             if eth_type == ether_types.ETH_TYPE_IEEE802_3:
                 match = parser.OFPMatch(eth_type=0x05dc)
                 class_ = 1
@@ -451,6 +451,7 @@ class rl_switch(app_manager.RyuApp):
         self.add_flow(datapath, 100, match, 2, [inst2])
         self.add_flow(datapath, 100, match, 0, [goto])
 
+        #self.thread.append(hub.spawn(self._gcl_, datapath, match))
 
         #print("add_flow")
 
