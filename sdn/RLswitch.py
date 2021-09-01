@@ -431,8 +431,6 @@ class rl_switch(app_manager.RyuApp):
         class_ = 4 #best effort
         #print("dst",dst)
         match = parser.OFPMatch(in_port = in_port)
-        goto = parser.OFPInstructionGotoTable(1)
-        self.add_flow(datapath, 100, match, 0, [goto])
         if (dst in self.H) and (src in self.H):
             #print("dd")
             if eth_type_ == ether_types.ETH_TYPE_IEEE802_3:
@@ -458,7 +456,7 @@ class rl_switch(app_manager.RyuApp):
                 #self.logger.info("class %s packet" % (class_))
 
         else :
-            #self.add_flow(datapath, 1, match, 0, [])
+            self.add_flow(datapath, 1, match, 0, [])
             return
 
         if dst in self.mac_to_port[switchid]:
@@ -469,15 +467,17 @@ class rl_switch(app_manager.RyuApp):
             out_port = ofproto.OFPP_FLOOD
 
         actions1 = parser.OFPActionOutput(out_port)
-        # goto = parser.OFPInstructionGotoTable(1) # 1: sending packet to port, 2: queueing packet
+        goto = parser.OFPInstructionGotoTable(1) # 1: sending packet to port, 2: queueing packet
         # actions2 = parser.OFPActionSetQueue(class_)
         inst1 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions1])
         # inst2 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, [actions2])
 
         self.add_flow(datapath, 100, match1, 1, [inst1])
         # self.add_flow(datapath, 100, match, 2, [inst2])
+        self.add_flow(datapath, 100, match, 0, [goto])
+        # match = parser.OFPMatch(in_port=in_port)
+        # goto = parser.OFPInstructionGotoTable(1)
         # self.add_flow(datapath, 100, match, 0, [goto])
-
 
         #self.thread.append(hub.spawn(self._gcl_, datapath, match))
 
