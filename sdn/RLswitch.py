@@ -58,19 +58,19 @@ class rl_switch(app_manager.RyuApp):
         self.timeslot_size = 0.5 #ms
         self.cycle = 10
         self.ts_cnt=0
-        self.gcl = {1: ['0000000000', '0000000000', '0000000000', '1000000000'],
-                    2: ['0000000000', '0000000000', '0000000000', '1111111111'],
-                    3: ['0000000000', '0000000000', '0000000000', '1111111111'],
-                    4: ['0000000000', '0000000000', '0000000000', '1111111111'],
-                    5: ['0000000000', '0000000000', '0000000000', '1111111111'],
-                    6: ['0000000000', '0000000000', '0000000000', '1111111111']} #최초 action
-        # self.gcl = {1: ['1111111111', '1111111111', '1111111111', '1111111111'],
-        #             2: ['1111111111', '1111111111', '1111111111', '1111111111'],
-        #             3: ['1111111111', '1111111111', '1111111111', '1111111111'],
-        #             4: ['1111111111', '1111111111', '1111111111', '1111111111'],
-        #             5: ['1111111111', '1111111111', '1111111111', '1111111111'],
-        #             6: ['1111111111', '1111111111', '1111111111', '1111111111']
-        #             } #최초 action
+        # self.gcl = {1: ['0000000000', '0000000000', '0000000000', '1000000000'],
+        #             2: ['0000000000', '0000000000', '0000000000', '1111111111'],
+        #             3: ['0000000000', '0000000000', '0000000000', '1111111111'],
+        #             4: ['0000000000', '0000000000', '0000000000', '1111111111'],
+        #             5: ['0000000000', '0000000000', '0000000000', '1111111111'],
+        #             6: ['0000000000', '0000000000', '0000000000', '1111111111']} #최초 action
+        self.gcl = {1: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    2: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    3: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    4: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    5: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    6: ['1111111111', '1111111111', '1111111111', '1111111111']
+                    } #최초 action
 
         self.gcl_={1: np.array([list(l) for l in self.gcl[1]]),
                    2: np.array([list(l) for l in self.gcl[2]]),
@@ -119,7 +119,7 @@ class rl_switch(app_manager.RyuApp):
             hub.sleep(3)
             self.timeslot_start = time.time()
             #self.action_thread = hub.spawn(self.gcl_cycle)
-            # self.action_1 = hub.spawn(self.gcl_3)
+            self.action_1 = hub.spawn(self.gcl_3)
             # self.action_2 = hub.spawn(self.gcl_4)
             # self.action_3 = hub.spawn(self.gcl_5)
             # self.action_4 = hub.spawn(self.gcl_6)
@@ -184,7 +184,8 @@ class rl_switch(app_manager.RyuApp):
             # print("gate:",gate)
 
             #class 1
-            match1 = parser.OFPMatch(eth_type=0x05dc)
+            #match1 = parser.OFPMatch(eth_type=0x05dc)
+            match1 = parser.OFPMatch()
             if gate[0] == '0' :
                 action1 = parser.OFPInstructionGotoTable(2)
             else :
@@ -271,7 +272,8 @@ class rl_switch(app_manager.RyuApp):
             # print("gate:",gate)
 
             #class 1
-            match1 = parser.OFPMatch(eth_type=0x05dc)
+            #match1 = parser.OFPMatch(eth_type=0x05dc)
+            match1 = parser.OFPMatch()
             if gate[0] == '0' :
                 action1 = parser.OFPInstructionGotoTable(2)
             else :
@@ -429,7 +431,7 @@ class rl_switch(app_manager.RyuApp):
 
         class_ = 4 #best effort
         #print("dst",dst)
-        match = parser.OFPMatch(in_port = in_port,eth_dst=dst)
+        match = parser.OFPMatch(in_port = in_port, eth_dst=dst)
         if (dst in self.H) and (src in self.H):
             #print("dd")
             if eth_type_ == ether_types.ETH_TYPE_IEEE802_3:
@@ -466,17 +468,15 @@ class rl_switch(app_manager.RyuApp):
             out_port = ofproto.OFPP_FLOOD
 
         actions1 = parser.OFPActionOutput(out_port)
-        goto = parser.OFPInstructionGotoTable(1) # 1: sending packet to port, 2: queueing packet
-        # actions2 = parser.OFPActionSetQueue(class_)
-        inst1 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions1])
-        # inst2 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, [actions2])
+        goto = parser.OFPInstructionGotoTable(2) # 1: sending packet to port, 2: queueing packet
+        actions2 = parser.OFPActionSetQueue(class_)
 
-        #self.add_flow(datapath, 100, match1, 1, [inst1])
-        # self.add_flow(datapath, 100, match, 2, [inst2])
-        self.add_flow(datapath, 100, match, 0, [inst1])
-        # match = parser.OFPMatch(in_port=in_port)
-        # goto = parser.OFPInstructionGotoTable(1)
-        # self.add_flow(datapath, 100, match, 0, [goto])
+        inst1 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions1])
+        inst2 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, [actions2])
+
+        self.add_flow(datapath, 100, match, 1, [inst1])
+        self.add_flow(datapath, 100, match, 2, [inst2])
+        self.add_flow(datapath, 100, match, 0, [goto])
 
         #self.thread.append(hub.spawn(self._gcl_, datapath, match))
 
