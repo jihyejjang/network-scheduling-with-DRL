@@ -51,7 +51,7 @@ class SimpleSwitch15(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
-        fields = msg.match.fields
+        fields = msg.match
         print(fields)
 
         pkt = packet.Packet(msg.data)
