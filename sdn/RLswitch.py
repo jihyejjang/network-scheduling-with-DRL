@@ -119,9 +119,9 @@ class rl_switch(app_manager.RyuApp):
             hub.sleep(3)
             self.timeslot_start = time.time()
             #self.action_thread = hub.spawn(self.gcl_cycle)
-            #self.action_1 = hub.spawn(self.gcl_3)
-            #self.action_2 = hub.spawn(self.gcl_4)
-            #self.action_3 = hub.spawn(self.gcl_5)
+            self.action_1 = hub.spawn(self.gcl_3)
+            self.action_2 = hub.spawn(self.gcl_4)
+            self.action_3 = hub.spawn(self.gcl_5)
             # self.action_4 = hub.spawn(self.gcl_6)
             self.cc_thread = hub.spawn(self._cc_gen1)
             # self.cc_thread2 = hub.spawn(self._cc_gen2)
@@ -473,9 +473,9 @@ class rl_switch(app_manager.RyuApp):
         inst1 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions1])
         inst2 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions2])
 
-        self.add_flow(datapath, 100, match, 1, [inst1])
-        self.add_flow(datapath, 100, match, 2, [inst2])
-        self.add_flow(datapath, 100, match, 0, [goto])
+        self.add_flow(datapath, 100, match1, 1, [inst1])
+        self.add_flow(datapath, 100, match1, 2, [inst2])
+        self.add_flow(datapath, 100, match1, 0, [goto])
 
         #self.thread.append(hub.spawn(self._gcl_, datapath, match))
 
