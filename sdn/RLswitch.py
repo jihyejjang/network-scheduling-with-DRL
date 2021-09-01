@@ -134,35 +134,35 @@ class rl_switch(app_manager.RyuApp):
 
     # def gcl_update(self):
     #
-    # def _request_stats(self, datapath):
-    #     self.logger.debug('send stats request: %016x', datapath.id)
-    #     ofproto = datapath.ofproto
-    #     parser = datapath.ofproto_parser
-    #
-    #     req = parser.OFPFlowStatsRequest(datapath)
-    #     datapath.send_msg(req)
-    #
-    #     req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
-    #     datapath.send_msg(req)
+    def _request_stats(self, datapath):
+        self.logger.debug('send stats request: %016x', datapath.id)
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
 
-    # @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
-    # def _flow_stats_reply_handler(self, ev):
-    #     body = ev.msg.body
-    #
-    #     self.logger.info('datapath         '
-    #                      'in-port  eth-dst           '
-    #                      'out-port packets  bytes')
-    #     self.logger.info('---------------- '
-    #                      '-------- ----------------- '
-    #                      '-------- -------- --------')
-    #     for stat in sorted([flow for flow in body if flow.priority == 1],
-    #                        key=lambda flow: (flow.match['in_port'],
-    #                                          flow.match['eth_dst'])):
-    #         self.logger.info('%016x %8x %17s %8x %8d %8d',
-    #                          ev.msg.datapath.id,
-    #                          stat.match['in_port'], stat.match['eth_dst'],
-    #                          stat.instructions[0].actions[0].port,
-    #                          stat.packet_count, stat.byte_count)
+        req = parser.OFPFlowStatsRequest(datapath)
+        datapath.send_msg(req)
+
+        req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
+        datapath.send_msg(req)
+
+    @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
+    def _flow_stats_reply_handler(self, ev):
+        body = ev.msg.body
+
+        self.logger.info('datapath         '
+                         'in-port  eth-dst           '
+                         'out-port packets  bytes')
+        self.logger.info('---------------- '
+                         '-------- ----------------- '
+                         '-------- -------- --------')
+        for stat in sorted([flow for flow in body if flow.priority == 1],
+                           key=lambda flow: (flow.match['in_port'],
+                                             flow.match['eth_dst'])):
+            self.logger.info('%016x %8x %17s %8x %8d %8d',
+                             ev.msg.datapath.id,
+                             stat.match['in_port'], stat.match['eth_dst'],
+                             stat.instructions[0].actions[0].port,
+                             stat.packet_count, stat.byte_count)
 
     def timeslot(self, time):  # timeslot 진행 횟수를 알려주는 함수
         msec = round((time - self.timeslot_start)*1000,1)
@@ -192,6 +192,7 @@ class rl_switch(app_manager.RyuApp):
                 action1 = parser.OFPInstructionGotoTable(2)
             else :
                 action1 = goto
+            print(action1)
             self.add_flow(datapath, 1000, match1, 0, [action1])
 
             # class 2
@@ -200,7 +201,7 @@ class rl_switch(app_manager.RyuApp):
                 action2 = parser.OFPInstructionGotoTable(2)
             else :
                 action2 = goto
-
+            print(action2)
             self.add_flow(datapath, 1000, match2, 0, [action2])
 
             # class 3
@@ -209,6 +210,7 @@ class rl_switch(app_manager.RyuApp):
                 action3 = parser.OFPInstructionGotoTable(2)
             else :
                 action3 = goto
+            print(action3)
             self.add_flow(datapath, 1000, match3, 0, [action3])
 
             #TODO : class 4
@@ -246,7 +248,7 @@ class rl_switch(app_manager.RyuApp):
     #                       msg.type, msg.code, utils.hex_array(msg.data))
 
     def add_flow(self, datapath, priority, match, tableid, inst):
-        ofproto = datapath.ofproto
+        #ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         mod = parser.OFPFlowMod(datapath=datapath, table_id = tableid, priority=priority,
                                     match=match, instructions = inst)
@@ -255,7 +257,8 @@ class rl_switch(app_manager.RyuApp):
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         msg = ev.msg
-        datapath = msg.datapath
+        # datapath = msg.datapath
+        datapath = self.dp[3]
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
@@ -283,7 +286,7 @@ class rl_switch(app_manager.RyuApp):
             if eth_type == ether_types.ETH_TYPE_IEEE802_3:
                 match = parser.OFPMatch(eth_type=0x05dc)
                 class_ = 1
-                #print("class_1, inport",in_port)
+                print("class_1, inport",in_port)
                 # type_ = 0x05dc
                 #self.logger.info("class %s packet" % (class_))
             elif eth_type == ether_types.ETH_TYPE_8021AD:
@@ -309,8 +312,8 @@ class rl_switch(app_manager.RyuApp):
         goto = parser.OFPInstructionGotoTable(2)
         actions1 = parser.OFPActionOutput(out_port)
         actions2 = parser.OFPActionSetQueue(class_)
-        inst1 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS,[actions1])
-        inst2 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS,[actions2])
+        inst1 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, [actions1])
+        inst2 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, [actions2])
 
         self.add_flow(datapath, 1000, match, 1, [inst1])
         self.add_flow(datapath, 1000, match, 2, [inst2])
