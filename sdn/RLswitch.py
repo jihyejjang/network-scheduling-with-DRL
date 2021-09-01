@@ -461,9 +461,9 @@ class rl_switch(app_manager.RyuApp):
             # self.queue[switchid - 1][out_port - 1][class_ - 1] += 1
         else:
             out_port = ofproto.OFPP_FLOOD
+        actions1 = parser.OFPActionOutput(out_port)
         if class_ != 4 :
             # goto = parser.OFPInstructionGotoTable(1) # 1: sending packet to port, 2: queueing packet
-            actions1 = parser.OFPActionOutput(out_port)
             # actions2 = parser.OFPActionSetQueue(class_)
             inst1 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions1])
             # inst2 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, [actions2])
