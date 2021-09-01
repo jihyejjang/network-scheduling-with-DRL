@@ -381,7 +381,7 @@ class rl_switch(app_manager.RyuApp):
     def add_flow(self, datapath, priority, match, tableid, inst):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        mod = parser.OFPFlowMod(datapath=datapath, table_id = tableid, priority=priority,
+        mod = parser.OFPFlowMod(datapath=datapath, table_id = tableid, priority=priority, command = ofproto.OFPFC_MODIFY,
                                     match=match, instructions = inst)
         datapath.send_msg(mod)
 
