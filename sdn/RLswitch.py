@@ -120,10 +120,10 @@ class rl_switch(app_manager.RyuApp):
             hub.sleep(3)
             self.timeslot_start = time.time()
             #self.action_thread = hub.spawn(self.gcl_cycle)
-            self.action_1 = hub.spawn(self.gcl_,3)
-            self.action_1 = hub.spawn(self.gcl_, 4)
-            self.action_1 = hub.spawn(self.gcl_, 5)
-            self.action_1 = hub.spawn(self.gcl_, 6)
+            self.action_1 = hub.spawn(self.gcl_, self.dp[3])
+            self.action_1 = hub.spawn(self.gcl_, self.dp[4])
+            self.action_1 = hub.spawn(self.gcl_, self.dp[5])
+            self.action_1 = hub.spawn(self.gcl_, self.dp[6])
             self.cc_thread = hub.spawn(self._cc_gen1)
             self.cc_thread2 = hub.spawn(self._cc_gen2)
             self.ad_thread = hub.spawn(self._ad_gen1)
@@ -174,9 +174,9 @@ class rl_switch(app_manager.RyuApp):
     #     clk = cyc % self.cycle
     #     return cyc, clk
 
-    def gcl_(self,n):
+    def gcl_(self,switch):
         hub.sleep(3)
-        datapath = self.dp[n]
+        datapath = switch
         #ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         while True:
