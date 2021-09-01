@@ -119,9 +119,9 @@ class rl_switch(app_manager.RyuApp):
             hub.sleep(3)
             self.timeslot_start = time.time()
             #self.action_thread = hub.spawn(self.gcl_cycle)
-            self.action_1 = hub.spawn(self.gcl_3)
-            self.action_2 = hub.spawn(self.gcl_4)
-            self.action_3 = hub.spawn(self.gcl_5)
+            #self.action_1 = hub.spawn(self.gcl_3)
+            #self.action_2 = hub.spawn(self.gcl_4)
+            #self.action_3 = hub.spawn(self.gcl_5)
             # self.action_4 = hub.spawn(self.gcl_6)
             self.cc_thread = hub.spawn(self._cc_gen1)
             # self.cc_thread2 = hub.spawn(self._cc_gen2)
@@ -468,8 +468,8 @@ class rl_switch(app_manager.RyuApp):
 
         actions1 = parser.OFPActionOutput(out_port)
         goto = parser.OFPInstructionGotoTable(2) # 1: sending packet to port, 2: queueing packet
-        actions2 = parser.OFPActionSetQueue(out_port)
-        #actions2 = parser.OFPActionOutput(out_port)
+        #actions2 = parser.OFPActionSetQueue(out_port)
+        actions2 = parser.OFPActionOutput(out_port)
         inst1 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions1])
         inst2 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions2])
 
