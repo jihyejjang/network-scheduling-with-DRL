@@ -367,9 +367,8 @@ class rl_switch(app_manager.RyuApp):
     def error_msg_handler(self, ev):
         msg = ev.msg
 
-        self.logger.debug('OFPErrorMsg received: type=0x%02x code=0x%02x '
-                          'message=%s',
-                          msg.type, msg.code, utils.hex_array(msg.data))
+        self.logger.debug('OFPErrorMsg received: type=0x%02x code=0x%02x ',
+                          msg.type, msg.code)
 
     def add_flow_(self, datapath, priority, match, tableid, inst):
         ofproto = datapath.ofproto
