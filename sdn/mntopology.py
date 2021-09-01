@@ -70,7 +70,7 @@ def runMyTopo(): #activate mininet topology after ping test
 
     topo = MyTopo()
 
-    net = Mininet (topo=topo, controller=RemoteController, switch=OVSSwitch, autoSetMacs=True)
+    net = Mininet (topo=topo, controller=RemoteController, autoSetMacs=True)
     net.start()
     hosts = net.hosts
     # switches = net.switches
