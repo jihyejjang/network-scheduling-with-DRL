@@ -430,7 +430,7 @@ class rl_switch(app_manager.RyuApp):
 
         class_ = 4 #best effort
         #print("dst",dst)
-        match = parser.OFPMatch()
+        match = parser.OFPMatch(in_port = in_port, eth_type=eth_type_)
         if (dst in self.H) and (src in self.H):
             #print("dd")
             if eth_type_ == ether_types.ETH_TYPE_IEEE802_3:
@@ -457,6 +457,7 @@ class rl_switch(app_manager.RyuApp):
 
         else :
             self.add_flow(datapath, 10, match, 0, [parser.OFPInstructionGotoTable(1)])
+            return
 
         if dst in self.mac_to_port[switchid]:
             out_port = self.mac_to_port[switchid][dst]
