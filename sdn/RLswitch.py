@@ -174,9 +174,9 @@ class rl_switch(app_manager.RyuApp):
     def action_sw3(self):
         hub.sleep(3)
         datapath = self.dp[3]
-        ofproto = datapath.ofproto
+        #ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        out_port = 3
+        #out_port = 3
         # close = [parser.OFPActionSetQueue()]
         while True:
             #print("md")
@@ -192,7 +192,7 @@ class rl_switch(app_manager.RyuApp):
                 action1 = parser.OFPInstructionGotoTable(2)
             else :
                 action1 = goto
-            print(action1)
+            #print(action1)
             self.add_flow(datapath, 1000, match1, 0, [action1])
 
             # class 2
@@ -201,7 +201,7 @@ class rl_switch(app_manager.RyuApp):
                 action2 = parser.OFPInstructionGotoTable(2)
             else :
                 action2 = goto
-            print(action2)
+            #print(action2)
             self.add_flow(datapath, 1000, match2, 0, [action2])
 
             # class 3
@@ -210,7 +210,7 @@ class rl_switch(app_manager.RyuApp):
                 action3 = parser.OFPInstructionGotoTable(2)
             else :
                 action3 = goto
-            print(action3)
+            #print(action3)
             self.add_flow(datapath, 1000, match3, 0, [action3])
 
             #TODO : class 4
@@ -314,9 +314,9 @@ class rl_switch(app_manager.RyuApp):
         inst1 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, [actions1])
         inst2 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, [actions2])
 
-        self.add_flow(datapath, 1000, match, 1, [inst1])
-        self.add_flow(datapath, 1000, match, 2, [inst2])
-        self.add_flow(datapath, 1000, match, 0, [goto])
+        self.add_flow(datapath, 100, match, 1, [inst1])
+        self.add_flow(datapath, 100, match, 2, [inst2])
+        self.add_flow(datapath, 100, match, 0, [goto])
 
 
         #print("add_flow")
