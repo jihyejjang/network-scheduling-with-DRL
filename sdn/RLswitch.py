@@ -167,12 +167,12 @@ class rl_switch(app_manager.RyuApp):
     #                          stat.instructions[0].actions[0].port,
     #                          stat.packet_count, stat.byte_count)
 
-    # def timeslot(self, time):  # timeslot 진행 횟수를 알려주는 함수
-    #     msec = round((time - self.timeslot_start)*1000,1)
-    #     slots = int(msec / self.timeslot_size)
-    #     cyc = int(slots / self.cycle)
-    #     clk = cyc % self.cycle
-    #     return cyc, clk
+    def timeslot(self, time):  # timeslot 진행 횟수를 알려주는 함수
+        msec = round((time - self.timeslot_start)*1000,1)
+        slots = int(msec / self.timeslot_size)
+        cyc = int(slots / self.cycle)
+        clk = cyc % self.cycle
+        return cyc, clk
 
     def gcl_3(self):
         hub.sleep(3)
