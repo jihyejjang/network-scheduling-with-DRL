@@ -430,25 +430,27 @@ class rl_switch(app_manager.RyuApp):
 
         class_ = 4 #best effort
         #print("dst",dst)
-        match = parser.OFPMatch(in_port = in_port, eth_type=eth_type_)
+        match = parser.OFPMatch(in_port = in_port)
+        goto = parser.OFPInstructionGotoTable(1)
+        self.add_flow(datapath, 100, match, 0, [goto])
         if (dst in self.H) and (src in self.H):
             #print("dd")
             if eth_type_ == ether_types.ETH_TYPE_IEEE802_3:
-                match = parser.OFPMatch(in_port = in_port, eth_type=0x05dc)
+                match1 = parser.OFPMatch(eth_type=0x05dc)
                 #match = parser.OFPMatch(in_port=in_port)
                 class_ = 1
                 #print("class_1, inport",in_port)
                 # type_ = 0x05dc
                 #self.logger.info("class %s packet" % (class_))
             elif eth_type_ == ether_types.ETH_TYPE_8021AD:
-                match = parser.OFPMatch(in_port = in_port, eth_type=0x88a8)
+                match1 = parser.OFPMatch(eth_type=0x88a8)
                 #match = parser.OFPMatch(in_port=in_port)
                 class_ = 2
                 #print("class_2,inport",in_port)
                 # type_ = 0x88a8
                 #self.logger.info("class %s packet" % (class_))
             elif eth_type_ == ether_types.ETH_TYPE_8021AH:
-                match = parser.OFPMatch(in_port = in_port, eth_type=0x88e7)
+                match1 = parser.OFPMatch(eth_type=0x88e7)
                 #match = parser.OFPMatch(in_port=in_port)
                 class_ = 3
                 #print("class_3,inport",in_port)
@@ -456,7 +458,7 @@ class rl_switch(app_manager.RyuApp):
                 #self.logger.info("class %s packet" % (class_))
 
         else :
-            self.add_flow(datapath, 10, match, 0, [parser.OFPInstructionGotoTable(1)])
+            #self.add_flow(datapath, 1, match, 0, [])
             return
 
         if dst in self.mac_to_port[switchid]:
@@ -472,7 +474,7 @@ class rl_switch(app_manager.RyuApp):
         inst1 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions1])
         # inst2 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, [actions2])
 
-        self.add_flow(datapath, 100, match, 0, [inst1])
+        self.add_flow(datapath, 100, match1, 1, [inst1])
         # self.add_flow(datapath, 100, match, 2, [inst2])
         # self.add_flow(datapath, 100, match, 0, [goto])
 
