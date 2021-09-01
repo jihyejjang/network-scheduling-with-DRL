@@ -306,7 +306,7 @@ class rl_switch(app_manager.RyuApp):
         else:
             out_port = ofproto.OFPP_FLOOD
 
-        goto = parser.OFPInstructionGotoTable(1)
+        goto = parser.OFPInstructionGotoTable(2)
         actions1 = parser.OFPActionOutput(out_port)
         actions2 = parser.OFPActionSetQueue(class_)
         inst1 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS,[actions1])
