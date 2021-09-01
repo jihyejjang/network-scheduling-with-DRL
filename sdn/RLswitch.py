@@ -462,7 +462,7 @@ class rl_switch(app_manager.RyuApp):
         # goto = parser.OFPInstructionGotoTable(1) # 1: sending packet to port, 2: queueing packet
         actions1 = parser.OFPActionOutput(out_port)
         # actions2 = parser.OFPActionSetQueue(class_)
-        inst1 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, [actions1])
+        inst1 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions1])
         # inst2 = parser.OFPInstructionActions(ofproto.OFPIT_WRITE_ACTIONS, [actions2])
 
         self.add_flow(datapath, 100, match, 0, [inst1])
