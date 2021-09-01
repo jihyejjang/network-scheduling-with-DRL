@@ -127,8 +127,7 @@ class rl_switch(app_manager.RyuApp):
             self.cc_thread2 = hub.spawn(self._cc_gen2)
             self.ad_thread = hub.spawn(self._ad_gen1)
             self.ad_thread2 = hub.spawn(self._ad_gen2)
-            self.spawn = hub.spawn(self._vd_gen1)
-            self.vd_thread = self.spawn
+            self.vd_thread =  hub.spawn(self._vd_gen1)
             self.vd_thread2 = hub.spawn(self._vd_gen2)
 
 
@@ -404,33 +403,33 @@ class rl_switch(app_manager.RyuApp):
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         eth_type = eth.ethertype
-        print("packet in", eth.ethertype)
+        print("packet in", eth_type)
         dst = eth.dst
         src = eth.src
-        #print("ofproto.OXM_OF_IN_PORT",ofproto.OXM_OF_IN_PORT)
-        #print("ofproto.OXM_OF_ETH_SRC",ofproto.OXM_OF_ETH_SRC)
+        print("ofproto.OXM_OF_IN_PORT",ofproto.OXM_OF_IN_PORT)
+        print("ofproto.OXM_OF_ETH_SRC",ofproto.OXM_OF_ETH_SRC)
 
         class_ = 4 #best effort
         #print("dst",dst)
         match = parser.OFPMatch(in_port = in_port)
-        if (dst in self.H) and (src in self.H):
-            print("dd")
-            if eth_type == ether_types.ETH_TYPE_IEEE802_3:
-                match = parser.OFPMatch(eth_type=0x05dc)
-                class_ = 1
-                print("class_1, inport",in_port)
-                # type_ = 0x05dc
-                #self.logger.info("class %s packet" % (class_))
-            elif eth_type == ether_types.ETH_TYPE_8021AD:
-                match = parser.OFPMatch(eth_type=0x88a8)
-                class_ = 2
-                print("class_2,inport",in_port)
-                # type_ = 0x88a8
-                #self.logger.info("class %s packet" % (class_))
-            elif eth_type == ether_types.ETH_TYPE_8021AH:
-                match = parser.OFPMatch(eth_type=0x88e7)
-                class_ = 3
-                print("class_3,inport",in_port)
+        # if (dst in self.H) and (src in self.H):
+        #     print("dd")
+        #     if eth_type == ether_types.ETH_TYPE_IEEE802_3:
+        #         match = parser.OFPMatch(eth_type=0x05dc)
+        #         class_ = 1
+        #         print("class_1, inport",in_port)
+        #         # type_ = 0x05dc
+        #         #self.logger.info("class %s packet" % (class_))
+        #     elif eth_type == ether_types.ETH_TYPE_8021AD:
+        #         match = parser.OFPMatch(eth_type=0x88a8)
+        #         class_ = 2
+        #         print("class_2,inport",in_port)
+        #         # type_ = 0x88a8
+        #         #self.logger.info("class %s packet" % (class_))
+        #     elif eth_type == ether_types.ETH_TYPE_8021AH:
+        #         match = parser.OFPMatch(eth_type=0x88e7)
+        #         class_ = 3
+        #         print("class_3,inport",in_port)
                 # type_ = 0x88e7
                 #self.logger.info("class %s packet" % (class_))
 
