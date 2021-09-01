@@ -430,7 +430,7 @@ class rl_switch(app_manager.RyuApp):
 
         class_ = 4 #best effort
         #print("dst",dst)
-        match = parser.OFPMatch(in_port = in_port)
+        match = parser.OFPMatch(in_port = in_port,eth_type=eth_type_)
         if (dst in self.H) and (src in self.H):
             #print("dd")
             if eth_type_ == ether_types.ETH_TYPE_IEEE802_3:
