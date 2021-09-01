@@ -376,9 +376,11 @@ class rl_switch(app_manager.RyuApp):
     def add_flow(self, datapath, priority, match, tableid, inst):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        mod = parser.OFPFlowMod(datapath=datapath, table_id = tableid, priority=priority,command = ofproto.OFPFC_MODIFY,
+        mod = parser.OFPFlowMod(datapath=datapath, table_id = tableid, priority=priority,
                                     match=match, instructions = inst)
         datapath.send_msg(mod)
+
+        #command = ofproto.OFPFC_MODIFY,
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
