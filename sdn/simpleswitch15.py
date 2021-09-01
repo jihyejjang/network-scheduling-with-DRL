@@ -53,6 +53,8 @@ class SimpleSwitch15(app_manager.RyuApp):
         in_port = msg.match['in_port']
         fields = msg.match
         print(fields)
+        print("inport",ofproto.OXM_OF_IN_PORT)
+        print("dst",ofproto.OXM_OF_ETH_DST)
 
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
