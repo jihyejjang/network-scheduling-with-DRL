@@ -434,22 +434,22 @@ class rl_switch(app_manager.RyuApp):
         if (dst in self.H) and (src in self.H):
             #print("dd")
             if eth_type_ == ether_types.ETH_TYPE_IEEE802_3:
-                # match = parser.OFPMatch(in_port = in_port, eth_type=0x05dc)
-                match = parser.OFPMatch(in_port=in_port)
+                match = parser.OFPMatch(in_port = in_port, eth_type=0x05dc)
+                #match = parser.OFPMatch(in_port=in_port)
                 class_ = 1
                 #print("class_1, inport",in_port)
                 # type_ = 0x05dc
                 #self.logger.info("class %s packet" % (class_))
             elif eth_type_ == ether_types.ETH_TYPE_8021AD:
-                # match = parser.OFPMatch(in_port = in_port, eth_type=0x88a8)
-                match = parser.OFPMatch(in_port=in_port)
+                match = parser.OFPMatch(in_port = in_port, eth_type=0x88a8)
+                #match = parser.OFPMatch(in_port=in_port)
                 class_ = 2
                 #print("class_2,inport",in_port)
                 # type_ = 0x88a8
                 #self.logger.info("class %s packet" % (class_))
             elif eth_type_ == ether_types.ETH_TYPE_8021AH:
-                # match = parser.OFPMatch(in_port = in_port, eth_type=0x88e7)
-                match = parser.OFPMatch(in_port=in_port)
+                match = parser.OFPMatch(in_port = in_port, eth_type=0x88e7)
+                #match = parser.OFPMatch(in_port=in_port)
                 class_ = 3
                 #print("class_3,inport",in_port)
                 # type_ = 0x88e7
