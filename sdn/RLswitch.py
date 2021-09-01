@@ -362,14 +362,14 @@ class rl_switch(app_manager.RyuApp):
     #                    format(np.argmax(self.model4.predict(self.state[s].reshape(-1,4))), '010b')]
     #             print(self.gcl[s])
     #
-    # @set_ev_cls(ofp_event.EventOFPErrorMsg,
-    #             [HANDSHAKE_DISPATCHER, CONFIG_DISPATCHER, MAIN_DISPATCHER])
-    # def error_msg_handler(self, ev):
-    #     msg = ev.msg
-    #
-    #     self.logger.debug('OFPErrorMsg received: type=0x%02x code=0x%02x '
-    #                       'message=%s',
-    #                       msg.type, msg.code, utils.hex_array(msg.data))
+    @set_ev_cls(ofp_event.EventOFPErrorMsg,
+                [HANDSHAKE_DISPATCHER, CONFIG_DISPATCHER, MAIN_DISPATCHER])
+    def error_msg_handler(self, ev):
+        msg = ev.msg
+
+        self.logger.debug('OFPErrorMsg received: type=0x%02x code=0x%02x '
+                          'message=%s',
+                          msg.type, msg.code, utils.hex_array(msg.data))
 
     def add_flow_(self, datapath, priority, match, tableid, inst):
         ofproto = datapath.ofproto
