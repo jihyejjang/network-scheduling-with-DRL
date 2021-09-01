@@ -191,7 +191,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action1 = goto
             #print(action1)
-            self.add_flow(datapath, 1000, match1, 0, [action1])
+            self.add_flow_(datapath, 1000, match1, 0, [action1])
 
             # class 2
             match2 = parser.OFPMatch(in_port = 1, eth_dst = self.H[5])
@@ -200,7 +200,7 @@ class rl_switch(app_manager.RyuApp):
             else :
                 action2 = goto
             #print(action2)
-            self.add_flow(datapath, 1000, match2, 0, [action2])
+            self.add_flow_(datapath, 1000, match2, 0, [action2])
 
             # class 3
             # match3 = parser.OFPMatch()
@@ -236,7 +236,7 @@ class rl_switch(app_manager.RyuApp):
             else:
                 action1 = goto
             # print(action1)
-            self.add_flow(datapath, 1000, match1, 0, [action1])
+            self.add_flow_(datapath, 1000, match1, 0, [action1])
 
             # class 2
             match2 = parser.OFPMatch(in_port=1, eth_dst=self.H[5])
@@ -245,7 +245,7 @@ class rl_switch(app_manager.RyuApp):
             else:
                 action2 = goto
             # print(action2)
-            self.add_flow(datapath, 1000, match2, 0, [action2])
+            self.add_flow_(datapath, 1000, match2, 0, [action2])
 
             # # class 3
             # match3 = parser.OFPMatch(eth_type=0x88e7)
@@ -278,7 +278,7 @@ class rl_switch(app_manager.RyuApp):
             else:
                 action1 = goto
             # print(action1)
-            self.add_flow(datapath, 1000, match1, 0, [action1])
+            self.add_flow_(datapath, 1000, match1, 0, [action1])
 
             # class 2
             match2 = parser.OFPMatch(in_port=1, eth_dst=self.H[5])
@@ -287,7 +287,7 @@ class rl_switch(app_manager.RyuApp):
             else:
                 action2 = goto
             # print(action2)
-            self.add_flow(datapath, 1000, match2, 0, [action2])
+            self.add_flow_(datapath, 1000, match2, 0, [action2])
 
             # class 3
             # match3 = parser.OFPMatch(eth_type=0x88e7)
