@@ -473,9 +473,9 @@ class rl_switch(app_manager.RyuApp):
         inst1 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions1])
         inst2 = parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, [actions2])
 
-        self.add_flow(datapath, 100, match1, 1, [inst1])
-        self.add_flow(datapath, 100, match1, 2, [inst2])
-        self.add_flow(datapath, 100, match1, 0, [goto])
+        self.add_flow(datapath, 100, match, 1, [inst1])
+        self.add_flow(datapath, 100, match, 2, [inst2])
+        self.add_flow(datapath, 100, match, 0, [goto])
 
         #self.thread.append(hub.spawn(self._gcl_, datapath, match))
 
