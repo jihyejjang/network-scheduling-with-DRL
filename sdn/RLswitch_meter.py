@@ -144,7 +144,7 @@ class rl_switch(app_manager.RyuApp):
             #class 1
             if gate[0] == 0 :
                 self._add_meter(datapath, 1, 0)
-                print("set 0 kbps rate for class 1")
+                # print("set 0 kbps rate for class 1")
             else :
                 self._add_meter(datapath, 1, 1024)
 
