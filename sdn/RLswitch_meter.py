@@ -356,7 +356,7 @@ class rl_switch(app_manager.RyuApp):
             out_port = ofproto.OFPP_FLOOD
 
         actions = [parser.OFPActionOutput(out_port)]
-        #actions.insert(0,parser.OFPActionSetQueue(out_port))
+        actions.insert(0,parser.OFPActionSetQueue(out_port))
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions),
                  parser.OFPInstructionMeter(class_, ofproto.OFPIT_METER)]
         goto = parser.OFPInstructionGotoTable(class_)
