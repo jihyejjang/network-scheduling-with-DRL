@@ -144,7 +144,7 @@ class rl_switch(app_manager.RyuApp):
             #class 1
             if gate[0] == 0 :
                 self._add_meter(datapath, 1, 0)
-                #print("set 0 kbps rate for class 1")
+                print("set 0 kbps rate for class 1")
             else :
                 self._add_meter(datapath, 1, 1024)
 
@@ -156,7 +156,7 @@ class rl_switch(app_manager.RyuApp):
                 self._add_meter(datapath, 2, 1024)
 
             # class 3
-            if gate[1] == 0:
+            if gate[2] == 0:
                 self._add_meter(datapath, 3, 0)
                 # print("set 0 kbps rate for class 2")
             else:
@@ -194,7 +194,7 @@ class rl_switch(app_manager.RyuApp):
                 self._add_meter(datapath, 2, 1024)
 
             # class 3
-            if gate[1] == 0:
+            if gate[2] == 0:
                 self._add_meter(datapath, 3, 0)
                 # print("set 0 kbps rate for class 2")
             else:
@@ -229,7 +229,7 @@ class rl_switch(app_manager.RyuApp):
                 self._add_meter(datapath, 2, 1024)
 
             # class 3
-            if gate[1] == 0:
+            if gate[2] == 0:
                 self._add_meter(datapath, 3, 0)
                 # print("set 0 kbps rate for class 2")
             else:
@@ -264,7 +264,7 @@ class rl_switch(app_manager.RyuApp):
                 self._add_meter(datapath, 2, 1024)
 
             # class 3
-            if gate[1] == 0:
+            if gate[2] == 0:
                 self._add_meter(datapath, 3, 0)
                 # print("set 0 kbps rate for class 2")
             else:
