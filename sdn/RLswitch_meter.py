@@ -311,7 +311,7 @@ class rl_switch(app_manager.RyuApp):
     def add_meter(self, datapath, m_id):
         parser = datapath.ofproto_parser
         ofproto = datapath.ofproto
-        band = parser.OFPMeterBandDrop(rate = 0, burst_size = 1024) #TODO: drop으로 인해 packet drop이 일어날 수도 있음
+        band = parser.OFPMeterBandDrop(rate = 1024, burst_size = 1024) #TODO: drop으로 인해 packet drop이 일어날 수도 있음
         mod = parser.OFPMeterMod(datapath, ofproto.OFPMC_ADD, ofproto.OFPMF_KBPS, m_id, [band])
         datapath.send_msg(mod)
 
