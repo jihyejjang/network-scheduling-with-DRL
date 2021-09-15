@@ -101,7 +101,11 @@ class rl_switch(app_manager.RyuApp):
                                           max_len=ofproto.OFPCML_NO_BUFFER)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
-        self.add_flow(datapath,0,match,0,inst)
+        self.add_flow(datapath, 0, match, 0, inst)
+        self.add_meter(datapath, 1)
+        self.add_meter(datapath, 2)
+        self.add_meter(datapath, 3)
+
 
         if len(self.dp)==6:
             hub.sleep(3)
@@ -307,7 +311,7 @@ class rl_switch(app_manager.RyuApp):
     def add_meter(self, datapath, m_id):
         parser = datapath.ofproto_parser
         ofproto = datapath.ofproto
-        band = parser.OFPMeterBandDrop(rate = 0, burst_size = 1024) #TODO: drop으로 인해 packet drop이 일어날 수도 있음
+        band = parser.OFPMeterBandDrop(rate = 1024, burst_size = 1024) #TODO: drop으로 인해 packet drop이 일어날 수도 있음
         mod = parser.OFPMeterMod(datapath, ofproto.OFPMC_ADD, ofproto.OFPMF_KBPS, m_id, [band])
         datapath.send_msg(mod)
 
@@ -355,10 +359,9 @@ class rl_switch(app_manager.RyuApp):
         actions.insert(0,parser.OFPActionSetQueue(out_port))
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions),
                  parser.OFPInstructionMeter(class_, ofproto.OFPIT_METER)]
-        self.add_flow(datapath, 100, match, class_, inst)
-        self.add_meter(datapath, class_)
-
         goto = parser.OFPInstructionGotoTable(class_)
+
+        self.add_flow(datapath, 100, match, class_, inst)
         self.add_flow(datapath, 100, match, 0, [goto])
 
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
