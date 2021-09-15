@@ -48,19 +48,19 @@ class rl_switch(app_manager.RyuApp):
         self.timeslot_size = 0.5 #ms
         self.cycle = 10
         self.ts_cnt=0
-        self.gcl = {1: ['0000000000', '0000000000', '0000000000', '0000000000'],
-                    2: ['0000000000', '0000000000', '0000000000', '1111111111'],
-                    3: ['0000000000', '0000000000', '0000000000', '1111111111'],
-                    4: ['0000000000', '0000000000', '0000000000', '1111111111'],
-                    5: ['0000000000', '0000000000', '0000000000', '1111111111'],
-                    6: ['0000000000', '0000000000', '0000000000', '1111111111']} #최초 action
+        # self.gcl = {1: ['0000000000', '0000000000', '0000000000', '0000000000'],
+        #             2: ['0000000000', '0000000000', '0000000000', '1111111111'],
+        #             3: ['0000000000', '0000000000', '0000000000', '1111111111'],
+        #             4: ['0000000000', '0000000000', '0000000000', '1111111111'],
+        #             5: ['0000000000', '0000000000', '0000000000', '1111111111'],
+        #             6: ['0000000000', '0000000000', '0000000000', '1111111111']} #최초 action
 
-        # self.gcl = {1: ['1111111111', '1111111111', '1111111111', '1111111111'],
-        #             2: ['1111111111', '1111111111', '1111111111', '1111111111'],
-        #             3: ['1111111111', '1111111111', '1111111111', '1111111111'],
-        #             4: ['1111111111', '1111111111', '1111111111', '1111111111'],
-        #             5: ['1111111111', '1111111111', '1111111111', '1111111111'],
-        #             6: ['1111111111', '1111111111', '1111111111', '1111111111']} #최초 action
+        self.gcl = {1: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    2: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    3: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    4: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    5: ['1111111111', '1111111111', '1111111111', '1111111111'],
+                    6: ['1111111111', '1111111111', '1111111111', '1111111111']} #최초 action
 
         self.gcl_={1: np.array([list(l) for l in self.gcl[1]]),
                    2: np.array([list(l) for l in self.gcl[2]]),
@@ -396,10 +396,11 @@ class rl_switch(app_manager.RyuApp):
                                       in_port = 2,
                                       actions=actions, data=pkt.data)
             datapath.send_msg(out)
-            self.logger.info("%f : %s번 째 C&C1 generated in switch%s " % (time.time(), self.cc_cnt, datapath.id))
             df = pd.DataFrame([(datapath.id, 1, self.cc_cnt, time.time(), 'x')],
                               columns=['switch', 'class', 'number', 'time', 'queue'])
             self.generated_log = self.generated_log.append(df)
+            self.logger.info("%f : %s번 째 C&C1 generated in switch%s " % (time.time(), self.cc_cnt, datapath.id))
+
             hub.sleep(self.cc_period / 1000)
 
             if (self.cc_cnt >= self.command_control):
@@ -431,10 +432,11 @@ class rl_switch(app_manager.RyuApp):
                                       in_port=1,
                                       actions=actions, data=pkt.data)
             datapath.send_msg(out)
-            self.logger.info("%f : %s번 째 C&C2 generated in switch%s " % (time.time(), self.cc_cnt2, datapath.id))
+
             df = pd.DataFrame([(datapath.id, 1, self.cc_cnt2, time.time(), 'x')],
                               columns=['switch', 'class', 'number', 'time', 'queue'])
             self.generated_log = self.generated_log.append(df)
+            self.logger.info("%f : %s번 째 C&C2 generated in switch%s " % (time.time(), self.cc_cnt2, datapath.id))
             hub.sleep(self.cc_period / 1000)
 
             if (self.cc_cnt2 >= self.command_control):
@@ -466,10 +468,11 @@ class rl_switch(app_manager.RyuApp):
                                       in_port=1,
                                       actions=actions, data=pkt.data)
             datapath.send_msg(out)
-            self.logger.info("%f : %s번 째 Audio1 generated in switch%s " % (time.time(), self.ad_cnt, datapath.id))
+
             df = pd.DataFrame([(datapath.id, 2, self.ad_cnt, time.time(), 'x')],
                               columns=['switch', 'class', 'number', 'time', 'queue'])
             self.generated_log = self.generated_log.append(df)
+            self.logger.info("%f : %s번 째 Audio1 generated in switch%s " % (time.time(), self.ad_cnt, datapath.id))
             hub.sleep(self.ad_period / 1000)
 
             if (self.ad_cnt >= self.audio):
@@ -499,10 +502,11 @@ class rl_switch(app_manager.RyuApp):
                                       in_port=2,
                                       actions=actions, data=pkt.data)
             datapath.send_msg(out)
-            self.logger.info("%f : %s번 째 Audio2 generated in switch%s " % (time.time(), self.ad_cnt2, datapath.id))
+
             df = pd.DataFrame([(datapath.id, 2, self.ad_cnt2, time.time(), 'x')],
                               columns=['switch', 'class', 'number', 'time', 'queue'])
             self.generated_log = self.generated_log.append(df)
+            self.logger.info("%f : %s번 째 Audio2 generated in switch%s " % (time.time(), self.ad_cnt2, datapath.id))
             hub.sleep(self.ad_period / 1000)
 
             if (self.ad_cnt2 >= self.audio):
@@ -532,10 +536,11 @@ class rl_switch(app_manager.RyuApp):
                                       in_port=1,
                                       actions=actions, data=pkt.data)
             datapath.send_msg(out)
-            self.logger.info("%f : %s번 째 Video1 generated in switch%s " % (time.time(), self.vd_cnt, datapath.id))
             df = pd.DataFrame([(datapath.id, 3, self.vd_cnt, time.time(), 'x')],
                               columns=['switch', 'class', 'number', 'time', 'queue'])
             self.generated_log = self.generated_log.append(df)
+
+            self.logger.info("%f : %s번 째 Video1 generated in switch%s " % (time.time(), self.vd_cnt, datapath.id))
             hub.sleep(self.vd_period / 1000)
 
             if (self.vd_cnt >= self.video):
@@ -565,10 +570,11 @@ class rl_switch(app_manager.RyuApp):
                                       in_port=2,
                                       actions=actions, data=pkt.data)
             datapath.send_msg(out)
-            self.logger.info("%f : %s번 째 Video2 generated in switch%s " % (time.time(), self.vd_cnt2, datapath.id))
+
             df = pd.DataFrame([(datapath.id, 3, self.vd_cnt2, time.time(), 'x')],
                               columns=['switch', 'class', 'number', 'time', 'queue'])
             self.generated_log = self.generated_log.append(df)
+            self.logger.info("%f : %s번 째 Video2 generated in switch%s " % (time.time(), self.vd_cnt2, datapath.id))
             hub.sleep(self.vd_period / 1000)
 
             if (self.vd_cnt2 >= self.video):
