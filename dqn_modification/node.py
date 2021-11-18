@@ -69,7 +69,10 @@ class Node:
             l[q] = len(self.class_based_queues[q].items)
             for flow in self.class_based_queues[q].items:
                 d[q] += flow.bits_/8
-        #print (p)
+        # for q in range(PRIORITY_QUEUE):
+        #     for flow in self.class_based_queues[q].items:
+        #         l[flow.type_ - 1] += 1
+        #         d[q] += flow.bits_/8
         return l, d
 
     def gcl_update(self, gcl_):  # observe state and update GCL (cycle : 0.2*3)
