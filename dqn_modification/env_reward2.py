@@ -18,7 +18,7 @@ DATE = '1118'
 if not os.path.exists("./result/" + DATE):
     os.makedirs("./result/" + DATE)
 PRIORITY_QUEUE = 2
-STATE = 2
+STATE = 3
 STATE_SIZE = STATE * PRIORITY_QUEUE
 GCL_LENGTH = 3
 ACTION_SIZE = 2 ** (GCL_LENGTH * PRIORITY_QUEUE)
@@ -113,6 +113,7 @@ class GateControlSimulation:
         self.delay = pd.DataFrame(columns=['Episode', 'c&c', 'audio', 'video'])
 
         self.success = [0, 0, 0, 0]
+        self.s = [0,0,0,0]
         self.avg_delay = [[], [], [], []]
         self.state_and_action = []
 
@@ -145,6 +146,7 @@ class GateControlSimulation:
         self.received_packet = 0
         self.success = [0, 0, 0, 0]  # deadline met
         self.avg_delay = [[], [], [], []]
+        self.s = [0,0,0,0]
 
         # epsilon_decay
         e = self.agent.reset()
@@ -290,6 +292,7 @@ class GateControlSimulation:
                 if delay <= f.deadline_:
                     f.met_ = 1
                     self.success[t] += 1
+                    self.s[t] += 1
                 else:
                     f.met_ = 0
             # yield env.timeout(TIMESLOT_SIZE / 1000)
@@ -329,6 +332,7 @@ class GateControlSimulation:
                 # self.fail = [[0, 0, 0, 0] for _ in range(2)]
                 self.timeslots += GCL_LENGTH
                 self.total_timeslots += GCL_LENGTH
+                self.s = [0, 0, 0, 0]
                 gcl = {1: number_to_action(ACTION_SIZE - 1),
                        2: number_to_action(ACTION_SIZE - 1),
                        3: number_to_action(ACTION_SIZE - 1),
@@ -409,12 +413,12 @@ class GateControlSimulation:
     # TODO:학습파라미터 세팅
     def step(self, node, qlen, qdata):
         # qlen 은 전체노드를 참조하고있음
-        rewards = self.reward1(qlen[node - 1])
+        rewards = self.reward2()
         # if node > 4 :
         #     rewards = self.reward2(self.fail[node-5])
         # self.reward1(node, qlen[node - 1]) +
         # print (rewards)
-        # hops = [3, 3, 2, 1, 0, 0]
+        hops = [3, 3, 2, 1, 0, 0]
         qt = qdata.transpose()
         previous_node = [0 for _ in range(PRIORITY_QUEUE)]
 
@@ -431,6 +435,7 @@ class GateControlSimulation:
         # state[:, 0] = [1, 2]  # priority
         state[:, 0] = qdata[node - 1]  # 해당노드 큐에 남아서 대기중인 패킷 개수 (queue legnth)
         state[:, 1] = previous_node  # 이전 노드들 큐의 합
+        state[:, 2] = hops[node - 1]
         # state[:, 3] = available_data
         state = state.flatten()
 
@@ -441,19 +446,19 @@ class GateControlSimulation:
                 self.success[2] //= VIDEO_FRAME
         return [state, rewards, done]
 
-    # def reward2(self,fail):
-    #     w = np.array([2, 2, 1, 0.1])
-    #     r = -round(sum(w * np.array(fail)), 1)
-    #     # print ("r2", r)
-    #     return r
-
-    def reward1(self, q_len):
-        # print(q_len)
-        r = 0
-        # reward 1
-        for i in range(PRIORITY_QUEUE):  # flow type
-            r -= round(q_len[i] * W[i], 1)
+    def reward2(self):
+        w = np.array([2, 3, 0.1, 0.01])
+        r = round(sum(w * np.array(self.s)), 1)
+        # print ("r2", r)
         return r
+
+    # def reward1(self, q_len):
+    #     # print(q_len)
+    #     r = 0
+    #     # reward 1
+    #     for i in range(PRIORITY_QUEUE):  # flow type
+    #         r -= round(q_len[i] * W[i], 1)
+    #     return r
 
     def run(self):
         self.env.process(self.episode(self.env))

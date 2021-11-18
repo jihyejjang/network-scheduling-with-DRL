@@ -9,7 +9,7 @@ import warnings
 
 warnings.filterwarnings('ignore')
 PRIORITY_QUEUE = 2
-STATE = 2
+STATE = 3
 INPUT_SIZE = STATE * PRIORITY_QUEUE
 GCL_LENGTH = 3
 OUTPUT_SIZE = 2 ** (PRIORITY_QUEUE * GCL_LENGTH)
