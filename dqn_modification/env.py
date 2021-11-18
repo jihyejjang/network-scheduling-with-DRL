@@ -329,6 +329,12 @@ class GateControlSimulation:
                 # self.fail = [[0, 0, 0, 0] for _ in range(2)]
                 self.timeslots += GCL_LENGTH
                 self.total_timeslots += GCL_LENGTH
+                gcl = {1: number_to_action(ACTION_SIZE - 1),
+                       2: number_to_action(ACTION_SIZE - 1),
+                       3: number_to_action(ACTION_SIZE - 1),
+                       4: number_to_action(ACTION_SIZE - 1),
+                       5: number_to_action(ACTION_SIZE - 1),
+                       6: number_to_action(ACTION_SIZE - 1)}
 
                 for t in range(GCL_LENGTH):
                     for n in range(NODES):
@@ -346,13 +352,15 @@ class GateControlSimulation:
                 for n in range(NODES):  # convey the predicted gcl and get states of queue
                     self.next_state[n + 1], reward, self.done = self.step(n + 1, qlen, qdata)
                     rewards_all.append(reward)
-                    self.agent.observation(self.state[n + 1], action_to_number(gcl), reward,
-                                           self.next_state[n + 1], self.done)
+                    if not np.all(self.state[n + 1] == 0):
+                        # print("state :", self.state[n + 1])
+                        self.agent.observation(self.state[n + 1], action_to_number(gcl[n + 1]), reward,
+                                               self.next_state[n + 1], self.done)
                     self.state[n + 1] = self.next_state[n + 1]
-                    gcl = self.agent.choose_action(self.state[n + 1])  # new state로 gcl 업데이트
-                    self.nodes[n].gcl_update(gcl)
+                    gcl[n + 1] = self.agent.choose_action(self.state[n + 1])  # new state로 gcl 업데이트
+                    self.nodes[n].gcl_update(gcl[n + 1])
                     if (episode_num % 100 == 0) or (episode_num == MAX_EPISODE - 1):  # logging states and actions
-                        self.state_and_action.append([episode_num, self.state[n + 1], gcl])
+                        self.state_and_action.append([episode_num, self.state[n + 1], gcl[n + 1]])
 
                 loss.append(self.agent.replay())  # train
 
@@ -395,8 +403,8 @@ class GateControlSimulation:
                     e=round(epsilon, 4),
                     m=round(np.min(loss), 4),
                     l=self.success[:3],
-                    d=[round(np.mean(self.avg_delay[0]),4),
-                       round(np.mean(self.avg_delay[1]),4), round(np.mean(self.avg_delay[2]),4)]))
+                    d=[round(np.mean(self.avg_delay[0]), 4),
+                       round(np.mean(self.avg_delay[1]), 4), round(np.mean(self.avg_delay[2]), 4)]))
 
     # TODO:학습파라미터 세팅
     def step(self, node, qlen, qdata):

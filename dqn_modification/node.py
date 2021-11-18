@@ -68,7 +68,7 @@ class Node:
         for q in range(PRIORITY_QUEUE):
             l[q] = len(self.class_based_queues[q].items)
             for flow in self.class_based_queues[q].items:
-                d[q] += flow.bits_/8
+                d[q] += int(flow.bits_/8)
         # for q in range(PRIORITY_QUEUE):
         #     for flow in self.class_based_queues[q].items:
         #         l[flow.type_ - 1] += 1
