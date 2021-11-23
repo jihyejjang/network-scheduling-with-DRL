@@ -8,15 +8,12 @@ import numpy as np
 import warnings
 
 warnings.filterwarnings('ignore')
-PRIORITY_QUEUE = 2
-STATE = 3
-INPUT_SIZE = STATE * PRIORITY_QUEUE
-GCL_LENGTH = 3
-OUTPUT_SIZE = 2 ** (PRIORITY_QUEUE * GCL_LENGTH)
-LEARNING_RATE = 0.00001
+
+INPUT_SIZE = 2
+OUTPUT_SIZE = 4
+LEARNING_RATE = 0.0001
 ALPHA = 0.1
 DROPOUT = 0.5
-
 
 def create_model():
     model = Sequential()
@@ -25,10 +22,10 @@ def create_model():
     model.add(Dropout(DROPOUT))
     model.add(Dense(64))
     model.add(LeakyReLU(alpha=ALPHA))
-    model.add(Dense(OUTPUT_SIZE, activation='linear'))  # relu
-    model.compile(loss='mean_squared_error', optimizer=Adam(lr=LEARNING_RATE))
+    model.add(Dropout(DROPOUT))
+    model.add(Dense(OUTPUT_SIZE, activation='linear')) #relu
+    model.compile(loss='mean_squared_error', optimizer=Adam(lr=LEARNING_RATE))  # optimizer의 learning rate 주의
     return model
-
 
 class DeepQNetwork:
     def __init__(self):
@@ -44,6 +41,12 @@ class DeepQNetwork:
         loss.append(history.history['loss'][0])  # loss 기록
         return min(loss)
 
+    # def return_weights(self):
+    #     return self.model.get_weight()
+    #
+    # def apply_weights(self):
+    #     self.model.set_weights()
+
     def test(self, weight_file):
         self.model.load_weights(weight_file)
 
@@ -54,7 +57,6 @@ class DeepQNetwork:
         if target:  # get prediction from target network
             return self.target_model.predict(state)
         else:  # get prediction from local network
-            #print (state)
             return self.model.predict(state)
 
     def update_target_model(self):

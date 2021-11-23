@@ -10,47 +10,25 @@ from agent import Agent
 from dataclasses import dataclass
 import warnings
 import time
-import os
 
 warnings.filterwarnings('ignore')
 
-DATE = '1118'
-if not os.path.exists("./result/" + DATE):
-    os.makedirs("./result/" + DATE)
-PRIORITY_QUEUE = 2
-STATE = 2
-STATE_SIZE = STATE * PRIORITY_QUEUE
-GCL_LENGTH = 3
-ACTION_SIZE = 2 ** (GCL_LENGTH * PRIORITY_QUEUE)
-MAX_EPISODE = 4500
+DATE = str(1030)
+PRIORITY_QUEUES = 4
+INPUT_SIZE = 2
+GCL_LENGTH = 10
+MAX_EPISODE = 2000
 COMMAND_CONTROL = 40
 AUDIO = 8
-VIDEO_FRAME = 30
-VIDEO = 2 * VIDEO_FRAME
-BEST_EFFORT = 20
+VIDEO = 4
+BEST_EFFORT = 40
 CC_PERIOD = 5  # milliseconds #TODO: originally 5 (simulation duration을 위해 잠시 줄임)
 AD_PERIOD = 1
-VD_PERIOD = 1.1
-BE_PERIOD = 10
-TIMESLOT_SIZE = 0.6
+VD_PERIOD = 33
+BE_PERIOD = 0.5
+TIMESLOT_SIZE = 0.4
 NODES = 6  # switch의 수
-UPDATE = 3000
-W = [6, 0.05]
-
-
-def action_to_number(action):
-    action_ = action.flatten()
-    bin = ''
-    for a in action_:
-        bin += str(a)
-    return int(bin, 2)
-
-
-def number_to_action(action_id):  # number -> binary gcl code
-    b_id = format(action_id, '06b')
-    action_ = np.array(list(map(int, b_id)))
-    return action_.reshape((PRIORITY_QUEUE, GCL_LENGTH))
-
+UPDATE = 10000
 
 @dataclass
 class Flow:  # type(class1:cc,2:ad,3:vd,4:be),Num,deadline,generate_time,depart_time,bits
@@ -65,7 +43,6 @@ class Flow:  # type(class1:cc,2:ad,3:vd,4:be),Num,deadline,generate_time,depart_
     bits_: int = None
     met_: bool = None
     hops_: int = None
-    priority_: int = None
 
 
 class GateControlSimulation:
@@ -74,7 +51,7 @@ class GateControlSimulation:
         self.success_at_episode = [0, 0, 0, 0]  # deadline met
         self.env = simpy.Environment()
         self.nodes = [Node(n + 1, self.env) for n in range(NODES)]
-        self.agent = Agent()
+        self.agents = [Agent() for _ in range(PRIORITY_QUEUES)]  # 4 of multiagents which is number of priority queue
         self.trans_dict = {1: simpy.Store(self.env),
                            2: simpy.Store(self.env),
                            3: simpy.Store(self.env),
@@ -89,31 +66,30 @@ class GateControlSimulation:
         self.total_timeslots = 0
         self.timeslots = 0
         self.start_time = self.env.now  # episode 시작
-        state_shape = np.zeros((PRIORITY_QUEUE * STATE))
-        self.state = {1: state_shape,
-                      2: state_shape,
-                      3: state_shape,
-                      4: state_shape,
-                      5: state_shape,
-                      6: state_shape}
+        self.state = {1: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                      2: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                      3: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                      4: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                      5: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                      6: np.zeros((PRIORITY_QUEUES, INPUT_SIZE))}
         self.done = False
-        self.next_state = {1: state_shape,
-                           2: state_shape,
-                           3: state_shape,
-                           4: state_shape,
-                           5: state_shape,
-                           6: state_shape}
+        self.next_state = {1: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                           2: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                           3: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                           4: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                           5: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                           6: np.zeros((PRIORITY_QUEUES, INPUT_SIZE))}
         self.end_time = 0  # episode 끝났을 때
+
         self.received_packet = 0  # 전송완료 패킷수
-        self.loss_min = 999999
+        self.loss_min = 9999
 
         # save logs
         self.log = pd.DataFrame(
-            columns=['Episode', 'Duration', 'Slots', 'Score', 'Epsilon', 'min_loss', 'c&c', 'audio', 'video'])
-        self.delay = pd.DataFrame(columns=['Episode', 'c&c', 'audio', 'video'])
-
+            columns=['Episode', 'Duration', 'Slots', 'Score', 'Epsilon', 'min_loss', 'success rate'])
         self.success = [0, 0, 0, 0]
-        self.avg_delay = [[], [], [], []]
+        # npz
+        self.e2e_delay = [[], [], [], []]
         self.state_and_action = []
 
     def reset(self):  # initial state, new episode start
@@ -126,28 +102,31 @@ class GateControlSimulation:
         self.cnt2 = 0
         self.cnt3 = 0
         self.cnt4 = 0
-        state_shape = np.zeros((PRIORITY_QUEUE * STATE))
-        self.state = {1: state_shape,
-                      2: state_shape,
-                      3: state_shape,
-                      4: state_shape,
-                      5: state_shape,
-                      6: state_shape}
-        self.next_state = {1: state_shape,
-                           2: state_shape,
-                           3: state_shape,
-                           4: state_shape,
-                           5: state_shape,
-                           6: state_shape}
+        self.state = {1: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                      2: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                      3: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                      4: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                      5: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                      6: np.zeros((PRIORITY_QUEUES, INPUT_SIZE))}
+        self.next_state = {1: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                           2: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                           3: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                           4: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                           5: np.zeros((PRIORITY_QUEUES, INPUT_SIZE)),
+                           6: np.zeros((PRIORITY_QUEUES, INPUT_SIZE))}
         self.done = False
 
         self.end_time = 0
         self.received_packet = 0
         self.success = [0, 0, 0, 0]  # deadline met
-        self.avg_delay = [[], [], [], []]
+        self.fail = [[0, 0, 0, 0] for _ in range(2)]
 
         # epsilon_decay
-        e = self.agent.reset()
+        e = self.agents[0].reset()
+        self.agents[1].reset()
+        self.agents[2].reset()
+        self.agents[3].reset()
+
         return e
 
     def flow_generator(self, time, type_num, fnum):  # flow structure에 맞게 flow생성, timestamp등 남길 수 있음
@@ -155,8 +134,7 @@ class GateControlSimulation:
         f = Flow()
 
         if type_num == 1:  # c&c
-            f.type_ = 1
-            f.priority_ = 1
+            f.type_ = type_num
             f.num_ = fnum
             f.deadline_ = CC_PERIOD / 1000
             f.generated_time_ = time - self.start_time
@@ -168,8 +146,7 @@ class GateControlSimulation:
             f.hops_ = 4  # it means how many packet-in occur
 
         elif type_num == 2:  # audio
-            f.type_ = 2
-            f.priority_ = 2
+            f.type_ = type_num
             f.num_ = fnum
             f.deadline_ = random.choice([4, 10]) * 0.001
             f.generated_time_ = time - self.start_time
@@ -181,141 +158,127 @@ class GateControlSimulation:
             f.hops_ = 4
 
         elif type_num == 3:  # video
-            f.type_ = 3
-            f.priority_ = 2
+            f.type_ = type_num
             f.num_ = fnum
             f.deadline_ = 0.030
             f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
             f.arrival_time_ = 0
-            f.bits_ = 1500 * 8
+            f.bits_ = 30 * 1500 * 8
             f.met_ = -1
             f.hops_ = 4
 
         else:  # best effort
-            f.type_ = 4
-            f.priority_ = 2
+            f.type_ = type_num
             f.num_ = fnum
-            f.deadline_ = 0.3
+            f.deadline_ = 0.010
             f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
             f.arrival_time_ = 0
-            f.bits_ = 1024 * 8
+            f.bits_ = 32 * 8
             f.met_ = -1
             f.hops_ = 4
 
         return f
 
     def generate_cc(self, env):
-        r = True
-        for i in range(COMMAND_CONTROL):
+        half = int(COMMAND_CONTROL / 2)
+        for i in range(half):
             # print("c&c flow를 생성합니다.", env.now - self.start_time)
             yield env.timeout(CC_PERIOD / 1000)
-            if r:
-                flow1 = self.flow_generator(env.now, 1, i)
-                yield env.process(self.nodes[0].packet_in(env.now, flow1))
-            else:
-                flow2 = self.flow_generator(env.now, 1, i)
-                yield env.process(self.nodes[1].packet_in(env.now, flow2))
-            self.cnt1 += 1
-            r = not r
+            flow1 = self.flow_generator(env.now, 1, i)
+            flow2 = self.flow_generator(env.now, 1, i + half)
+            yield env.process(self.nodes[0].packet_in(env.now, flow1))
+            yield env.process(self.nodes[1].packet_in(env.now, flow2))
+            self.cnt1 += 2
 
     def generate_ad(self, env):
-        r = True
-        for i in range(AUDIO):
+        half = int(AUDIO / 2)
+        for i in range(half):
             # print("audio flow를 생성합니다.", env.now - self.start_time)
             yield env.timeout(AD_PERIOD / 1000)
-            if r:
-                flow1 = self.flow_generator(env.now, 2, i)
-                yield env.process(self.nodes[0].packet_in(env.now, flow1))
-            else:
-                flow2 = self.flow_generator(env.now, 2, i)
-                yield env.process(self.nodes[1].packet_in(env.now, flow2))
-            self.cnt2 += 1
-            r = not r
+            flow1 = self.flow_generator(env.now, 2, i)
+            flow2 = self.flow_generator(env.now, 2, i + half)
+            yield env.process(self.nodes[0].packet_in(env.now, flow1))
+            yield env.process(self.nodes[1].packet_in(env.now, flow2))
+            self.cnt2 += 2
 
     def generate_vd(self, env):
-        r = True
-        for i in range(VIDEO):
+        half = int(VIDEO / 2)
+        for i in range(half):
             # print("video flow를 생성합니다.", env.now - self.start_time)
             yield env.timeout(VD_PERIOD / 1000)
-            if r:
-                flow1 = self.flow_generator(env.now, 3, i)
-                yield env.process(self.nodes[0].packet_in(env.now, flow1))
-            else:
-                flow2 = self.flow_generator(env.now, 3, i)
-                yield env.process(self.nodes[1].packet_in(env.now, flow2))
-            self.cnt3 += 1
-            r = not r
+            flow1 = self.flow_generator(env.now, 3, i)
+            flow2 = self.flow_generator(env.now, 3, i + half)
+            yield env.process(self.nodes[0].packet_in(env.now, flow1))
+            yield env.process(self.nodes[1].packet_in(env.now, flow2))
+            self.cnt3 += 2
 
     def generate_be(self, env):
-        r = True
-        for i in range(BEST_EFFORT):
+        half = int(BEST_EFFORT / 2)
+        for i in range(half):
             # print("be flow를 생성합니다.", env.now - self.start_time)
             yield env.timeout(BE_PERIOD / 1000)
-            if r:
-                flow1 = self.flow_generator(env.now, 4, i)
-                yield env.process(self.nodes[0].packet_in(env.now, flow1))
-            else:
-                flow2 = self.flow_generator(env.now, 4, i)
-                yield env.process(self.nodes[1].packet_in(env.now, flow2))
-            self.cnt4 += 1
-            r = not r
+            flow1 = self.flow_generator(env.now, 4, i)
+            flow2 = self.flow_generator(env.now, 4, i + half)
+            yield env.process(self.nodes[0].packet_in(env.now, flow1))
+            yield env.process(self.nodes[1].packet_in(env.now, flow2))
+            self.cnt4 += 2
 
     def sendTo_next_node(self, env, dpid):
         route = [2, 2, 3]
         flows = self.trans_dict[dpid]
         if not (len(flows.items)):
             return
+        classes = [COMMAND_CONTROL, AUDIO, VIDEO, BEST_EFFORT]
         if dpid < 4:
             # print('{} 노드에서 {}노드로 전송(sendTo)'.format(dpid, route[dpid - 1] + 1))
             # print('    전송할 trans_dict:', flows.items)
             for _ in range(len(flows.items)):
                 f = yield flows.get()
                 yield env.process(self.nodes[route[dpid - 1]].packet_in(env.now, f))
-            # yield env.timeout(TIMESLOT_SIZE / 1000)
+            yield env.timeout(TIMESLOT_SIZE / 1000)
 
         elif dpid > 4:  # transmission completed
-            # yield env.timeout(TIMESLOT_S애IZE / 1000)
+            yield env.timeout(TIMESLOT_SIZE / 1000)
             for _ in range(len(flows.items)):
                 # print("@@@@@TRANSMISSION COMPLETED@@@@@")
                 f = yield flows.get()
-                t = f.type_ - 1
+                c = f.type_ - 1
                 self.received_packet += 1
                 f.arrival_time_ = env.now - self.start_time
                 delay = f.arrival_time_ - f.generated_time_
-                self.avg_delay[t].append(delay)
+                self.e2e_delay[c].append(delay)
                 if delay <= f.deadline_:
                     f.met_ = 1
-                    self.success[t] += 1
+                    self.success[c] += 1
                 else:
                     f.met_ = 0
-            # yield env.timeout(TIMESLOT_SIZE / 1000)
-            # self.fail[dpid-5][c] += 1
-            # print("전송 완료 패킷:", f)
-            # print("delay :", delay)
+                    #self.fail[dpid-5][c] += 1
+                # print("전송 완료 패킷:", f)
+                # print("delay :", delay)
 
         else:  # The Node4 sends packets to node5 or node6 according to the packet number
             # print('{} 노드에서 전송(sendTo)'.format(dpid))
             # print('    전송할 trans_dict:', flows.items)
             for _ in range(len(flows.items)):
                 f = yield flows.get()
+                c = f.type_ - 1
                 n = f.num_
-                if not n % 2:
+                if n < classes[c] / 2:
                     yield env.process(self.nodes[4].packet_in(env.now, f))
                 else:
                     yield env.process(self.nodes[5].packet_in(env.now, f))
-            # yield env.timeout(TIMESLOT_SIZE / 1000)
+            yield env.timeout(TIMESLOT_SIZE / 1000)
 
     def episode(self, env):  # mainprocess
-        # cnt = 1
         for episode_num in range(MAX_EPISODE):
             # print("****** 에피소드" + str(self.total_episode) + "시작 ******")
             s = time.time()
             rewards_all = []
-            gcl = number_to_action(63)
+            gcl = ['1111111111' for _ in range(PRIORITY_QUEUES)]
             loss = []
             epsilon = self.reset()
             # episode 시작 시 마다 flow generator process를 실행
@@ -325,16 +288,10 @@ class GateControlSimulation:
             env.process(self.generate_be(env))
 
             while not self.done:  # 1회의 episode가 종료될 때 까지 cycle을 반복하는 MAIN process
-                # s = [[0, 0, 0, 0] for _ in range(2)]
+
                 # self.fail = [[0, 0, 0, 0] for _ in range(2)]
-                self.timeslots += GCL_LENGTH
-                self.total_timeslots += GCL_LENGTH
-                gcl = {1: number_to_action(ACTION_SIZE - 1),
-                       2: number_to_action(ACTION_SIZE - 1),
-                       3: number_to_action(ACTION_SIZE - 1),
-                       4: number_to_action(ACTION_SIZE - 1),
-                       5: number_to_action(ACTION_SIZE - 1),
-                       6: number_to_action(ACTION_SIZE - 1)}
+                self.timeslots += 10
+                self.total_timeslots += 10
 
                 for t in range(GCL_LENGTH):
                     for n in range(NODES):
@@ -342,103 +299,94 @@ class GateControlSimulation:
                         env.process(self.sendTo_next_node(env, n + 1))
                     yield env.timeout(TIMESLOT_SIZE / 1000)
 
+                    if self.total_timeslots % 100:  # logging states and actions
+                        self.state_and_action.append([self.state, gcl])
+
                 # training starts when a timeslot cycle has finished
-                qlen = np.zeros((NODES, PRIORITY_QUEUE))  # flow type
-                qdata = np.zeros((NODES, PRIORITY_QUEUE))
+                qlen = np.zeros((NODES, PRIORITY_QUEUES))
 
                 for i in range(NODES):
-                    qlen[i], qdata[i] = self.nodes[i].queue_length()
+                    qlen[i] = self.nodes[i].queue_length()
 
-                for n in range(NODES):  # convey the predicted gcl and get states of queue
-                    self.next_state[n + 1], reward, self.done = self.step(n + 1, qlen, qdata)
+                for i in range(NODES):  # convey the predicted gcl and get states of queue
+                    self.next_state[i + 1], reward, self.done = self.step(i + 1, qlen)
                     rewards_all.append(reward)
-                    if not np.all(self.state[n + 1] == 0):
-                        # print("state :", self.state[n + 1])
-                        self.agent.observation(self.state[n + 1], action_to_number(gcl[n + 1]), reward,
-                                               self.next_state[n + 1], self.done)
-                    self.state[n + 1] = self.next_state[n + 1]
-                    gcl[n + 1] = self.agent.choose_action(self.state[n + 1])  # new state로 gcl 업데이트
-                    self.nodes[n].gcl_update(gcl[n + 1])
-                    if (episode_num % 100 == 0) or (episode_num == MAX_EPISODE - 1):  # logging states and actions
-                        self.state_and_action.append([episode_num, self.state[n + 1], gcl[n + 1]])
+                    for a in range(PRIORITY_QUEUES):  # model training
+                        self.agents[a].observation(self.state[i + 1][a], gcl[a], reward, self.next_state[i + 1][a],
+                                                   self.done)
+                        loss.append(self.agents[a].replay())  # training
 
-                loss.append(self.agent.replay())  # train
+                    self.state = self.next_state
+                    gcl = [list(self.agents[a].choose_action(self.state[i + 1][a])) for a in
+                           range(PRIORITY_QUEUES)]  # new state로 gcl 업데이트
+                    self.nodes[i].gcl_update(gcl)
+                    #print(gcl)
 
                 if self.total_timeslots % UPDATE == 0:
-                    # print("Target models update")
-                    # print(self.success)
-                    self.agent.update_target_model()
-
+                    print("Target models update")
+                    for a in range(len(self.agents)):
+                        self.agents[a].update_target_model()
             # Episode ends
             self.end_time = env.now
             log_ = pd.DataFrame([(episode_num, self.end_time - self.start_time, self.timeslots, np.sum(rewards_all),
-                                  epsilon, min(loss), self.success[0], self.success[1], self.success[2])],
+                                  epsilon, min(loss), self.success)],
                                 columns=['Episode', 'Duration', 'Slots', 'Score', 'Epsilon', 'min_loss',
-                                         'c&c', 'audio', 'video'])
-
-            delay_ = pd.DataFrame([(episode_num, np.mean(self.avg_delay[0]),
-                                    np.mean(self.avg_delay[1]), np.mean(self.avg_delay[2]))],
-                                  columns=['Episode', 'c&c', 'audio', 'video'])
-
+                                         'success_rate'])
             self.log = self.log.append(log_, ignore_index=True)
-            self.delay = self.delay.append(delay_, ignore_index=True)
 
-            if ((self.total_episode >= 1000) and (self.loss_min >= np.min(loss))) or episode_num == MAX_EPISODE - 1:
+            if (self.total_episode >= 100) and (self.loss_min >= np.min(loss)):
                 self.loss_min = min(loss)
-                self.agent.model.save_model(
-                    "./result/" + DATE + "/" + "[" + str(episode_num) + "]" + str(min(loss)) + ".h5")
-                self.log.to_csv("./result/" + DATE + "/log_" + DATE + ".csv")
-                self.delay.to_csv("./result/" + DATE + "/avg_delay_" + DATE + ".csv")
-                np.save("./result/" + DATE + "_S&A.npy", self.state_and_action)
+                i = 0
+                for agent in self.agents:
+                    i += 1
+                    agent.model.save_model(
+                        "./result/"+DATE+"_1_train/" + "agent[" + str(i) + "]" + ".h5")
+                self.log.to_csv("./result/"+DATE+"_1_train/log_"+DATE+"_train_1.csv")
+                np.savez(DATE+"_1_npz", delay=self.e2e_delay, stateaction=self.state_and_action)
+
             e = time.time() - s
             print("실제소요시간 : %s 분 %s 초, 예상소요시간 : %s 시간" % (
                 int(e / 60), int(e % 60), int(e * (MAX_EPISODE - self.total_episode) / 3600)))
             print(
-                "Episode {p}, Score: {s}, Final Step: {t}, Duration: {n}, Epsilon: {e} , Min loss: {m}, success: {l}, "
-                "avg_delay: {d}".format(
+                "Episode {p}, Score: {s}, Final Step: {t}, Duration: {n}, Epsilon: {e} , Min loss: {m}, success: {l}".format(
                     p=episode_num,
                     s=np.sum(rewards_all),
                     t=self.timeslots,
-                    n=round(self.end_time - self.start_time, 4),
-                    e=round(epsilon, 4),
-                    m=round(np.min(loss), 4),
-                    l=self.success[:3],
-                    d=[round(np.mean(self.avg_delay[0]), 4),
-                       round(np.mean(self.avg_delay[1]), 4), round(np.mean(self.avg_delay[2]), 4)]))
+                    n=self.end_time - self.start_time,
+                    e=epsilon,
+                    m=np.min(loss),
+                    l=self.success))
 
     # TODO:학습파라미터 세팅
-    def step(self, node, qlen, qdata):
+    def step(self, node, qlen):
         # qlen 은 전체노드를 참조하고있음
-        rewards = self.reward1(qlen[node - 1])
+        rewards = self.reward1(qlen[node-1])
         # if node > 4 :
         #     rewards = self.reward2(self.fail[node-5])
-        # self.reward1(node, qlen[node - 1]) +
+        #self.reward1(node, qlen[node - 1]) +
         # print (rewards)
-        # hops = [3, 3, 2, 1, 0, 0]
-        qt = qdata.transpose()
-        previous_node = [0 for _ in range(PRIORITY_QUEUE)]
+        hops = [3, 3, 2, 1, 0, 0]
+        qt = qlen.transpose()
+        previous_node = [0 for _ in range(PRIORITY_QUEUES)]
 
         if 2 < node < 5:  # 3,4 node
             # previous_node = list(map(sum, qt[:node - 1]))
-            previous_node = [sum(qt[c][:node - 1]) for c in range(PRIORITY_QUEUE)]
+            previous_node = [sum(qt[c][:node - 1]) for c in range(PRIORITY_QUEUES)]
         elif node > 4:  # 5,6 node
-            previous_node = [0.5 * sum(qt[c][:node - 1]) for c in range(PRIORITY_QUEUE)]
-
+            previous_node = [0.5 * sum(qt[c][:node - 1]) for c in range(PRIORITY_QUEUES)]
         # state
-        # available_data = [d if d <= 1500 else 1500 for d in qdata[node - 1]]
-
-        state = np.zeros((PRIORITY_QUEUE, STATE))
-        # state[:, 0] = [1, 2]  # priority
-        state[:, 0] = qdata[node - 1]  # 해당노드 큐에 남아서 대기중인 패킷 개수 (queue legnth)
+        state = np.zeros((PRIORITY_QUEUES, INPUT_SIZE))
+        state[:, 0] = qlen[node - 1]  # 해당노드 큐에 남아서 대기중인 패킷 개수 (queue legnth)
         state[:, 1] = previous_node  # 이전 노드들 큐의 합
-        # state[:, 3] = available_data
-        state = state.flatten()
-
+        #state[:, 2] = hops[node - 1]  # 전송까지 남은 홉수
+        # state[:, 3] = self.success  # deadline 맞춘 패킷
+        # state[:, 4] = self.received_packet #전송 완료된 패킷
+        # print(state)
+        # reward
+        # done
         done = False
         if self.received_packet == COMMAND_CONTROL + AUDIO + VIDEO + BEST_EFFORT:  # originally (CC + A + V + BE)
             done = True
-            if node == 6:
-                self.success[2] //= VIDEO_FRAME
         return [state, rewards, done]
 
     # def reward2(self,fail):
@@ -449,15 +397,21 @@ class GateControlSimulation:
 
     def reward1(self, q_len):
         # print(q_len)
+        w = [1, 1, 1, 0.05]
         r = 0
         # reward 1
-        for i in range(PRIORITY_QUEUE):  # flow type
-            r -= round(q_len[i] * W[i], 1)
+        for i in range(PRIORITY_QUEUES):
+            r -= round(q_len[i] * w[i], 1)
         return r
 
     def run(self):
         self.env.process(self.episode(self.env))
         self.env.run(until=1000000)
+        # i = 0
+        # for agent in self.agents:
+        #     i += 1
+        #     agent.model.save_model("./result/1017_1_train/" + "agent[" + str(i) + "]" + str(min(self.loss_min)) + ".h5")
+        # self.log.to_csv("./result/1019_1_train/log_1019_train_1.csv")
 
 
 if __name__ == "__main__":
