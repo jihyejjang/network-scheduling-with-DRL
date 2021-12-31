@@ -3,6 +3,9 @@
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LeakyReLU
 from tensorflow.keras.optimizers import *
+import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
+
 import numpy as np
 
 import warnings

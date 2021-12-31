@@ -8,9 +8,10 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-MAX_BURST = 12000  # 타임슬롯 0.12ms에 전송 할 수 있는 용량. 30,000 bits per msec, 12,000 bits per 0.4 msec
+MAX_BURST = 12000
 PRIORITY_QUEUE = 2
 GCL_LENGTH = 3
+
 
 @dataclass
 class Flow:  # type(class1:cc,2:ad,3:vd,4:be),Num,deadline,generate_time,depart_time,bits
@@ -62,26 +63,38 @@ class Node:
         flow.node_arrival_time_ = time - self.start_time
         flow.hops_ -= 1
 
-    def queue_length(self):
+    def queue_info(self,time):
         d = [0, 0]
         l = [0, 0]
+        at = [[],[]]
+        qd = [0, 0]
+        dl = [[], []]
+        min_dl = [0,0]
         for q in range(PRIORITY_QUEUE):
             l[q] = len(self.class_based_queues[q].items)
             for flow in self.class_based_queues[q].items:
-                d[q] += int(flow.bits_/8)
+                d[q] += int(flow.bits_ / 8)
+                at[q].append(flow.node_arrival_time_)
+                dl[q].append(flow.deadline_)
+            qd[q] = time - np.mean(at[q]) # 현재까지 queueing delay 평균
+            try:
+                min_dl[q] = min(dl[q])
+            except:
+                min_dl[q] = dl[q]
+
         # for q in range(PRIORITY_QUEUE):
         #     for flow in self.class_based_queues[q].items:
         #         l[flow.type_ - 1] += 1
         #         d[q] += flow.bits_/8
-        return l, d
+        return d, qd, min_dl, l
 
     def gcl_update(self, gcl_):  # observe state and update GCL (cycle : 0.2*3)
         self.action = gcl_
-        #print (gcl_)
+        # print (gcl_)
 
     def packet_out(self, env, trans_dict, t):
         gcl = self.action[:, t]
-        #print (gcl)
+        # print (gcl)
         bits_sum = 0
 
         for q in range(PRIORITY_QUEUE):

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+#Reward2
 
 import numpy as np
 import pandas as pd
@@ -22,13 +23,13 @@ STATE = 2
 STATE_SIZE = STATE * PRIORITY_QUEUE
 GCL_LENGTH = 3
 ACTION_SIZE = 2 ** (GCL_LENGTH * PRIORITY_QUEUE)
-MAX_EPISODE = 4500
+MAX_EPISODE = 2000
 COMMAND_CONTROL = 40
 AUDIO = 8
 VIDEO_FRAME = 30
 VIDEO = 2 * VIDEO_FRAME
 BEST_EFFORT = 20
-CC_PERIOD = 5  # milliseconds #TODO: originally 5 (simulation duration을 위해 잠시 줄임)
+CC_PERIOD = 5
 AD_PERIOD = 1
 VD_PERIOD = 1.1
 BE_PERIOD = 10
@@ -46,19 +47,19 @@ def action_to_number(action):
     return int(bin, 2)
 
 
-def number_to_action(action_id):  # number -> binary gcl code
+def number_to_action(action_id):
     b_id = format(action_id, '06b')
     action_ = np.array(list(map(int, b_id)))
     return action_.reshape((PRIORITY_QUEUE, GCL_LENGTH))
 
 
 @dataclass
-class Flow:  # type(class1:cc,2:ad,3:vd,4:be),Num,deadline,generate_time,depart_time,bits
+class Flow:
     type_: int = None
     num_: int = None
-    deadline_: float = None  # millisecond 단위, arrival time - generated time < deadline 이어야 함
-    generated_time_: float = None  # millisecond 단위
-    queueing_delay_: float = None  # node departure time - node arrival time
+    deadline_: float = None
+    generated_time_: float = None
+    queueing_delay_: float = None
     node_arrival_time_: float = None
     # node_departure_time_: list = None
     arrival_time_: float = None
@@ -71,7 +72,6 @@ class Flow:  # type(class1:cc,2:ad,3:vd,4:be),Num,deadline,generate_time,depart_
 class GateControlSimulation:
 
     def __init__(self):
-        self.success_at_episode = [0, 0, 0, 0]  # deadline met
         self.env = simpy.Environment()
         self.nodes = [Node(n + 1, self.env) for n in range(NODES)]
         self.agent = Agent()
@@ -81,6 +81,7 @@ class GateControlSimulation:
                            4: simpy.Store(self.env),
                            5: simpy.Store(self.env),
                            6: simpy.Store(self.env)}  # node에서 받아온 전송할 packet들
+
         self.cnt1 = 0  # 전송된 flow 개수 카운트
         self.cnt2 = 0
         self.cnt3 = 0
