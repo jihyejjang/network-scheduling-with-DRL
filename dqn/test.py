@@ -19,7 +19,7 @@ from tensorflow.keras.optimizers import *
 warnings.filterwarnings('ignore')
 
 DATE = '1118'
-FILENAME = '[1921]0.011175649240612984.h5' #weight file name
+FILENAME = '[1999]0.011379198171198368.h5' #weight file name
 WEIGHT_FILE = './result/' + DATE + '/' + FILENAME
 # if not os.path.exists("./result/" + DATE):
 #     os.makedirs("./result/" + DATE)
@@ -33,7 +33,7 @@ COMMAND_CONTROL = 40
 AUDIO = 8
 VIDEO_FRAME = 30
 VIDEO = 2 * VIDEO_FRAME
-BEST_EFFORT = 300
+BEST_EFFORT = 100
 CC_PERIOD = 5
 AD_PERIOD = 1
 VD_PERIOD = 1.1
@@ -99,6 +99,7 @@ class GateControlTestSimulation:
     def __init__(self):
         # self.success_at_episode = [0, 0, 0, 0]  # deadline met
         self.model = tf.keras.models.load_model(WEIGHT_FILE)
+        print (self.model.get_weights())
         self.env = simpy.Environment()
         self.nodes = [Node(n + 1, self.env) for n in range(NODES)]
         # self.agent = Agent()

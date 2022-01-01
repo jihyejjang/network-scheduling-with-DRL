@@ -20,11 +20,11 @@ DATE = '0101'
 if not os.path.exists("./result/" + DATE):
     os.makedirs("./result/" + DATE)
 PRIORITY_QUEUE = 2
-STATE = 3
+STATE = 2
 STATE_SIZE = STATE * PRIORITY_QUEUE
 GCL_LENGTH = 3
 ACTION_SIZE = 2 ** (GCL_LENGTH * PRIORITY_QUEUE)
-MAX_EPISODE = 5000
+MAX_EPISODE = 10000
 COMMAND_CONTROL = 40
 AUDIO = 8
 VIDEO_FRAME = 30
@@ -33,11 +33,11 @@ BEST_EFFORT = 100
 CC_PERIOD = 5  # milliseconds #TODO: originally 5 (simulation duration을 위해 잠시 줄임)
 AD_PERIOD = 1
 VD_PERIOD = 1.1
-BE_PERIOD = 1
+BE_PERIOD = 0.5
 TIMESLOT_SIZE = 0.6
 NODES = 6  # switch의 수
-UPDATE = 30000
-W = [0.1, 0.01]
+UPDATE = 50000
+W = [1, 0.5]
 
 
 def action_to_number(action):
@@ -161,7 +161,7 @@ class GateControlSimulation:
             f.type_ = 1
             f.priority_ = 1
             f.num_ = fnum
-            f.deadline_ = CC_PERIOD * 0.001
+            f.deadline_ = 7 * 0.001
             f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
@@ -174,7 +174,7 @@ class GateControlSimulation:
             f.type_ = 2
             f.priority_ = 1
             f.num_ = fnum
-            f.deadline_ = 6 * 0.001  # originally random.choice([4, 10]) * 0.001
+            f.deadline_ = 8 * 0.001  # originally random.choice([4, 10]) * 0.001
             f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
@@ -200,7 +200,7 @@ class GateControlSimulation:
             f.type_ = 4
             f.priority_ = 2
             f.num_ = fnum
-            f.deadline_ = 0.3
+            f.deadline_ = 0.05
             f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
@@ -408,7 +408,7 @@ class GateControlSimulation:
                     n=round(self.end_time - self.start_time, 4),
                     e=round(epsilon, 4),
                     m=round(np.min(loss), 4),
-                    l=self.success[:3],
+                    l=self.success,
                     d=[round(np.mean(self.avg_delay[0]), 4),
                        round(np.mean(self.avg_delay[1]), 4), round(np.mean(self.avg_delay[2]), 4)]))
 
@@ -424,14 +424,13 @@ class GateControlSimulation:
         # print (rewards)
         hops = [3, 3, 2, 1, 0, 0]
         qt = qlen.transpose()
-        previous_node = [0 for _ in range(PRIORITY_QUEUE)]
-
-        if 2 < node < 5:  # 3,4 node
-            # previous_node = list(map(sum, qt[:node - 1]))
-            previous_node = [sum(qt[c][:node - 1]) for c in range(PRIORITY_QUEUE)]
-        elif node > 4:  # 5,6 node
-            previous_node = [0.5 * sum(qt[c][:node - 1]) for c in range(PRIORITY_QUEUE)]
-        # TODO: 1,2 node에 대해서도 할 것(HOW?)
+        # previous_node = [0 for _ in range(PRIORITY_QUEUE)]
+        #
+        # if 2 < node < 5:  # 3,4 node
+        #     # previous_node = list(map(sum, qt[:node - 1]))
+        #     previous_node = [sum(qt[c][:node - 1]) for c in range(PRIORITY_QUEUE)]
+        # elif node > 4:  # 5,6 node
+        #     previous_node = [0.5 * sum(qt[c][:node - 1]) for c in range(PRIORITY_QUEUE)]
 
         # state
         # available_data = [d if d <= 1500 else 1500 for d in qdata[node - 1]]
@@ -439,7 +438,11 @@ class GateControlSimulation:
         state = np.zeros((PRIORITY_QUEUE, STATE))
         # state[:, 0] = [1, 2]  # priority
         state[:, 0] = qlen[node - 1]  # 해당노드 큐에 남아서 대기중인 패킷 개수 (queue legnth)
-        state[:, 1] = previous_node  # 이전 노드들 큐의 합
+        try:
+            state[:, 1] = qlen[node - 2]  # 이전 노드들 큐의 합
+        except:
+            state[:, 1] = [((COMMAND_CONTROL-self.cnt1)*TIMESLOT_SIZE/CC_PERIOD + (AUDIO-self.cnt2)*TIMESLOT_SIZE/AD_PERIOD +
+                           (VIDEO-self.cnt3)*TIMESLOT_SIZE/VD_PERIOD)/2, (BEST_EFFORT-self.cnt4)*TIMESLOT_SIZE/2*BE_PERIOD]
         #state[:, 2] = hops[node - 1]
         # state[:, 3] = available_data
         state = state.flatten()
