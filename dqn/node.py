@@ -63,25 +63,29 @@ class Node:
         flow.node_arrival_time_ = time - self.start_time
         flow.hops_ -= 1
 
-    def queue_info(self,time):
+    def queue_info(self, time):
         d = [0, 0]
         l = [0, 0]
-        at = [[],[]]
+        at = [[], []]
         qd = [0, 0]
         dl = [[], []]
-        min_dl = [0,0]
+        min_dl = [0, 0]
         for q in range(PRIORITY_QUEUE):
             l[q] = len(self.class_based_queues[q].items)
             for flow in self.class_based_queues[q].items:
                 d[q] += int(flow.bits_ / 8)
                 at[q].append(flow.node_arrival_time_)
                 dl[q].append(flow.deadline_)
-            qd[q] = time - np.mean(at[q]) # 현재까지 queueing delay 평균
+            if not at[q]:
+                qd[q] = 0
+            else:
+                qd[q] = time - np.mean(at[q])  # 현재까지 queueing delay 평균
+
             try:
                 min_dl[q] = min(dl[q])
             except:
-                min_dl[q] = dl[q]
-
+                min_dl[q] = 0
+        # print (d, qd, min_dl, l)
         # for q in range(PRIORITY_QUEUE):
         #     for flow in self.class_based_queues[q].items:
         #         l[flow.type_ - 1] += 1

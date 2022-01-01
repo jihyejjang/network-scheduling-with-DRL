@@ -12,20 +12,20 @@ import warnings
 
 warnings.filterwarnings('ignore')
 PRIORITY_QUEUE = 2
-STATE = 3
+STATE = 4
 INPUT_SIZE = STATE * PRIORITY_QUEUE
 GCL_LENGTH = 3
 OUTPUT_SIZE = 2 ** (PRIORITY_QUEUE * GCL_LENGTH)
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.00001
 ALPHA = 0.1
-DROPOUT = 0.5
+#DROPOUT = 0.5
 
 
 def create_model():
     model = Sequential()
     model.add(Dense(128, input_dim=INPUT_SIZE))
     model.add(LeakyReLU(alpha=ALPHA))
-    model.add(Dropout(DROPOUT))
+    #model.add(Dropout(DROPOUT))
     model.add(Dense(128))
     model.add(LeakyReLU(alpha=ALPHA))
     model.add(Dense(OUTPUT_SIZE, activation='relu'))  # relu

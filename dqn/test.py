@@ -33,7 +33,7 @@ COMMAND_CONTROL = 40
 AUDIO = 8
 VIDEO_FRAME = 30
 VIDEO = 2 * VIDEO_FRAME
-BEST_EFFORT = 100
+BEST_EFFORT = 300
 CC_PERIOD = 5
 AD_PERIOD = 1
 VD_PERIOD = 1.1
@@ -193,7 +193,7 @@ class GateControlTestSimulation:
             f.type_ = 1
             f.priority_ = 1
             f.num_ = fnum
-            f.deadline_ = CC_PERIOD * 0.001
+            f.deadline_ = 7 * 0.001
             f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
@@ -206,7 +206,7 @@ class GateControlTestSimulation:
             f.type_ = 2
             f.priority_ = 1
             f.num_ = fnum
-            f.deadline_ = 6 * 0.001  # originally random.choice([4, 10]) * 0.001
+            f.deadline_ = 8 * 0.001  # originally random.choice([4, 10]) * 0.001
             f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
@@ -232,7 +232,7 @@ class GateControlTestSimulation:
             f.type_ = 4
             f.priority_ = 2
             f.num_ = fnum
-            f.deadline_ = 0.3
+            f.deadline_ = 0.05
             f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
@@ -365,9 +365,9 @@ class GateControlTestSimulation:
             # training starts when a timeslot cycle has finished
             qlen = np.zeros((NODES, PRIORITY_QUEUE))  # flow type
             qdata = np.zeros((NODES, PRIORITY_QUEUE))
-
+            t=self.env.now
             for i in range(NODES):
-                qlen[i], qdata[i] = self.nodes[i].queue_length()
+                qdata[i],_,_,qlen[i] = self.nodes[i].queue_info(t)
 
             # GCL predict & update
             for n in range(NODES):  # convey the predicted gcl and get states of queue
@@ -413,10 +413,11 @@ class GateControlTestSimulation:
             if not gcl:
                 print("not gcl")
                 gcl = list(map(number_to_action, [63, 63, 63, 63, 63, 63]))
-
+            t=env.now
             for n in range(NODES):
+                gcl = list(map(number_to_action, [63, 63, 63, 63, 63, 63]))
                 self.nodes[n].gcl_update(gcl[n])
-                qlen[n], qdata[n] = self.nodes[n].queue_length()
+                qdata[n],_,_, qlen[n]  = self.nodes[n].queue_info(t)
                 _, _, self.done = self.step(n + 1, qlen, qdata)
 
             i += 1
@@ -425,9 +426,9 @@ class GateControlTestSimulation:
 
     def simulation(self):
         # gcl extract
-        self.env.process(self.gcl_extract(self.env))
-        self.env.run()
-        print("GCL Extract 완료")
+        #self.env.process(self.gcl_extract(self.env))
+        #self.env.run()
+        #print("GCL Extract 완료")
 
         # test
         self.reset()

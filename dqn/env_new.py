@@ -16,7 +16,7 @@ import tensorflow as tf
 tf.compat.v1.disable_eager_execution()
 warnings.filterwarnings('ignore')
 
-DATE = '1223'
+DATE = '0101'
 if not os.path.exists("./result/" + DATE):
     os.makedirs("./result/" + DATE)
 PRIORITY_QUEUE = 2
@@ -24,7 +24,7 @@ STATE = 4
 STATE_SIZE = STATE * PRIORITY_QUEUE
 GCL_LENGTH = 3
 ACTION_SIZE = 2 ** (GCL_LENGTH * PRIORITY_QUEUE)
-MAX_EPISODE = 2000
+MAX_EPISODE = 5000
 COMMAND_CONTROL = 40
 AUDIO = 8
 VIDEO_FRAME = 30
@@ -33,14 +33,14 @@ BEST_EFFORT = 100
 CC_PERIOD = 5  # milliseconds #TODO: originally 5 (simulation duration을 위해 잠시 줄임)
 AD_PERIOD = 1
 VD_PERIOD = 1.1
-BE_PERIOD = 1
+BE_PERIOD = 0.5
 CC_BYTE = 300
 AD_BYTE = 256
 VD_BYTE = 1500
 BE_BYTE = 1024
 TIMESLOT_SIZE = 0.6
 NODES = 6  # switch의 수
-UPDATE = 30000
+UPDATE = 40000
 W = [6, 0.05]
 
 
@@ -164,7 +164,7 @@ class GateControlSimulation:
             f.type_ = 1
             f.priority_ = 1
             f.num_ = fnum
-            f.deadline_ = CC_PERIOD * 0.001
+            f.deadline_ = 7 * 0.001
             f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
@@ -177,7 +177,7 @@ class GateControlSimulation:
             f.type_ = 2
             f.priority_ = 1
             f.num_ = fnum
-            f.deadline_ = 6 * 0.001  # originally random.choice([4, 10]) * 0.001
+            f.deadline_ = 8 * 0.001  # originally random.choice([4, 10]) * 0.001
             f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
@@ -203,7 +203,7 @@ class GateControlSimulation:
             f.type_ = 4
             f.priority_ = 2
             f.num_ = fnum
-            f.deadline_ = 0.3
+            f.deadline_ = 0.05
             f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
@@ -377,7 +377,7 @@ class GateControlSimulation:
                 loss.append(self.agent.replay())  # train
 
                 if self.total_timeslots % UPDATE == 0:
-                    # print("Target models update")
+                    print("Target models update")
                     # print(self.success)
                     self.agent.update_target_model()
 
@@ -396,7 +396,7 @@ class GateControlSimulation:
             self.delay = self.delay.append(delay_, ignore_index=True)
 
             # if ((self.total_episode >= 1500) and (self.loss_min >= np.min(loss))) or episode_num == MAX_EPISODE - 1:
-            if self.total_episode >= 1500:
+            if self.total_episode >= 4500:
                 self.loss_min = min(loss)
                 self.agent.model.save_model(
                     "./result/" + DATE + "/" + "[" + str(episode_num) + "]" + str(min(loss)) + ".h5")
@@ -405,7 +405,7 @@ class GateControlSimulation:
                 # np.save("./result/" + DATE + "_S&A.npy", self.state_and_action)
             e = time.time() - s
             print("실제소요시간 : %s 분 %s 초, 예상소요시간 : %s 시간" % (
-                int(e / 60), int(e % 60), int(e * (MAX_EPISODE - self.total_episode) / 3600)))
+                int(e / 60), round(e % 60,2), round(e * (MAX_EPISODE - self.total_episode) / 3600,2)))
             print(
                 "Episode {p}, Score: {s}, Final Step: {t}, Duration: {n}, Epsilon: {e} , Min loss: {m}, success: {l}, "
                 "avg_delay: {d}".format(
@@ -444,19 +444,20 @@ class GateControlSimulation:
         state = np.zeros((PRIORITY_QUEUE, STATE))
         state[:, 0] = qdata[node - 1]
         state[:, 1] = qdelay[node - 1]
-        state[:, 2] = min_dl[node - 1]/hops[node-1]
+        if node < 5:
+            state[:, 2] = [d / hops[node - 1] if d else 0 for d in min_dl[node - 1]]
+        else:
+            state[:, 2] = min_dl[node - 1]
         #state[:, 3] = available_data
 
-        for q in PRIORITY_QUEUE:
-            if (self.state[node][q * STATE_SIZE + 2] - self.state[node][q*STATE_SIZE + 1]) < 0:
-                if (self.state[node][q*STATE_SIZE] - state[q][0]) > 0 :
+        for q in range(PRIORITY_QUEUE):
+            if (self.state[node][q * STATE + 2] - self.state[node][q*STATE + 1]) < 0:
+                if (self.state[node][q*STATE] - state[q][0]) > 0 :
                     reward += 1
                 else :
                     reward -= 1
 
         state = state.flatten()
-
-
         done = False
         if self.received_packet == COMMAND_CONTROL + AUDIO + VIDEO + BEST_EFFORT:  # originally (CC + A + V + BE)
             done = True
