@@ -20,7 +20,7 @@ DATE = '0101'
 if not os.path.exists("./result/" + DATE):
     os.makedirs("./result/" + DATE)
 PRIORITY_QUEUE = 2
-STATE = 4
+STATE = 3
 STATE_SIZE = STATE * PRIORITY_QUEUE
 GCL_LENGTH = 3
 ACTION_SIZE = 2 ** (GCL_LENGTH * PRIORITY_QUEUE)
@@ -352,22 +352,21 @@ class GateControlSimulation:
                     yield env.timeout(TIMESLOT_SIZE / 1000)
 
                 # training starts when a timeslot cycle has finished
-                # qlen = np.zeros((NODES, PRIORITY_QUEUE))  # flow type
+                qlen = np.zeros((NODES, PRIORITY_QUEUE))  # flow type
                 qdata = np.zeros((NODES, PRIORITY_QUEUE))
                 qdelay = np.zeros((NODES, PRIORITY_QUEUE))
                 min_dl = np.zeros((NODES, PRIORITY_QUEUE))
 
                 t = self.env.now
                 for i in range(NODES):
-                    qdata[i], qdelay[i], min_dl[i], _ = self.nodes[i].queue_info(t)
+                    qdata[i], qdelay[i], min_dl[i], qlen[i] = self.nodes[i].queue_info(t)
 
                 for n in range(NODES):  # convey the predicted gcl and get states of queue
-                    self.next_state[n + 1], reward, self.done = self.step(n + 1, qdelay, qdata, min_dl)
+                    self.next_state[n + 1], reward, self.done = self.step(n + 1, qdelay, qlen, min_dl)
                     rewards_all.append(reward)
-                    if not np.all(self.state[n + 1] == 0):
+                    #if not np.all(self.state[n + 1] == 0):
                         # print("state :", self.state[n + 1])
-                        self.agent.observation(self.state[n + 1], action_to_number(gcl[n + 1]), reward,
-                                               self.next_state[n + 1], self.done)
+                    self.agent.observation(self.state[n + 1], action_to_number(gcl[n + 1]), reward,self.next_state[n + 1], self.done)
                     self.state[n + 1] = self.next_state[n + 1]
                     gcl[n + 1] = self.agent.choose_action(self.state[n + 1])  # new state로 gcl 업데이트
                     self.nodes[n].gcl_update(gcl[n + 1])
@@ -420,7 +419,7 @@ class GateControlSimulation:
                        round(np.mean(self.avg_delay[1]), 4), round(np.mean(self.avg_delay[2]), 4)]))
 
     # TODO:학습파라미터 세팅
-    def step(self, node, qdelay, qdata, min_dl):
+    def step(self, node, qdelay, qlen, min_dl):
         reward = 0
         # if node >= 5:
         #     reward = self.reward2(node)
@@ -442,7 +441,7 @@ class GateControlSimulation:
         # available_data = [d if d <= 1500 else 1500 for d in qdata[node - 1]]
 
         state = np.zeros((PRIORITY_QUEUE, STATE))
-        state[:, 0] = qdata[node - 1]
+        state[:, 0] = qlen[node - 1]
         state[:, 1] = qdelay[node - 1]
         if node < 5:
             state[:, 2] = [d / hops[node - 1] if d else 0 for d in min_dl[node - 1]]
@@ -451,11 +450,11 @@ class GateControlSimulation:
         #state[:, 3] = available_data
 
         for q in range(PRIORITY_QUEUE):
-            if (self.state[node][q * STATE + 2] - self.state[node][q*STATE + 1]) < 0:
-                if (self.state[node][q*STATE] - state[q][0]) > 0 :
-                    reward += 1
-                else :
-                    reward -= 1
+            if self.state[node][q] > 0:
+                if (self.state[node][q] - state[0][q]) > 0 : # 현재 Qlen보다 next qlen이 줄었는가?
+                    reward += 0.5
+                # elif (self.state[node][q] - state[0][q]) < 0 :
+                #     reward -= 1
 
         state = state.flatten()
         done = False

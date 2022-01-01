@@ -12,14 +12,14 @@ warnings.filterwarnings('ignore')
 
 BATCH = 128
 PRIORITY_QUEUE = 2
-STATE = 4
+STATE = 3
 STATE_SIZE = STATE * PRIORITY_QUEUE
 GCL_LENGTH = 3
 ACTION_SIZE = 2 ** (PRIORITY_QUEUE * GCL_LENGTH)
 EPSILON_MAX = 1
 EPSILON_DECAY = 0.9998
 EPSILON_MIN = 0.01
-DISCOUNT_FACTOR = 0.7  # 할인율. 1에 가까울 수록 미래에 받는 보상도 중요, 0에 가까울수록 즉각적인 보상이 중요
+DISCOUNT_FACTOR = 0.99  # 할인율. 1에 가까울 수록 미래에 받는 보상도 중요, 0에 가까울수록 즉각적인 보상이 중요
 
 def number_to_action(action_id): #number -> binary gcl code
     b_id = format(action_id, '06b')
