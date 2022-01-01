@@ -457,7 +457,6 @@ class GateControlSimulation:
         state = state.flatten()
 
 
-
         done = False
         if self.received_packet == COMMAND_CONTROL + AUDIO + VIDEO + BEST_EFFORT:  # originally (CC + A + V + BE)
             done = True
@@ -465,7 +464,6 @@ class GateControlSimulation:
                 self.success[2] //= VIDEO_FRAME
         return [state, reward, done]
 
-    def reward (self, node):
 
     # def reward2(self, node):
     #     w = np.array([3, 4, 1, 0.1])

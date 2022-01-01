@@ -16,7 +16,7 @@ import tensorflow as tf
 #tf.compat.v1.disable_eager_execution()
 warnings.filterwarnings('ignore')
 
-DATE = '1231'
+DATE = '0101'
 if not os.path.exists("./result/" + DATE):
     os.makedirs("./result/" + DATE)
 PRIORITY_QUEUE = 2
@@ -389,7 +389,7 @@ class GateControlSimulation:
             self.delay = self.delay.append(delay_, ignore_index=True)
 
             # if ((self.total_episode >= 1500) and (self.loss_min >= np.min(loss))) or episode_num == MAX_EPISODE - 1:
-            if self.total_episode >= 1500:
+            if self.total_episode >= 4500:
                 self.loss_min = min(loss)
                 self.agent.model.save_model(
                     "./result/" + DATE + "/" + "[" + str(episode_num) + "]" + str(min(loss)) + ".h5")

@@ -16,19 +16,19 @@ STATE = 3
 INPUT_SIZE = STATE * PRIORITY_QUEUE
 GCL_LENGTH = 3
 OUTPUT_SIZE = 2 ** (PRIORITY_QUEUE * GCL_LENGTH)
-LEARNING_RATE = 0.00001
+LEARNING_RATE = 0.0001
 ALPHA = 0.1
 DROPOUT = 0.5
 
 
 def create_model():
     model = Sequential()
-    model.add(Dense(64, input_dim=INPUT_SIZE))
+    model.add(Dense(128, input_dim=INPUT_SIZE))
     model.add(LeakyReLU(alpha=ALPHA))
     model.add(Dropout(DROPOUT))
-    model.add(Dense(64))
+    model.add(Dense(128))
     model.add(LeakyReLU(alpha=ALPHA))
-    model.add(Dense(OUTPUT_SIZE, activation='linear'))  # relu
+    model.add(Dense(OUTPUT_SIZE, activation='relu'))  # relu
     model.compile(loss='mean_squared_error', optimizer=Adam(lr=LEARNING_RATE))
     return model
 
