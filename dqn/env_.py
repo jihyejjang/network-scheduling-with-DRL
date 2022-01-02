@@ -41,7 +41,7 @@ BE_BYTE = 1024
 TIMESLOT_SIZE = 0.6
 NODES = 6  # switch의 수
 UPDATE = 50000
-W = [6, 0.05]
+W = [0.1, 0.01]
 action_list = [56, 49, 35, 42, 28, 21, 14, 7]
 
 
@@ -51,6 +51,7 @@ def action_to_number(action):
     for a in action_:
         bin += str(a)
     return action_list.index(int(bin, 2))
+
 
 def number_to_action(action_id):  # number -> binary gcl code
     b_id = format(action_list[action_id], '06b')
@@ -283,14 +284,14 @@ class GateControlSimulation:
             # print('    전송할 trans_dict:', flows.items)
             for _ in range(len(flows.items)):
                 f = yield flows.get()
-                self.reward[dpid - 1] += f.reward_
+                # self.reward[dpid - 1] += f.reward_
                 yield env.process(self.nodes[route[dpid - 1]].packet_in(env.now, f))
 
         elif dpid > 4:  # transmission completed
             for _ in range(len(flows.items)):
                 # print("@@@@@TRANSMISSION COMPLETED@@@@@")
                 f = yield flows.get()
-                self.reward[dpid - 1] += f.reward_
+                # self.reward[dpid - 1] += f.reward_
                 t = f.type_ - 1
                 self.received_packet += 1
                 f.arrival_time_ = env.now - self.start_time
@@ -315,7 +316,7 @@ class GateControlSimulation:
             # print('    전송할 trans_dict:', flows.items)
             for _ in range(len(flows.items)):
                 f = yield flows.get()
-                self.reward[dpid - 1] += f.reward_
+                # self.reward[dpid - 1] += f.reward_
                 n = f.num_
                 if not n % 2:
                     yield env.process(self.nodes[4].packet_in(env.now, f))
@@ -349,13 +350,14 @@ class GateControlSimulation:
                 # self.fail = [[0, 0, 0, 0] for _ in range(2)]
                 self.timeslots += GCL_LENGTH
                 self.total_timeslots += GCL_LENGTH
-                self.reward = [0 for _ in range(NODES)]
+                # self.reward = [0 for _ in range(NODES)]
 
                 # self.s = [[0, 0, 0, 0] for _ in range(PRIORITY_QUEUE)]
 
                 for t in range(GCL_LENGTH):
                     for n in range(NODES):
-                        env.process(self.nodes[n].packet_out(env, self.trans_dict[n + 1], t, [self.state[n+1][2],self.state[n+1][5]]))
+                        env.process(self.nodes[n].packet_out(env, self.trans_dict[n + 1], t,
+                                                             [self.state[n + 1][2], self.state[n + 1][5]]))
                         env.process(self.sendTo_next_node(env, n + 1))
                     yield env.timeout(TIMESLOT_SIZE / 1000)
 
@@ -370,15 +372,13 @@ class GateControlSimulation:
                     _, _, min_dl[i], qlen[i] = self.nodes[i].queue_info(t)
 
                 for n in range(NODES):  # convey the predicted gcl and get states of queue
-                    self.next_state[n + 1], self.done = self.step(n + 1, qlen, min_dl, gcl)
-                    rewards_all.append(self.reward[n])
-                    # print (self.reward[n])
-                    # if not np.all(self.state[n + 1] == 0):
-                    # print("state :", self.state[n + 1])
-                    self.agent.observation(self.state[n + 1], action_to_number(gcl[n + 1]), self.reward[n],
+                    self.next_state[n + 1], reward, self.done = self.step(n + 1, qlen, min_dl, gcl)
+                    # rewards_all.append(self.reward[n])
+                    rewards_all.append(reward)
+                    # self.agent.observation(self.state[n + 1], action_to_number(gcl[n + 1]), self.reward[n],
+                    #                        self.next_state[n + 1], self.done)
+                    self.agent.observation(self.state[n + 1], action_to_number(gcl[n + 1]), reward,
                                            self.next_state[n + 1], self.done)
-                    #print(self.state[n + 1], action_to_number(gcl[n + 1]), self.reward[n],
-                    #                       self.next_state[n + 1], self.done)
                     self.state[n + 1] = self.next_state[n + 1]
                     gcl[n + 1] = self.agent.choose_action(self.state[n + 1])  # new state로 gcl 업데이트
                     self.gate_control_list.append(action_to_number(gcl[n + 1]))
@@ -432,6 +432,7 @@ class GateControlSimulation:
 
     # TODO:학습파라미터 세팅
     def step(self, node, qlen, min_dl, gcl):
+        reward = self.reward1(qlen[node-1])
         # if node >= 5:
         #     reward = self.reward2(node)
         # if node > 4 :
@@ -458,15 +459,15 @@ class GateControlSimulation:
             state[:, 1] = qlen[node - 2]  # 이전 노드 qlength
         except:
             state[:, 1] = [((COMMAND_CONTROL - self.cnt1) + (
-                    AUDIO - self.cnt2) + (VIDEO - self.cnt3) ) / 2 * 3,
-                           (BEST_EFFORT - self.cnt4)/2 * 3 ]
+                    AUDIO - self.cnt2) + (VIDEO - self.cnt3)) / 2 * 3,
+                           (BEST_EFFORT - self.cnt4) / 2 * 3]
         if node < 5:
             state[:, 2] = [d / hops[node - 1] if d else 0 for d in min_dl[node - 1]]
         else:
             state[:, 2] = min_dl[node - 1]
 
-        if node > 2 :
-            state[:, 3] = action_to_number(gcl[node-1])
+        if node > 2:
+            state[:, 3] = action_to_number(gcl[node - 1])
         else:
             state[:, 3] = 0
         # state[:, 3] = available_data
@@ -479,13 +480,13 @@ class GateControlSimulation:
         #     reward -= 1
 
         state = state.flatten()
-        #print ("state",state)
+        # print ("state",state)
         done = False
         if self.received_packet == COMMAND_CONTROL + AUDIO + VIDEO + BEST_EFFORT:  # originally (CC + A + V + BE)
             done = True
             if node == 6:
                 self.success[2] //= VIDEO_FRAME
-        return [state, done]
+        return [state, reward, done]
 
     # def reward2(self, node):
     #     w = np.array([3, 4, 1, 0.1])
@@ -493,6 +494,14 @@ class GateControlSimulation:
     #     r = round(sum(w * np.array(self.s[node - 5])), 1)
     #     # print ("r2:", r)
     #     return r
+
+    def reward1(self, q_len):
+        # print(q_len)
+        r = 0
+        # reward 1
+        for i in range(PRIORITY_QUEUE):  # flow type
+            r -= q_len[i] * W[i]
+        return r
 
     def run(self):
         self.env.process(self.episode(self.env))
