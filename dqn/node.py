@@ -11,7 +11,7 @@ warnings.filterwarnings('ignore')
 MAX_BURST = 12000
 PRIORITY_QUEUE = 2
 GCL_LENGTH = 3
-
+action_list = [56, 49, 35, 42, 28, 21, 14, 7]
 
 @dataclass
 class Flow:  # type(class1:cc,2:ad,3:vd,4:be),Num,deadline,generate_time,depart_time,bits
@@ -26,6 +26,7 @@ class Flow:  # type(class1:cc,2:ad,3:vd,4:be),Num,deadline,generate_time,depart_
     met_: bool = None
     hops_: int = None
     priority_: int = None
+    reward_: int = None
 
 
 def action_to_number(action):
@@ -33,11 +34,12 @@ def action_to_number(action):
     bin = ''
     for a in action_:
         bin += str(a)
-    return int(bin, 2)
+    return action_list.index(int(bin, 2))
 
 
 def number_to_action(action_id):  # number -> binary gcl code
-    b_id = format(action_id, '06b')
+    #idx = action_list.index(action_id)
+    b_id = format(action_list[action_id], '06b')
     action_ = np.array(list(map(int, b_id)))
     return action_.reshape((PRIORITY_QUEUE, GCL_LENGTH))
 
@@ -48,13 +50,13 @@ class Node:
         # TODO: 학습 노드 구현
         self.datapath_id = datapath_id
         self.class_based_queues = [simpy.Store(env) for _ in range(PRIORITY_QUEUE)]
-        self.action = number_to_action(63)
+        self.action = number_to_action(0)
         self.start_time = 0
 
     def reset(self, env, start_time):  # initial state, new episode start
         self.start_time = start_time
         self.class_based_queues = [simpy.Store(env) for _ in range(PRIORITY_QUEUE)]
-        self.action = number_to_action(63)
+        self.action = number_to_action(0)
 
     def packet_in(self, time, flow):
         # print("packet_in, 노드",self.datapath_id)
@@ -96,9 +98,10 @@ class Node:
         self.action = gcl_
         # print (gcl_)
 
-    def packet_out(self, env, trans_dict, t):
+    def packet_out(self, env, trans_dict, t, deadline):
         gcl = self.action[:, t]
         # print (gcl)
+        w= [1,0.1]
         bits_sum = 0
 
         for q in range(PRIORITY_QUEUE):
@@ -111,4 +114,10 @@ class Node:
                         return
                     departure_time = env.now - self.start_time
                     f.queueing_delay_ = departure_time - f.node_arrival_time_
+                    if deadline[q] > 0:
+                        if f.queueing_delay_ < (deadline[q]-0.0006):
+                            f.reward_ = w[q]
+                        else : f.reward_ = -w[q]
+                    else:
+                        f.reward_ = 0
                     yield trans_dict.put(f)

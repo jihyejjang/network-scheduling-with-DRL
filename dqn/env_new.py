@@ -24,7 +24,7 @@ STATE = 3
 STATE_SIZE = STATE * PRIORITY_QUEUE
 GCL_LENGTH = 3
 ACTION_SIZE = 2 ** (GCL_LENGTH * PRIORITY_QUEUE)
-MAX_EPISODE = 5000
+MAX_EPISODE = 10000
 COMMAND_CONTROL = 40
 AUDIO = 8
 VIDEO_FRAME = 30
@@ -395,7 +395,7 @@ class GateControlSimulation:
             self.delay = self.delay.append(delay_, ignore_index=True)
 
             # if ((self.total_episode >= 1500) and (self.loss_min >= np.min(loss))) or episode_num == MAX_EPISODE - 1:
-            if self.total_episode >= 4500:
+            if self.total_episode >= 9500:
                 self.loss_min = min(loss)
                 self.agent.model.save_model(
                     "./result/" + DATE + "/" + "[" + str(episode_num) + "]" + str(min(loss)) + ".h5")
@@ -414,7 +414,7 @@ class GateControlSimulation:
                     n=round(self.end_time - self.start_time, 4),
                     e=round(epsilon, 4),
                     m=round(np.min(loss), 4),
-                    l=self.success[:3],
+                    l=self.success,
                     d=[round(np.mean(self.avg_delay[0]), 4),
                        round(np.mean(self.avg_delay[1]), 4), round(np.mean(self.avg_delay[2]), 4)]))
 

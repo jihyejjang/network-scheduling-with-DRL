@@ -347,15 +347,16 @@ class GateControlTestSimulation:
         env.process(self.generate_vd(env))
         env.process(self.generate_be(env))
 
+        gcl = {1: number_to_action(ACTION_SIZE - 1),
+               2: number_to_action(ACTION_SIZE - 1),
+               3: number_to_action(ACTION_SIZE - 1),
+               4: number_to_action(ACTION_SIZE - 1),
+               5: number_to_action(ACTION_SIZE - 1),
+               6: number_to_action(ACTION_SIZE - 1)}
+
         while not self.done:  # 1회의 episode가 종료될 때 까지 cycle을 반복하는 MAIN process
             self.timeslots += GCL_LENGTH
             self.s = [[0, 0, 0, 0] for _ in range(PRIORITY_QUEUE)]
-            gcl = {1: number_to_action(ACTION_SIZE - 1),
-                   2: number_to_action(ACTION_SIZE - 1),
-                   3: number_to_action(ACTION_SIZE - 1),
-                   4: number_to_action(ACTION_SIZE - 1),
-                   5: number_to_action(ACTION_SIZE - 1),
-                   6: number_to_action(ACTION_SIZE - 1)}
 
             for t in range(GCL_LENGTH):
                 for n in range(NODES):

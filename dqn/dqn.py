@@ -12,26 +12,26 @@ import warnings
 
 warnings.filterwarnings('ignore')
 PRIORITY_QUEUE = 2
-STATE = 3
+STATE = 4
 INPUT_SIZE = STATE * PRIORITY_QUEUE
 GCL_LENGTH = 3
-OUTPUT_SIZE = 2 ** (PRIORITY_QUEUE * GCL_LENGTH)
-LEARNING_RATE = 0.00001
+OUTPUT_SIZE = 8
+LEARNING_RATE = 0.0001
 ALPHA = 0.1
-DATE = '1118'
-FILENAME = '[1999]0.011379198171198368.h5' #weight file name
-WEIGHT_FILE = './result/' + DATE + '/' + FILENAME
+# DATE = '1118'
+# FILENAME = '[1999]0.011379198171198368.h5' #weight file name
+# WEIGHT_FILE = './result/' + DATE + '/' + FILENAME
 #DROPOUT = 0.5
 
 
 def create_model():
     model = Sequential()
-    model.add(Dense(128, input_dim=INPUT_SIZE))
+    model.add(Dense(64, input_dim=INPUT_SIZE ,kernel_initializer='he_normal'))
     model.add(LeakyReLU(alpha=ALPHA))
     #model.add(Dropout(DROPOUT))
-    model.add(Dense(128))
+    model.add(Dense(64 ,kernel_initializer='he_normal'))
     model.add(LeakyReLU(alpha=ALPHA))
-    model.add(Dense(OUTPUT_SIZE, activation='relu'))  # relu
+    model.add(Dense(OUTPUT_SIZE, activation='relu' ,kernel_initializer='he_normal'))  # relu
     model.compile(loss='mean_squared_error', optimizer=Adam(lr=LEARNING_RATE))
     return model
 
@@ -39,10 +39,10 @@ def create_model():
 class DeepQNetwork:
     def __init__(self):
         self.loss_history = []
-        #self.model = create_model()
-        self.model = tf.keras.models.load_model(WEIGHT_FILE)
-        #self.target_model = create_model()
-        self.target_model = tf.keras.models.load_model(WEIGHT_FILE)
+        self.model = create_model()
+        #self.model = tf.keras.models.load_model(WEIGHT_FILE)
+        self.target_model = create_model()
+        #self.target_model = tf.keras.models.load_model(WEIGHT_FILE)
 
     # create the neural network to train the q function
 

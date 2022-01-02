@@ -12,17 +12,18 @@ warnings.filterwarnings('ignore')
 
 BATCH = 128
 PRIORITY_QUEUE = 2
-STATE = 3
+STATE = 4
 STATE_SIZE = STATE * PRIORITY_QUEUE
 GCL_LENGTH = 3
-ACTION_SIZE = 2 ** (PRIORITY_QUEUE * GCL_LENGTH)
+ACTION_SIZE = 8
 EPSILON_MAX = 1
 EPSILON_DECAY = 0.9998
 EPSILON_MIN = 0.01
 DISCOUNT_FACTOR = 0.99  # 할인율. 1에 가까울 수록 미래에 받는 보상도 중요, 0에 가까울수록 즉각적인 보상이 중요
+action_list = [56, 49, 35, 42, 28, 21, 14, 7]
 
 def number_to_action(action_id): #number -> binary gcl code
-    b_id = format(action_id, '06b')
+    b_id = format(action_list[action_id], '06b')
     action_ = np.array(list(map(int, b_id)))
     return action_.reshape((PRIORITY_QUEUE, GCL_LENGTH))
 
@@ -31,7 +32,7 @@ def action_to_number(action):
     bin = ''
     for a in action_:
         bin += str(a)
-    return int(bin, 2)
+    return action_list.index(int(bin, 2))
 
 class Agent(): #one node agent
     def __init__(self):
