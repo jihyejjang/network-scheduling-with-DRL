@@ -22,8 +22,8 @@ class GateControlSimulation:
         self.agent = Agent()
         self.trans_list = simpy.Store(self.env)
         self.cnt1 = 0  # 전송된 flow 개수 카운트
-        #self.cnt2 = 0
-        #self.cnt3 = 0
+        # self.cnt2 = 0
+        # self.cnt3 = 0
         self.cnt4 = 0
         self.timeslots = 0
         self.start_time = self.env.now
@@ -71,7 +71,6 @@ class GateControlSimulation:
 
         e = self.agent.reset()
         return e
-
 
     def flow_generator(self, type_num, fnum):  # flow structure에 맞게 flow생성, timestamp등 남길 수 있음
 
@@ -133,9 +132,9 @@ class GateControlSimulation:
         if not (len(flows.items)):
             return
 
-        #transmission completed
+        # transmission completed
         for _ in range(len(flows.items)):
-            self.reward += 0.1 #패킷을 전송했을 때 reward
+            self.reward += 0.1  # 패킷을 전송했을 때 reward
             f = yield flows.get()
             t = f.priority_ - 1
             n = f.num_
@@ -170,7 +169,9 @@ class GateControlSimulation:
             while not self.done:
                 self.timeslots += 1
 
-                env.process(self.node.packet_out(self.trans_list))
+                yield env.process(self.node.packet_out(self.trans_list))
+                #print("gcl, trans_list", gcl, self.trans_list.items)
+                #print("node", time.time())
                 env.process(self.sendTo_next_node(env))
                 yield env.timeout(TIMESLOT_SIZE / 1000)
                 t = self.env.now
@@ -178,10 +179,12 @@ class GateControlSimulation:
                 # training starts when a timeslot cycle has finished
                 qlen, max_et, max_et_q_pos = self.node.queue_info()  # state에 필요한 정보 (Q_p, maxET, index)
                 self.next_state, self.done = self.step(qlen, max_et, max_et_q_pos)
-                #TODO: state가 0이면 memory에 추가하지 않기
-                #print(self.state)
+                # TODO: state가 0이면 memory에 추가하지 않기
+                # print(self.state)
                 if any(self.state):
                     self.agent.observation(self.state, gcl, self.reward, self.next_state, self.done)
+                    #if gcl==0:
+                        #print("State,  Reward",self.state, self.reward)
                 rewards_all.append(self.reward)
                 self.reward = 0
                 self.state = self.next_state
@@ -189,7 +192,6 @@ class GateControlSimulation:
                 self.node.gcl_update(gcl)
                 self.gate_control_list.append(gcl)
                 loss.append(self.agent.replay())  # train
-
 
             if self.total_episode % UPDATE == 0:
                 print("Target models update")
@@ -233,7 +235,7 @@ class GateControlSimulation:
                 e=round(epsilon, 4),
                 m=round(np.min(loss), 4),
                 l=self.success,
-                d=list(map(np.mean,self.avg_delay))))
+                d=list(map(np.mean, self.avg_delay))))
 
             epsilon = self.reset()
 
@@ -242,7 +244,6 @@ class GateControlSimulation:
             "./result/" + DATE + "/" + "[" + str(episode_num) + "]" + str(min(loss)) + "_last.h5")
         self.log.to_csv("./result/" + DATE + "/log_last" + DATE + ".csv")
         self.delay.to_csv("./result/" + DATE + "/avg_delay_last" + DATE + ".csv")
-
 
     def step(self, qlen, max_et, max_qp):
         state = np.zeros((PRIORITY_QUEUE, STATE))

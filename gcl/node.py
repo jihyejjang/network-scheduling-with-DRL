@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+import time
 
 import simpy
 from parameter import *
@@ -14,13 +15,13 @@ class Node:
     def __init__(self, datapath_id, env):
         self.datapath_id = datapath_id
         self.class_based_queues = [simpy.Store(env) for _ in range(PRIORITY_QUEUE)]
-        self.action = INITIAL_ACTION
+        self.action = number_to_action(INITIAL_ACTION)
         self.start_time = 0
 
     def reset(self, env, start_time):  # initial state, new episode start
         self.start_time = start_time
         self.class_based_queues = [simpy.Store(env) for _ in range(PRIORITY_QUEUE)]
-        self.action = INITIAL_ACTION
+        self.action = number_to_action(INITIAL_ACTION)
 
     # def timestep_reset(self, time):
     #     self.start_time = time
@@ -53,15 +54,27 @@ class Node:
         # print (gcl_)
 
     def packet_out(self, trans_list):
+        #print(time.time())
+        pk_cnt = 0
+
+        if action_to_number(self.action) == 0:
+            return
 
         for q in range(PRIORITY_QUEUE):
             flows = self.class_based_queues[q].items
             for f in flows:
                 f.queueing_delay_ += 1
+
             if (len(self.class_based_queues[q].items) >= 1) and (self.action[q] == 1):
                 f = yield self.class_based_queues[q].get()
                 yield trans_list.put(f)
-                return
+                pk_cnt += 1
+
+            if pk_cnt == 1:
+                break
+
+        #print("node gcl, trans_list", action_to_number(self.action), pk_cnt)
+
 
         # while bits_sum <= MAX_BURST and l > 0:
         #     if gcl[q] == 1:
