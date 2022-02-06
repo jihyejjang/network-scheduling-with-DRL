@@ -24,12 +24,12 @@ class Agent:  # one node agent
     def choose_action(self, state):
         if np.random.random() < self.epsilon:
             id = randrange(ACTION_SIZE)
-            action = number_to_action(id)
+            action = id
             return action
         else:
             n = self.model.predict_one(state)
             id = np.argmax(n)
-            action = number_to_action(id)
+            action = id
             return action
 
     def _epsilon_decay_(self):
