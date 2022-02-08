@@ -134,7 +134,7 @@ class GateControlSimulation:
 
         # transmission completed
         for _ in range(len(flows.items)):
-            self.reward += 0.1  # 패킷을 전송했을 때 reward
+            self.reward += alpha  # 패킷을 전송했을 때 reward
             f = yield flows.get()
             t = f.priority_ - 1
             n = f.num_
@@ -196,6 +196,8 @@ class GateControlSimulation:
             if self.total_episode % UPDATE == 0:
                 print("Target models update")
                 print("action distribution : ", np.unique(self.gate_control_list, return_counts=True))
+                f.write("action distribution : {a} \n".format(
+                    a = np.unique(self.gate_control_list, return_counts=True)))
                 self.gate_control_list = []
                 # print(self.success)
                 self.agent.update_target_model()
@@ -215,12 +217,12 @@ class GateControlSimulation:
             self.log = self.log.append(log_, ignore_index=True)
             self.delay = self.delay.append(delay_, ignore_index=True)
 
-            if (self.total_episode >= 5000) and (self.loss_min > min(loss)):
+            if (self.total_episode >= MAX_EPISODE/2) and (self.loss_min > min(loss)):
                 self.loss_min = min(loss)
                 self.agent.model.save_model(
                     "./result/" + DATE + "/" + "[" + str(episode_num) + "]" + str(min(loss)) + ".h5")
-                self.log.to_csv("./result/" + DATE + "/log_" + DATE + ".csv")
-                self.delay.to_csv("./result/" + DATE + "/avg_delay_" + DATE + ".csv")
+                #self.log.to_csv("./result/" + DATE + "/log_" + DATE + ".csv")
+                #self.delay.to_csv("./result/" + DATE + "/avg_delay_" + DATE + ".csv")
                 # np.save("./result/" + DATE + "_S&A.npy", self.state_and_action)
             e = time.time() - s
 
@@ -244,6 +246,8 @@ class GateControlSimulation:
             "./result/" + DATE + "/" + "[" + str(episode_num) + "]" + str(min(loss)) + "_last.h5")
         self.log.to_csv("./result/" + DATE + "/log_last" + DATE + ".csv")
         self.delay.to_csv("./result/" + DATE + "/avg_delay_last" + DATE + ".csv")
+        draw_result(self.log)
+        f.close()
 
     def step(self, qlen, max_et, max_qp):
         state = np.zeros((PRIORITY_QUEUE, STATE))

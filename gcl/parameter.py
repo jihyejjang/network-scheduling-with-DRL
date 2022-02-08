@@ -9,7 +9,7 @@ STATE = 3
 INPUT_SIZE = 6
 #GCL_LENGTH = 3
 OUTPUT_SIZE = 4
-LEARNING_RATE = 0.00001
+LEARNING_RATE = 0.0001
 ALPHA = 0.1
 INITIAL_ACTION = 3
 ACTION_LIST = [0,1,2,3]
@@ -17,10 +17,11 @@ ACTION_SIZE = len(ACTION_LIST)
 UPDATE = 500
 BATCH = 64
 EPSILON_MAX = 1
-EPSILON_DECAY = 0.9998
+EPSILON_DECAY = 0.9999
 EPSILON_MIN = 0.01
 DISCOUNT_FACTOR = 0.99
-W = [0.5,0.1]
+W = [0.3,0.1]
+alpha = 0.01
 
 # Environment
 MAX_EPISODE = 10000
@@ -54,11 +55,28 @@ RANDOM_PERIOD_BE = 1
 #W = [10,10,1,0.1]
 
 # Save
-DATE = '0131'
+DATE = '0208'
 #FILENAME = '[1999]0.011379198171198368.h5'  # weight file name
 #WEIGHT_FILE = './result/' + DATE + '/' + FILENAME
 if not os.path.exists("./result/" + DATE):
     os.makedirs("./result/" + DATE)
+
+f = open("./result/" + DATE + "parameters.txt", 'w')
+d = "DATE {p} \n LEARNING_RATE: {s} \n MAX_EPISODE: {t} \n EPSILON_DECAY: {e} \n Weight: {m} \n alpha: {l} \n ".format(
+    p=DATE,
+    s=LEARNING_RATE,
+    t=MAX_EPISODE,
+    e=EPSILON_DECAY,
+    m=W,
+    l=alpha)
+f.write(d)
+#f.close()
+import matplotlib.pyplot as plt
+def draw_result(df):
+    x = range(int(len(df['Episode'])))
+    y = df['Score']
+    plt.plot(x, y)
+    plt.savefig("./result/" + DATE + "sum of reward.png", dpi=300)
 
 
 # Functions
