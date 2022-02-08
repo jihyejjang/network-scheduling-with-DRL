@@ -257,8 +257,13 @@ class GateControlSimulation:
         state = state.flatten()
 
         done = False
-        if self.received_packet == COMMAND_CONTROL + BEST_EFFORT:  # originally (CC + A + V + BE)
-            done = True
+
+        if MAXSLOT_MODE :
+            if (self.received_packet == COMMAND_CONTROL + BEST_EFFORT) or (self.timeslots == MAXSLOTS):
+                done = True
+        else:
+            if self.received_packet == COMMAND_CONTROL + BEST_EFFORT:  # originally (CC + A + V + BE)
+                done = True
 
         return [state, done]
 

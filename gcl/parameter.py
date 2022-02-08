@@ -22,6 +22,8 @@ EPSILON_MIN = 0.01
 DISCOUNT_FACTOR = 0.99
 W = [0.3,0.1]
 alpha = 0.01
+MAXSLOT_MODE = False
+MAXSLOTS = 330
 
 # Environment
 MAX_EPISODE = 10000
