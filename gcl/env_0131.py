@@ -47,6 +47,7 @@ class GateControlSimulation:
         self.state_and_action = []
 
         self.total_episode = 0
+        self.sequence_p1, self.sequence_p2 = random_sequence()
 
     def reset(self):
         self.start_time = self.env.now
@@ -82,12 +83,12 @@ class GateControlSimulation:
             f.num_ = fnum
             f.deadline_ = CC_DEADLINE * 0.001
             # f.generated_time_ = time - self.start_time
-            f.current_delay_ = random.randint(0, RANDOM_CURRENT_DELAY_CC)
+            f.current_delay_ = self.sequence_p1[0][fnum]
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
             f.bits_ = CC_BYTE * 8
             f.met_ = -1
-            f.hops_ = random.randint(0, RANDOM_HOP)
+            f.hops_ = self.sequence_p1[1][fnum]
 
 
         else:  # best effort
@@ -95,14 +96,14 @@ class GateControlSimulation:
             f.priority_ = 2
             f.num_ = fnum
             f.deadline_ = BE_DEADLINE * 0.001
-            f.current_delay_ = random.randint(RANDOM_CURRENT_DELAY_BE[0], RANDOM_CURRENT_DELAY_BE[1])
+            f.current_delay_ = self.sequence_p2[0][fnum]
             # f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
             f.arrival_time_ = 0
             f.bits_ = BE_BYTE * 8
             f.met_ = -1
-            f.hops_ = random.randint(0, RANDOM_HOP)
+            f.hops_ = self.sequence_p2[1][fnum]
 
         return f
 
@@ -134,7 +135,7 @@ class GateControlSimulation:
 
         # transmission completed
         for _ in range(len(flows.items)):
-            self.reward += alpha  # 패킷을 전송했을 때 reward
+            self.reward += A  # 패킷을 전송했을 때 reward
             f = yield flows.get()
             t = f.priority_ - 1
             n = f.num_
@@ -177,9 +178,8 @@ class GateControlSimulation:
                 t = self.env.now
 
                 # training starts when a timeslot cycle has finished
-                qlen, max_et, max_et_q_pos = self.node.queue_info()  # state에 필요한 정보 (Q_p, maxET, index)
-                self.next_state, self.done = self.step(qlen, max_et, max_et_q_pos)
-                # TODO: state가 0이면 memory에 추가하지 않기
+                qlen, max_et = self.node.queue_info()  # state에 필요한 정보 (Q_p, maxET, index)
+                self.next_state, self.done = self.step(qlen, max_et)
                 # print(self.state)
                 if any(self.state):
                     self.agent.observation(self.state, gcl, self.reward, self.next_state, self.done)
@@ -249,11 +249,11 @@ class GateControlSimulation:
         draw_result(self.log)
         f.close()
 
-    def step(self, qlen, max_et, max_qp):
+    def step(self, qlen, max_et):
         state = np.zeros((PRIORITY_QUEUE, STATE))
         state[:, 0] = qlen
         state[:, 1] = max_et
-        state[:, 2] = max_qp
+        #state[:, 2] = max_qp
         state = state.flatten()
 
         done = False

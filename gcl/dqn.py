@@ -24,10 +24,13 @@ def create_model():
 class DeepQNetwork:
     def __init__(self):
         self.loss_history = []
-        self.model = create_model()
-        # self.model = tf.keras.models.load_model(WEIGHT_FILE)
-        self.target_model = create_model()
-        # self.target_model = tf.keras.models.load_model(WEIGHT_FILE)
+
+        if FIRST_TRAIN :
+            self.model = create_model()
+            self.target_model = create_model()
+        else:
+            self.model = tf.keras.models.load_model(WEIGHT_FILE)
+            self.target_model = tf.keras.models.load_model(WEIGHT_FILE)
 
     # create the neural network to train the q function
 

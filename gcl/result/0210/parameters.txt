@@ -1,0 +1,7 @@
+DATE 0210 
+ LEARNING_RATE: 0.0001 
+ MAX_EPISODE: 10000 
+ EPSILON_DECAY: 0.9997 
+ Weight: [0.3, 0.1] 
+ alpha: 0.01 
+ 

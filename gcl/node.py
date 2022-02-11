@@ -37,7 +37,7 @@ class Node:
         l = [0, 0]  # length
         ET = [[], []]
         max_et = [0, 0]
-        max_q_pos = [0, 0]
+        #max_q_pos = [0, 0]
         for q in range(PRIORITY_QUEUE):
             flows = self.class_based_queues[q].items
             if not flows:
@@ -46,8 +46,8 @@ class Node:
             for i, flow in enumerate(flows):
                 ET[q].append(flow.queueing_delay_ + flow.current_delay_ + flow.hops_ + i)
             max_et[q] = max(ET[q])
-            max_q_pos[q] = np.argmax(ET[q])
-        return l, max_et, max_q_pos
+            #max_q_pos[q] = np.argmax(ET[q])
+        return l, max_et
 
     def gcl_update(self, gcl_):  # observe state and update GCL (cycle : 0.2*3)
         self.action = number_to_action(gcl_)
@@ -58,20 +58,40 @@ class Node:
         pk_cnt = 0
 
         if action_to_number(self.action) == 0:
-            return
-
-        for q in range(PRIORITY_QUEUE):
-            flows = self.class_based_queues[q].items
+            flows = self.class_based_queues[0].items
             for f in flows:
                 f.queueing_delay_ += 1
 
-            if (len(self.class_based_queues[q].items) >= 1) and (self.action[q] == 1):
-                f = yield self.class_based_queues[q].get()
+            if (len(self.class_based_queues[0].items) >= 1):
+                f = yield self.class_based_queues[0].get()
                 yield trans_list.put(f)
-                pk_cnt += 1
+                #pk_cnt += 1
+        else:
+            flows = self.class_based_queues[1].items
+            for f in flows:
+                f.queueing_delay_ += 1
 
-            if pk_cnt == 1:
-                break
+            if (len(self.class_based_queues[1].items) >= 1):
+                f = yield self.class_based_queues[1].get()
+                yield trans_list.put(f)
+                #pk_cnt += 1
+
+
+        # if action_to_number(self.action) == 0:
+        #     return
+        #
+        # for q in range(PRIORITY_QUEUE):
+        #     flows = self.class_based_queues[q].items
+        #     for f in flows:
+        #         f.queueing_delay_ += 1
+        #
+        #     if (len(self.class_based_queues[q].items) >= 1) and (self.action[q] == 1):
+        #         f = yield self.class_based_queues[q].get()
+        #         yield trans_list.put(f)
+        #         pk_cnt += 1
+        #
+        #     if pk_cnt == 1:
+        #         break
 
         #print("node gcl, trans_list", action_to_number(self.action), pk_cnt)
 
