@@ -5,14 +5,19 @@ import random
 
 # parameters
 FIXED_SEQUENCE = True
-FIRST_TRAIN = False
-MAXSLOT_MODE = True
+FIRST_TRAIN = True
+MAXSLOT_MODE = False
 MAXSLOTS = 330
-LEARNING_RATE = 0.0001
-UPDATE = 800
+LEARNING_RATE = 0.00001
+UPDATE = 500
 EPSILON_DECAY = 0.9997
 W = [0.5, 0.1]
 A = 0.01
+
+# Save
+DATE = '0212_2'
+FILENAME = '[6532]0.006512134801596403.h5'  # weight file name
+WEIGHT_FILE = FILENAME
 
 # RL agent
 PRIORITY_QUEUE = 2
@@ -60,10 +65,6 @@ RANDOM_PERIOD_CC = 1  # slot
 RANDOM_PERIOD_BE = 1
 # W = [10,10,1,0.1]
 
-# Save
-DATE = '0211_re'
-FILENAME = '[6532]0.006512134801596403.h5'  # weight file name
-WEIGHT_FILE = FILENAME
 
 if not os.path.exists("./result/" + DATE):
     os.makedirs("./result/" + DATE)
@@ -103,13 +104,14 @@ def random_sequence():
     p2 = [[], []]
 
     for i in range(COMMAND_CONTROL):
-        p1[0][i].append(random.randint(0, RANDOM_CURRENT_DELAY_CC))
-        p1[1][i].append(random.randint(0, RANDOM_HOP))
+        p1[0].append(random.randint(0, RANDOM_CURRENT_DELAY_CC))
+        p1[1].append(random.randint(0, RANDOM_HOP))
 
     for i in range(BEST_EFFORT):
-        p2[0][i].append(random.randint(RANDOM_CURRENT_DELAY_BE[0], RANDOM_CURRENT_DELAY_BE[1]))
-        p2[1][i].append(random.randint(0, RANDOM_HOP))
+        p2[0].append(random.randint(RANDOM_CURRENT_DELAY_BE[0], RANDOM_CURRENT_DELAY_BE[1]))
+        p2[1].append(random.randint(0, RANDOM_HOP))
 
+    #print (p1)
     return p1, p2
 
 
