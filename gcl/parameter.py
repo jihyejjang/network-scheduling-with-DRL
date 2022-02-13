@@ -4,19 +4,19 @@ import numpy as np
 import random
 
 # parameters
-FIXED_SEQUENCE = True
+FIXED_SEQUENCE = False
 FIRST_TRAIN = True
-MAXSLOT_MODE = False
+MAXSLOT_MODE = True
 MAXSLOTS = 330
-LEARNING_RATE = 0.00001
+LEARNING_RATE = 0.0001
 UPDATE = 500
-EPSILON_DECAY = 0.9997
-W = [0.5, 0.1]
+EPSILON_DECAY = 0.9998
+W = [0.4, 0.1]
 A = 0.01
 
 # Save
-DATE = '0212_2'
-FILENAME = '[6532]0.006512134801596403.h5'  # weight file name
+DATE = '0213_ddqn'
+FILENAME = '[5109]0.009031029418110847.h5'  # weight file name
 WEIGHT_FILE = FILENAME
 
 # RL agent
@@ -35,20 +35,20 @@ EPSILON_MIN = 0.01
 DISCOUNT_FACTOR = 0.99
 
 # Environment
-MAX_EPISODE = 10000
-COMMAND_CONTROL = 40
+MAX_EPISODE = 15000
+COMMAND_CONTROL = 40 #40
 # AUDIO = 8
 # VIDEO_FRAME = 30
 # VIDEO = 2 * VIDEO_FRAME
-BEST_EFFORT = 100
+BEST_EFFORT = 100 #100
 # CC_PERIOD = 10
 # AD_PERIOD = 6
 # VD_PERIOD = 8
 # BE_PERIOD = 4  # PERIOD는 Utilization을 위해 조절해야 할 듯
-CC_DEADLINE = 5
+CC_DEADLINE = 5 #5
 # AD_DEADLINE = 8
 # VD_DEADLINE = 30
-BE_DEADLINE = 50
+BE_DEADLINE = 50 #50
 CC_BYTE = 1500
 # AD_BYTE = 256
 # VD_BYTE = 1500
@@ -86,10 +86,10 @@ f.write(d)
 import matplotlib.pyplot as plt
 
 
-def draw_result(df):
+def save_result_plot(df):
     x = range(int(len(df['Episode'])))
     y = df['Score']
-    plt.plot(x, y)
+    plt.scatter(x, y, s=3)
     plt.savefig("./result/" + DATE + "/sum of reward.png", dpi=300)
 
 

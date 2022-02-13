@@ -1,0 +1,26 @@
+DATE 0208 
+ LEARNING_RATE: 0.0001 
+ MAX_EPISODE: 10000 
+ EPSILON_DECAY: 0.9999 
+ Weight: [0.5, 0.1] 
+ alpha: 0.01 
+ action distribution : (array([0, 1, 2, 3], dtype=int64), array([30070, 30039, 31173, 30208], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([29273, 30028, 34118, 30009], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([28868, 30006, 37170, 30054], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([29317, 29877, 41391, 30214], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([29110, 29747, 44714, 30372], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([29350, 29592, 48061, 30619], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([29483, 29031, 51441, 31338], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([29434, 29058, 55923, 31308], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([29814, 28955, 60238, 31519], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([30185, 28988, 64150, 31511], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([30615, 29431, 67186, 30990], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([32107, 29458, 72533, 30938], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([32876, 29510, 77329, 30309], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([33499, 29911, 81241, 30131], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([33756, 30265, 85055, 29878], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([34079, 30870, 87543, 29500], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([34755, 31248, 91348, 29163], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([34958, 31662, 96745, 28485], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([33753, 32433, 99078, 27992], dtype=int64)) 
+action distribution : (array([0, 1, 2, 3], dtype=int64), array([ 36595,  32402, 104000,  27969], dtype=int64)) 

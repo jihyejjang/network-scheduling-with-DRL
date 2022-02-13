@@ -4,7 +4,7 @@
 import pandas as pd
 import simpy
 from node import Node
-from agent import Agent
+from ddqn_agent import Agent
 import warnings
 import time
 import tensorflow as tf
@@ -69,6 +69,9 @@ class GateControlSimulation:
         self.success = [0, 0]
         self.avg_delay = [[], []]
         self.estimated_e2e = [[], []]
+
+        if not FIXED_SEQUENCE:
+            self.sequence_p1, self.sequence_p2 = random_sequence()
 
         e = self.agent.reset()
         return e
@@ -155,7 +158,7 @@ class GateControlSimulation:
                 f.met_ = 0
 
     def episode(self, env):
-
+        start_time = time.time()
         epsilon = EPSILON_MAX
 
         for episode_num in range(MAX_EPISODE):
@@ -246,7 +249,11 @@ class GateControlSimulation:
             "./result/" + DATE + "/" + "[" + str(episode_num) + "]" + str(min(loss)) + "_last.h5")
         self.log.to_csv("./result/" + DATE + "/log_last" + DATE + ".csv")
         self.delay.to_csv("./result/" + DATE + "/avg_delay_last" + DATE + ".csv")
-        draw_result(self.log)
+        save_result_plot(self.log)
+        end_time = time.time()
+        duration = end_time - start_time
+        f.write("total simulation time : {h} h {m} m \n".format(
+            h = int(duration / 3600), m = int((duration / 3600) % 60)))
         f.close()
 
     def step(self, qlen, max_et):
@@ -290,6 +297,7 @@ class GateControlSimulation:
     def run(self):
         self.env.process(self.episode(self.env))
         self.env.run(until=1000000)
+
 
 
 if __name__ == "__main__":
