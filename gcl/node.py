@@ -80,18 +80,20 @@ class Node:
         # if action_to_number(self.action) == 0:
         #     return
         #
-        # for q in range(PRIORITY_QUEUE):
-        #     flows = self.class_based_queues[q].items
-        #     for f in flows:
-        #         f.queueing_delay_ += 1
-        #
-        #     if (len(self.class_based_queues[q].items) >= 1) and (self.action[q] == 1):
-        #         f = yield self.class_based_queues[q].get()
-        #         yield trans_list.put(f)
-        #         pk_cnt += 1
-        #
-        #     if pk_cnt == 1:
-        #         break
+    def packet_FIFO_out(self, trans_list): #preemption
+        pk_cnt = 0
+        for q in range(PRIORITY_QUEUE):
+            flows = self.class_based_queues[q].items
+            for f in flows:
+                f.queueing_delay_ += 1
+
+            if (len(self.class_based_queues[q].items) >= 1) :
+                f = yield self.class_based_queues[q].get()
+                yield trans_list.put(f)
+                pk_cnt += 1
+
+            if pk_cnt == 1:
+                break
 
         #print("node gcl, trans_list", action_to_number(self.action), pk_cnt)
 

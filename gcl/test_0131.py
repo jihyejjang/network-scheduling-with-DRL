@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+#TODO: 비교용 FIFO 시뮬레이션
 
 import numpy as np
 import pandas as pd
@@ -23,7 +24,7 @@ max_burst()
 class GateControlTestSimulation:
 
     def __init__(self):
-        # self.model = tf.keras.models.load_model(WEIGHT_FILE)
+        self.model = tf.keras.models.load_model(WEIGHT_FILE)
         # print(self.model.get_weights())
         self.env = simpy.Environment()
         self.node = Node(1, self.env)
@@ -54,6 +55,7 @@ class GateControlTestSimulation:
         self.estimated_e2e = [[],[]]
         self.s = [[0, 0] for _ in range(PRIORITY_QUEUE)]
         self.state_and_action = []
+        self.sequence_p1, self.sequence_p2 = random_sequence()
 
     def gcl_predict(self, state):
         n = self.model.predict(state)
@@ -86,7 +88,7 @@ class GateControlTestSimulation:
         # epsilon_decay
         # e = self.agent.reset()
 
-    def flow_generator(self, time, type_num, fnum):  # flow structure에 맞게 flow생성, timestamp등 남길 수 있음
+    def flow_generator(self, type_num, fnum):  # flow structure에 맞게 flow생성, timestamp등 남길 수 있음
 
         f = Flow()
 
@@ -95,116 +97,120 @@ class GateControlTestSimulation:
             f.priority_ = 1
             f.num_ = fnum
             f.deadline_ = CC_DEADLINE * 0.001
-            #f.generated_time_ = time - self.start_time
-            f.current_delay_ = random.randint(0,RANDOM_CURRENT_DELAY_CC)
+            # f.generated_time_ = time - self.start_time
+            f.current_delay_ = self.sequence_p1[0][fnum]
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
-            f.bits_ = CC_BYTE * 8  # originally random.randrange(53, 300)
+            f.bits_ = CC_BYTE * 8
             f.met_ = -1
-            f.hops_ = random.randint(0, RANDOM_HOP)
+            f.hops_ = self.sequence_p1[1][fnum]
+
 
         else:  # best effort
             f.type_ = 4
             f.priority_ = 2
             f.num_ = fnum
             f.deadline_ = BE_DEADLINE * 0.001
-            f.current_delay_ = random.randint(RANDOM_CURRENT_DELAY_BE[0],RANDOM_CURRENT_DELAY_BE[1])
-            #f.generated_time_ = time - self.start_time
+            f.current_delay_ = self.sequence_p2[0][fnum]
+            # f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
+            f.arrival_time_ = 0
             f.bits_ = BE_BYTE * 8
             f.met_ = -1
-            f.hops_ = random.randint(0, RANDOM_HOP)
+            f.hops_ = self.sequence_p2[1][fnum]
 
         return f
 
     def generate_cc(self, env):
         for i in range(COMMAND_CONTROL):
-            flow = self.flow_generator(self.timeslots, 1, i)
-            #print("c&c generate time slot", self.timeslots)
-            if i < 10:
-                print("p1 generated in timeslot", self.timeslots)
+            flow = self.flow_generator(1, i)
+            # print("c&c generate time slot", self.timeslots)
+            # if i < 10:
+            #     print("p1 generated in timeslot", self.timeslots)
             yield env.process(self.node.packet_in(env.now, flow))
             self.cnt1 += 1
             yield env.timeout(TIMESLOT_SIZE * RANDOM_PERIOD_CC / 1000)
 
     def generate_be(self, env):
         for i in range(BEST_EFFORT):
-            flow = self.flow_generator(self.timeslots, 4, i)
-            #print("be generate time slot", self.timeslots)
-            if i < 10:
-                print("p2 generated in timeslot", self.timeslots)
+            flow = self.flow_generator(4, i)
+            # print("be generate time slot", self.timeslots)
+            # if i < 10:
+            #     print("p2 generated in timeslot", self.timeslots)
             yield env.process(self.node.packet_in(self.timeslots, flow))
             self.cnt4 += 1
             yield env.timeout(TIMESLOT_SIZE * RANDOM_PERIOD_BE / 1000)
 
     def sendTo_next_node(self, env):
-        # route = [2, 2, 3]
-        #TODO: trans list size는 항상 1일것 같은데 수정하자
         flows = self.trans_list
+
         if not (len(flows.items)):
             return
-        # if dpid < 4:
-        #     for _ in range(len(flows.items)):
-        #         f = yield flows.get()
-        #         yield env.process(self.nodes[route[dpid - 1]].packet_in(env.now, f))
-        #     # yield env.timeout(TIMESLOT_SIZE / 1000)
 
         # transmission completed
         for _ in range(len(flows.items)):
+            self.reward += A  # 패킷을 전송했을 때 reward
             f = yield flows.get()
             t = f.priority_ - 1
             n = f.num_
             self.received_packet += 1
             f.arrival_time_ = env.now - self.start_time
-            ET = (f.queueing_delay_ + f.current_delay_ + f.hops_)*TIMESLOT_SIZE/1000
-            delay = f.queueing_delay_*TIMESLOT_SIZE/1000
+            ET = (f.queueing_delay_ + f.current_delay_ + f.hops_) * TIMESLOT_SIZE / 1000
+            delay = f.queueing_delay_ * TIMESLOT_SIZE / 1000
             self.avg_delay[t].append(delay)
             self.estimated_e2e[t].append(ET)
 
             if ET <= f.deadline_:
                 f.met_ = 1
                 self.success[t] += 1
-                self.reward += 1
-                # if dpid == 5:
-                #     self.s[0][t] += 1
-                # else:
-                #     self.s[1][t] += 1
+                self.reward += W[t]
+
             else:
                 f.met_ = 0
 
     def gcl_extract(self, env):  # mainprocess
         s = time.time()
         rewards_all = []
+        i=1
+        while sum(rewards_all) < 20:
+            self.sequence_p1, self.sequence_p2 = random_sequence()
+            print("{i}번째 시도".format(i = i))
+            i+=1
+            rewards_all = []
+            self.reset()
+            # episode 시작 시 마다 flow generator process를 실행
+            env.process(self.generate_cc(env))
+            # env.process(self.generate_ad(env))
+            # env.process(self.generate_vd(env))
+            env.process(self.generate_be(env))
 
-        # episode 시작 시 마다 flow generator process를 실행
-        env.process(self.generate_cc(env))
-        # env.process(self.generate_ad(env))
-        # env.process(self.generate_vd(env))
-        env.process(self.generate_be(env))
+            while not self.done:  # 1회의 episode가 종료될 때 까지 cycle을 반복하는 MAIN process
 
-        while not self.done:  # 1회의 episode가 종료될 때 까지 cycle을 반복하는 MAIN process
-            self.timeslots += 1
 
-            env.process(self.node.packet_out(env, self.trans_list))
-            env.process(self.sendTo_next_node(env))
-            yield env.timeout(TIMESLOT_SIZE / 1000)
-            t = self.env.now
+                yield env.process(self.node.packet_out(self.trans_list))
+                env.process(self.sendTo_next_node(env))
+                yield env.timeout(TIMESLOT_SIZE / 1000)
+                t = self.env.now
 
-            # training starts when a timeslot cycle has finished
-            qlen, max_et, max_et_q_pos = self.node.queue_info()  # state에 필요한 정보 (Q_p, maxET, index)
-            self.next_state, self.done = self.step(qlen, max_et, max_et_q_pos)
-            rewards_all.append(self.reward)
-            self.reward = 0
-            self.state = self.next_state
-            gcl = self.gcl_predict(self.state.reshape(INPUT_SIZE))  # new state로 gcl 업데이트
-            self.node.gcl_update(gcl)
-            #TODO: env로 가면 opserve와 agent를 이용한 Gcl predict로 변경해야 함
-            self.gate_control_list.append(gcl)
+                # training starts when a timeslot cycle has finished
+                qlen, max_et = self.node.queue_info()  # state에 필요한 정보 (Q_p, maxET, index)
+                self.next_state, self.done = self.step(qlen, max_et)
+                rewards_all.append(self.reward)
+                self.reward = 0
+                self.state = self.next_state
+                # print(self.state)
+                gcl = self.gcl_predict(np.array(self.state).reshape(1, INPUT_SIZE))  # new state로 gcl 업데이트
+                self.node.gcl_update(gcl)
+                self.gate_control_list.append(gcl)
+                self.timeslots += 1
+
+
 
         # Episode ends
         self.end_time = env.now
         e = time.time() - s
+        print("extract 소요시간", e)
         print("avg delay", list(map(np.mean, self.avg_delay)))
         print("ET", list(map(np.mean, self.estimated_e2e)))
         print("gcl distribution", np.unique(self.gate_control_list, return_counts=True))
@@ -215,71 +221,85 @@ class GateControlTestSimulation:
         print("Test 시작")
         rewards_all = []
         env.process(self.generate_cc(env))
-        # env.process(self.generate_ad(env))
-        # env.process(self.generate_vd(env))
         env.process(self.generate_be(env))
-        gcl = [INITIAL_ACTION, INITIAL_ACTION]
-        # print(np.unique(self.gate_control_list, return_counts=True))
         while not self.done:  # 1회의 episode가 종료될 때 까지 cycle을 반복하는 MAIN process
-            self.timeslots += 1
-            #self.s = [[0, 0] for _ in range(PRIORITY_QUEUE)]
+            gcl = self.gate_control_list[self.timeslots]
 
-            env.process(self.node.packet_out(self.trans_list))
+            yield env.process(self.node.packet_out(self.trans_list))
             env.process(self.sendTo_next_node(env))
             yield env.timeout(TIMESLOT_SIZE / 1000)
-            t = self.env.now
 
-            # training starts when a timeslot cycle has finished
-            qlen, max_et, max_et_q_pos = self.node.queue_info()  # state에 필요한 정보 (Q_p, maxET, index)
-            self.next_state, self.done = self.step(qlen, max_et, max_et_q_pos)
+            qlen, max_et = self.node.queue_info()
+            self.next_state, self.done = self.step(qlen, max_et)
             rewards_all.append(self.reward)
             self.reward = 0
             self.state = self.next_state
             self.node.gcl_update(gcl)
-            self.gate_control_list.extend(gcl)
+            self.timeslots += 1
 
         print("test결과 success rate", self.success)
         print("avg delay", list(map(np.mean, self.avg_delay)))
         print("ET", list(map(np.mean, self.estimated_e2e)))
         print("gcl distribution", np.unique(self.gate_control_list, return_counts=True))
-        # print("gcl extract success rate", self.success)
-        # print("reward", sum(rewards_all))
+
+    def FIFO(self, env):
+        print("FIFO test")
+        rewards_all = []
+        env.process(self.generate_cc(env))
+        env.process(self.generate_be(env))
+        while not self.done:  # 1회의 episode가 종료될 때 까지 cycle을 반복하는 MAIN process
+            #gcl = self.gate_control_list[self.timeslots]
+
+            yield env.process(self.node.packet_FIFO_out(self.trans_list))
+            env.process(self.sendTo_next_node(env))
+            yield env.timeout(TIMESLOT_SIZE / 1000)
+
+            qlen, max_et = self.node.queue_info()
+            self.next_state, self.done = self.step(qlen, max_et)
+            rewards_all.append(self.reward)
+            self.reward = 0
+            self.state = self.next_state
+            #self.node.gcl_update(gcl)
+            self.timeslots += 1
+
+        print("test결과 success rate", self.success)
+        print("avg delay", list(map(np.mean, self.avg_delay)))
+        print("ET", list(map(np.mean, self.estimated_e2e)))
+        print("reward", sum(rewards_all))
 
     def simulation(self):
         # gcl extract
-        # self.env.process(self.gcl_extract(self.env))
-        # self.env.run()
-        # print("GCL Extract 완료")
+        self.env.process(self.gcl_extract(self.env))
+        self.env.run()
+        print("@@@@@@@@@GCL Extract 완료@@@@@@@@@")
+
+        #FIFO
+        self.reset()
+        self.env.process(self.FIFO(self.env))
+        self.env.run()
+        print("@@@@@@@@@FIFO 완료@@@@@@@@@")
 
         # test
         self.reset()
         self.env.process(self.gcl_apply(self.env))
         self.env.run()
-        print("Test simulation 완료")
+        print("@@@@@@@@@Test simulation 완료@@@@@@@@@")
 
-    def step(self, qlen, max_et, max_qp):
-        # if node >= 5:
-        #     reward = self.reward2(node)
-        # hops = [3, 3, 2, 1, 0, 0]
-        # qt = qdata.transpose()
-        # previous_node = [0 for _ in range(PRIORITY_QUEUE)]
-
-        # if 2 < node < 5:  # 3,4 node
-        #     # previous_node = list(map(sum, qt[:node - 1]))
-        #     previous_node = [sum(qt[c][:node - 1]) for c in range(PRIORITY_QUEUE)]
-        # elif node > 4:  # 5,6 node
-        #     previous_node = [0.5 * sum(qt[c][:node - 1]) for c in range(PRIORITY_QUEUE)]
-
+    def step(self, qlen, max_et):
         state = np.zeros((PRIORITY_QUEUE, STATE))
         state[:, 0] = qlen
         state[:, 1] = max_et
-        state[:, 2] = max_qp
+        # state[:, 2] = max_qp
         state = state.flatten()
 
         done = False
 
-        if self.received_packet == COMMAND_CONTROL + BEST_EFFORT:  # originally (CC + A + V + BE)
-            done = True
+        if MAXSLOT_MODE:
+            if (self.received_packet == COMMAND_CONTROL + BEST_EFFORT) or (self.timeslots == MAXSLOTS):
+                done = True
+        else:
+            if self.received_packet == COMMAND_CONTROL + BEST_EFFORT:  # originally (CC + A + V + BE)
+                done = True
 
         return [state, done]
 
