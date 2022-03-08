@@ -7,16 +7,16 @@ import random
 FIXED_SEQUENCE = False
 FIRST_TRAIN = True
 MAXSLOT_MODE = True
-MAXSLOTS = 330
+MAXSLOTS = 300
 LEARNING_RATE = 0.0001
 UPDATE = 500
-EPSILON_DECAY = 0.9998
-W = [0.4, 0.1]
+EPSILON_DECAY = 0.99975
+W = [0.6, 0.1]
 A = 0.01
 
 # Save
-DATE = '0218'
-FILENAME = 'result/0218/[19810]0.0005970392376184464.h5'  # weight file name
+DATE = '0308'
+FILENAME = 'result/[16153]0.0014794832095503807.h5'  # weight file name
 WEIGHT_FILE = FILENAME
 
 # RL agent
@@ -58,9 +58,9 @@ BANDWIDTH = 20000  # bits per msec (20Mbps)
 MAX_BURST = 12000
 NODES = 1
 # random parameters
-RANDOM_HOP = 4  # hop이 너무 작으면 One hop = one slot의 estimated delay를 갖기 때문에 크게 의미가 없음
+RANDOM_HOP = 4  # 4
 RANDOM_CURRENT_DELAY_CC = 2
-RANDOM_CURRENT_DELAY_BE = (30, 45)
+RANDOM_CURRENT_DELAY_BE = (30, 45) #30~45
 RANDOM_PERIOD_CC = 1  # slot
 RANDOM_PERIOD_BE = 1
 # W = [10,10,1,0.1]

@@ -34,7 +34,6 @@ class GateControlSimulation:
         self.done = False
         self.end_time = 0
         self.received_packet = 0
-        self.loss_min = 999999
 
         # save logs
         self.log = pd.DataFrame(
@@ -47,6 +46,7 @@ class GateControlSimulation:
         self.state_and_action = []
 
         self.total_episode = 0
+        self.reward_max = 0
         self.sequence_p1, self.sequence_p2 = random_sequence()
 
     def reset(self):
@@ -220,10 +220,10 @@ class GateControlSimulation:
             self.log = self.log.append(log_, ignore_index=True)
             self.delay = self.delay.append(delay_, ignore_index=True)
 
-            if (self.total_episode >= MAX_EPISODE/2) and (self.loss_min > min(loss)):
-                self.loss_min = min(loss)
+            if (self.total_episode >= MAX_EPISODE/2) and (self.reward_max < sum(rewards_all)):
+                self.reward_max = sum(rewards_all)
                 self.agent.model.save_model(
-                    "./result/" + DATE + "/" + "[" + str(episode_num) + "]" + str(min(loss)) + ".h5")
+                    "./result/" + DATE + "/" + "[" + str(episode_num) + "]" + str(round(self.reward_max,2)) + ".h5")
                 #self.log.to_csv("./result/" + DATE + "/log_" + DATE + ".csv")
                 #self.delay.to_csv("./result/" + DATE + "/avg_delay_" + DATE + ".csv")
                 # np.save("./result/" + DATE + "_S&A.npy", self.state_and_action)
@@ -256,7 +256,56 @@ class GateControlSimulation:
             h = int(duration / 3600), m = int((duration / 3600) % 60)))
         f.close()
 
-    def step(self, qlen, max_et):
+    def fifo(self, env):
+
+        for episode_num in range(MAX_EPISODE):
+            self.total_episode += 1
+            env.process(self.generate_cc(env))
+            env.process(self.generate_be(env))
+            s = time.time()
+            rewards_all = []
+
+            while not self.done:
+                self.timeslots += 1
+
+                yield env.process(self.node.packet_FIFO_out(self.trans_list))
+                # print("gcl, trans_list", gcl, self.trans_list.items)
+                # print("node", time.time())
+                env.process(self.sendTo_next_node(env))
+                yield env.timeout(TIMESLOT_SIZE / 1000)
+                rewards_all.append(self.reward)
+                self.reward = 0
+
+                _, self.done = self.step()
+
+            self.end_time = env.now
+            log_ = pd.DataFrame([(episode_num, self.end_time - self.start_time, self.timeslots, np.sum(rewards_all),
+                                  0, 0, self.success[0], self.success[1])],
+                                columns=['Episode', 'Duration', 'Slots', 'Score', 'Epsilon', 'min_loss',
+                                         'p1', 'p2'])
+            self.log = self.log.append(log_, ignore_index=True)
+            e = time.time() - s
+
+            print("소요시간 : %s 초, 예상소요시간 : %s 시간" % (
+                round(e % 60, 2), round(e * (MAX_EPISODE - self.total_episode) / 3600, 2)))
+
+            print("Episode {p}, Score: {s}, Final Step: {t}, Epsilon: {e} , Min loss: {m}, success: {l}, "
+                  "avg_qdelay: {d}".format(
+                p=episode_num,
+                s=np.sum(rewards_all),
+                t=self.timeslots,
+                e=0,
+                m=0,
+                l=self.success,
+                d=list(map(np.mean, self.avg_delay))))
+            print("simulation ends")
+            epsilon = self.reset()
+
+        self.log.to_csv("./result/" + DATE + "/log_last" + DATE + ".csv")
+        save_result_plot(self.log)
+
+
+    def step(self, qlen=None, max_et=None):
         state = np.zeros((PRIORITY_QUEUE, STATE))
         state[:, 0] = qlen
         state[:, 1] = max_et
@@ -296,6 +345,7 @@ class GateControlSimulation:
 
     def run(self):
         self.env.process(self.episode(self.env))
+        #self.env.process(self.fifo(self.env))
         self.env.run(until=1000000)
 
 
