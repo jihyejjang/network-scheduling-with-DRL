@@ -246,7 +246,7 @@ class GateControlSimulation:
 
         print("simulation ends")
         self.agent.model.save_model(
-            "./result/" + DATE + "/" + "[" + str(episode_num) + "]" + str(min(loss)) + "_last.h5")
+            "./result/" + DATE + "/" + "[" + str(episode_num) + "]" + str(round(self.reward_max,2)) + ".h5")
         self.log.to_csv("./result/" + DATE + "/log_last" + DATE + ".csv")
         self.delay.to_csv("./result/" + DATE + "/avg_delay_last" + DATE + ".csv")
         save_result_plot(self.log)
