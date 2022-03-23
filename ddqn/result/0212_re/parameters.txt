@@ -1,0 +1,28 @@
+DATE : 0212_re 
+FIXED_SEQUENDE MODE : True 
+MAX_SLOTS MODE : True 
+LEARNING_RATE: 1e-05 
+MAX_EPISODE: 10000 
+     EPSILON_DECAY: 0.9997 
+Weight: [0.4, 0.1] 
+alpha: 0.01 
+action distribution : (array([0, 1]), array([57232, 50226])) 
+action distribution : (array([0, 1]), array([71112, 50181])) 
+action distribution : (array([0, 1]), array([87215, 50157])) 
+action distribution : (array([0, 1]), array([104584,  49095])) 
+action distribution : (array([0, 1]), array([116614,  45602])) 
+action distribution : (array([0, 1]), array([124370,  40206])) 
+action distribution : (array([0, 1]), array([129430,  35549])) 
+action distribution : (array([0, 1]), array([134311,  30668])) 
+action distribution : (array([0, 1]), array([137754,  27246])) 
+action distribution : (array([0, 1]), array([140870,  24130])) 
+action distribution : (array([0, 1]), array([144337,  20663])) 
+action distribution : (array([0, 1]), array([146856,  18144])) 
+action distribution : (array([0, 1]), array([149701,  15299])) 
+action distribution : (array([0, 1]), array([152159,  12841])) 
+action distribution : (array([0, 1]), array([154214,  10786])) 
+action distribution : (array([0, 1]), array([155916,   9084])) 
+action distribution : (array([0, 1]), array([157047,   7953])) 
+action distribution : (array([0, 1]), array([158232,   6768])) 
+action distribution : (array([0, 1]), array([159462,   5538])) 
+action distribution : (array([0, 1]), array([160105,   4895])) 

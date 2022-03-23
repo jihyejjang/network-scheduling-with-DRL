@@ -1,0 +1,49 @@
+DATE : 0310 
+FIXED_SEQUENDE MODE : False 
+MAX_SLOTS MODE : True 
+LEARNING_RATE: 0.0001 
+MAX_EPISODE: 20000 
+     EPSILON_DECAY: 0.9998 
+Weight: [0.5, 0.1] 
+alpha: 0.01 
+action distribution : (array([0, 1]), array([49326, 50238])) 
+action distribution : (array([0, 1]), array([49144, 50272])) 
+action distribution : (array([0, 1]), array([47664, 50306])) 
+action distribution : (array([0, 1]), array([47687, 50286])) 
+action distribution : (array([0, 1]), array([46191, 50342])) 
+action distribution : (array([0, 1]), array([43327, 50343])) 
+action distribution : (array([0, 1]), array([39498, 50349])) 
+action distribution : (array([0, 1]), array([37267, 50105])) 
+action distribution : (array([0, 1]), array([34437, 50109])) 
+action distribution : (array([0, 1]), array([32350, 50097])) 
+action distribution : (array([0, 1]), array([31338, 50084])) 
+action distribution : (array([0, 1]), array([31117, 50077])) 
+action distribution : (array([0, 1]), array([31430, 50057])) 
+action distribution : (array([0, 1]), array([32568, 50074])) 
+action distribution : (array([0, 1]), array([33790, 50063])) 
+action distribution : (array([0, 1]), array([34695, 50048])) 
+action distribution : (array([0, 1]), array([35811, 50041])) 
+action distribution : (array([0, 1]), array([38787, 50041])) 
+action distribution : (array([0, 1]), array([41643, 50036])) 
+action distribution : (array([0, 1]), array([40211, 50042])) 
+action distribution : (array([0, 1]), array([41794, 50031])) 
+action distribution : (array([0, 1]), array([44199, 50023])) 
+action distribution : (array([0, 1]), array([46222, 50021])) 
+action distribution : (array([0, 1]), array([30779, 50027])) 
+action distribution : (array([0, 1]), array([37535, 50012])) 
+action distribution : (array([0, 1]), array([33615, 50024])) 
+action distribution : (array([0, 1]), array([64189, 49999])) 
+action distribution : (array([0, 1]), array([67434, 49987])) 
+action distribution : (array([0, 1]), array([66760, 49984])) 
+action distribution : (array([0, 1]), array([63960, 49997])) 
+action distribution : (array([0, 1]), array([73068, 49971])) 
+action distribution : (array([0, 1]), array([70335, 49957])) 
+action distribution : (array([0, 1]), array([64315, 49979])) 
+action distribution : (array([0, 1]), array([66242, 49990])) 
+action distribution : (array([0, 1]), array([65867, 49966])) 
+action distribution : (array([0, 1]), array([69820, 49941])) 
+action distribution : (array([0, 1]), array([69493, 49951])) 
+action distribution : (array([0, 1]), array([71671, 49921])) 
+action distribution : (array([0, 1]), array([73396, 49913])) 
+action distribution : (array([0, 1]), array([75366, 49909])) 
+total simulation time : 14 h 14 m 

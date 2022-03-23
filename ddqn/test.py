@@ -98,7 +98,7 @@ class GateControlTestSimulation:
             f.node_arrival_time_ = 0
             f.bits_ = CC_BYTE * 8
             f.met_ = -1
-            f.hops_ = self.sequence_p1[1][fnum]
+            f.remain_hops_ = self.sequence_p1[1][fnum]
 
 
         else:  # best effort
@@ -113,7 +113,7 @@ class GateControlTestSimulation:
             f.arrival_time_ = 0
             f.bits_ = BE_BYTE * 8
             f.met_ = -1
-            f.hops_ = self.sequence_p2[1][fnum]
+            f.remain_hops_ = self.sequence_p2[1][fnum]
 
         return f
 
@@ -125,7 +125,7 @@ class GateControlTestSimulation:
             #     print("p1 generated in timeslot", self.timeslots)
             yield env.process(self.node.packet_in(env.now, flow))
             self.cnt1 += 1
-            yield env.timeout(TIMESLOT_SIZE * RANDOM_PERIOD_CC / 1000)
+            yield env.timeout(TIMESLOT_SIZE * PERIOD_CC / 1000)
 
     def generate_be(self, env):
         for i in range(BEST_EFFORT):
@@ -135,7 +135,7 @@ class GateControlTestSimulation:
             #     print("p2 generated in timeslot", self.timeslots)
             yield env.process(self.node.packet_in(self.timeslots, flow))
             self.cnt4 += 1
-            yield env.timeout(TIMESLOT_SIZE * RANDOM_PERIOD_BE / 1000)
+            yield env.timeout(TIMESLOT_SIZE * PERIOD_BE / 1000)
 
     def sendTo_next_node(self, env):
         flows = self.trans_list
@@ -151,7 +151,7 @@ class GateControlTestSimulation:
             n = f.num_
             self.received_packet += 1
             f.arrival_time_ = env.now - self.start_time
-            ET = (f.queueing_delay_ + f.current_delay_ + f.hops_) * TIMESLOT_SIZE / 1000
+            ET = (f.queueing_delay_ + f.current_delay_ + f.remain_hops_) * TIMESLOT_SIZE / 1000
             delay = f.queueing_delay_ * TIMESLOT_SIZE / 1000
             self.avg_delay[t].append(delay)
             self.estimated_e2e[t].append(ET)
@@ -176,6 +176,7 @@ class GateControlTestSimulation:
 
         while not self.done:
             self.timeslots += 1
+            #print("timeslot",self.timeslots)
             log = pd.DataFrame([(self.timeslots, self.state, gcl)], columns=['timeslot', 'state', 'gcl'])
             yield env.process(self.node.packet_out(self.trans_list))
             env.process(self.sendTo_next_node(env))
@@ -188,6 +189,7 @@ class GateControlTestSimulation:
             self.state = self.next_state
             # print(self.state)
             gcl = self.gcl_predict(np.array(self.state).reshape(1, INPUT_SIZE))  # new state로 gcl 업데이트
+            #print("next slot gcl",gcl)
             self.node.gcl_update(gcl)
             self.gate_control_list.append(gcl)
 
@@ -203,7 +205,7 @@ class GateControlTestSimulation:
         self.log1 = self.log1.append(log_, ignore_index=True)
 
         if sum(rewards_all) < 30 :
-            self.ex.to_csv('ex_analysis.csv')
+            self.ex.to_csv('result/test/ex_analysis.csv')
 
         # print("avg delay", list(map(np.mean, self.avg_delay)))
         # print("ET", list(map(np.mean, self.estimated_e2e)))
@@ -253,33 +255,11 @@ class GateControlTestSimulation:
 
             self.ap = self.ap.append(log, ignore_index=True)
 
-        if sum(rewards_all) < 30:
-            self.ap.to_csv('ap_analysis.csv')
+        # if sum(rewards_all) < 30:
+        #     self.ap.to_csv('ap_analysis.csv')
 
         self.gate_control_list = [0]
 
-        # print("test결과 success rate", self.success)
-        # print("avg delay", list(map(np.mean, self.avg_delay)))
-        # print("ET", list(map(np.mean, self.estimated_e2e)))
-        # print("gcl distribution", np.unique(self.gate_control_list, return_counts=True))
-
-        # x = range(int(len(self.avg_delay[0])))
-        # y1 = self.avg_delay[0]
-        # y2 = self.estimated_e2e[0]
-        # plt.scatter(x, y1, s=3, label='p1_q')
-        # plt.plot(x, y2,  label='p1_e')
-        # plt.plot(x, [5*0.001 for _ in range(len(x))], c='orange', label='deadline')
-        # plt.savefig("apply_p1.png", dpi=300)
-        # plt.clf()
-
-        # X = range(int(len(self.avg_delay[1])))
-        # Y1 = self.avg_delay[1]
-        # Y2 = self.estimated_e2e[1]
-        # plt.scatter(X, Y1, s=3, label='p2_q')
-        # plt.plot(X, Y2,  label='p2_e')
-        # plt.plot(X, [50*0.001 for _ in range(len(X))], c='orange', label='deadline')
-        # plt.savefig("apply_p2.png", dpi=300)
-        # plt.clf()
 
         log_ = pd.DataFrame([(self.timeslots, np.sum(rewards_all), self.success[0], self.success[1])],
                             columns=['Slots', 'Score', 'p1', 'p2'])
@@ -335,7 +315,7 @@ class GateControlTestSimulation:
         self.log3 = self.log3.append(log_, ignore_index=True)
 
     def simulation(self):
-        iter = 3
+        iter = 10
         for _ in range(iter):
             self.env.process(self.gcl_extract(self.env))
             self.env.run()
@@ -348,15 +328,15 @@ class GateControlTestSimulation:
             # print("@@@@@@@@@FIFO 완료@@@@@@@@@")
 
             # test
-            self.reset()
-            self.env.process(self.gcl_apply(self.env))
-            self.env.run()
-            # print("@@@@@@@@@Test simulation 완료@@@@@@@@@")
+            # self.reset()
+            # self.env.process(self.gcl_apply(self.env))
+            # self.env.run()
+            # # print("@@@@@@@@@Test simulation 완료@@@@@@@@@")
             self.sequence_p1, self.sequence_p2 = random_sequence()
 
-        self.log1.to_csv("extract.csv")
-        self.log2.to_csv("apply.csv")
-        self.log3.to_csv("fifo.csv")
+        self.log1.to_csv("result/test/extract.csv")
+        # self.log2.to_csv("result/test/apply.csv")
+        self.log3.to_csv("result/test/fifo.csv")
 
     def step(self, qlen, max_et):
         state = np.zeros((PRIORITY_QUEUE, STATE))
