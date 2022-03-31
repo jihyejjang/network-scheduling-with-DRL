@@ -10,6 +10,7 @@ from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import *
 from parameter import *
+from src import Src
 
 
 # max_burst()
@@ -20,8 +21,11 @@ from parameter import *
 class GateControlTestSimulation:
 
     def __init__(self):
+        self.end_time = 0
         self.model = tf.keras.models.load_model(WEIGHT_FILE)
         self.env = simpy.Environment()
+        self.start_time = self.env.now
+        self.source = Src(1, self.start_time)
         self.node = Node(1, self.env)
         self.trans_list = simpy.Store(self.env)
         self.cnt1 = 0
@@ -66,7 +70,7 @@ class GateControlTestSimulation:
     def reset(self):  # initial state, new episode start
         self.start_time = self.env.now  # episode 시작
         self.node = Node(1, self.env)
-
+        self.source = Src(1, self.start_time)
         self.timeslots = 0
         self.cnt1 = 0
         self.cnt4 = 0
@@ -76,66 +80,65 @@ class GateControlTestSimulation:
         self.reward = 0
         self.done = False
 
-        self.end_time = 0
         self.received_packet = 0
         self.success = [0, 0]  # deadline met
         self.state_list = []
         self.ex = pd.DataFrame(columns=['timeslot', 'state', 'gcl'])
         self.ap = pd.DataFrame(columns=['timeslot', 'state', 'gcl'])
 
-    def flow_generator(self, type_num, fnum):  # flow structure에 맞게 flow생성, timestamp등 남길 수 있음
-
-        f = Flow()
-
-        if type_num == 1:  # c&c
-            f.type_ = 1
-            f.priority_ = 1
-            f.num_ = fnum
-            f.deadline_ = CC_DEADLINE * 0.001
-            # f.generated_time_ = time - self.start_time
-            f.current_delay_ = self.sequence_p1[0][fnum]
-            f.queueing_delay_ = 0
-            f.node_arrival_time_ = 0
-            f.bits_ = CC_BYTE * 8
-            f.met_ = -1
-            f.remain_hops_ = self.sequence_p1[1][fnum]
-
-
-        else:  # best effort
-            f.type_ = 4
-            f.priority_ = 2
-            f.num_ = fnum
-            f.deadline_ = BE_DEADLINE * 0.001
-            f.current_delay_ = self.sequence_p2[0][fnum]
-            # f.generated_time_ = time - self.start_time
-            f.queueing_delay_ = 0
-            f.node_arrival_time_ = 0
-            f.arrival_time_ = 0
-            f.bits_ = BE_BYTE * 8
-            f.met_ = -1
-            f.remain_hops_ = self.sequence_p2[1][fnum]
-
-        return f
-
-    def generate_cc(self, env):
-        for i in range(COMMAND_CONTROL):
-            flow = self.flow_generator(1, i)
-            # print("c&c generate time slot", self.timeslots)
-            # if i < 10:
-            #     print("p1 generated in timeslot", self.timeslots)
-            yield env.process(self.node.packet_in(env.now, flow))
-            self.cnt1 += 1
-            yield env.timeout(TIMESLOT_SIZE * PERIOD_CC / 1000)
-
-    def generate_be(self, env):
-        for i in range(BEST_EFFORT):
-            flow = self.flow_generator(4, i)
-            # print("be generate time slot", self.timeslots)
-            # if i < 10:
-            #     print("p2 generated in timeslot", self.timeslots)
-            yield env.process(self.node.packet_in(self.timeslots, flow))
-            self.cnt4 += 1
-            yield env.timeout(TIMESLOT_SIZE * PERIOD_BE / 1000)
+    # def flow_generator(self, type_num, fnum):  # flow structure에 맞게 flow생성, timestamp등 남길 수 있음
+    #
+    #     f = Flow()
+    #
+    #     if type_num == 1:  # c&c
+    #         f.type_ = 1
+    #         f.priority_ = 1
+    #         f.num_ = fnum
+    #         f.deadline_ = CC_DEADLINE * 0.001
+    #         # f.generated_time_ = time - self.start_time
+    #         f.current_delay_ = self.sequence_p1[0][fnum]
+    #         f.queueing_delay_ = 0
+    #         f.node_arrival_time_ = 0
+    #         f.bits_ = CC_BYTE * 8
+    #         f.met_ = -1
+    #         f.remain_hops_ = self.sequence_p1[1][fnum]
+    #
+    #
+    #     else:  # best effort
+    #         f.type_ = 4
+    #         f.priority_ = 2
+    #         f.num_ = fnum
+    #         f.deadline_ = BE_DEADLINE * 0.001
+    #         f.current_delay_ = self.sequence_p2[0][fnum]
+    #         # f.generated_time_ = time - self.start_time
+    #         f.queueing_delay_ = 0
+    #         f.node_arrival_time_ = 0
+    #         f.arrival_time_ = 0
+    #         f.bits_ = BE_BYTE * 8
+    #         f.met_ = -1
+    #         f.remain_hops_ = self.sequence_p2[1][fnum]
+    #
+    #     return f
+    #
+    # def generate_cc(self, env):
+    #     for i in range(COMMAND_CONTROL):
+    #         flow = self.flow_generator(1, i)
+    #         # print("c&c generate time slot", self.timeslots)
+    #         # if i < 10:
+    #         #     print("p1 generated in timeslot", self.timeslots)
+    #         yield env.process(self.node.packet_in(env.now, flow))
+    #         self.cnt1 += 1
+    #         yield env.timeout(TIMESLOT_SIZE * PERIOD_CC / 1000)
+    #
+    # def generate_be(self, env):
+    #     for i in range(BEST_EFFORT):
+    #         flow = self.flow_generator(4, i)
+    #         # print("be generate time slot", self.timeslots)
+    #         # if i < 10:
+    #         #     print("p2 generated in timeslot", self.timeslots)
+    #         yield env.process(self.node.packet_in(self.timeslots, flow))
+    #         self.cnt4 += 1
+    #         yield env.timeout(TIMESLOT_SIZE * PERIOD_BE / 1000)
 
     def sendTo_next_node(self, env):
         flows = self.trans_list
@@ -148,10 +151,11 @@ class GateControlTestSimulation:
             self.reward += A  # 패킷을 전송했을 때 reward
             f = yield flows.get()
             t = f.priority_ - 1
-            n = f.num_
             self.received_packet += 1
             f.arrival_time_ = env.now - self.start_time
-            ET = (f.queueing_delay_ + f.current_delay_ + f.remain_hops_) * TIMESLOT_SIZE / 1000
+            f.current_delay_ += f.queueing_delay_
+            f.queueing_delay_ = 0
+            ET = (f.random_delay_+f.queueing_delay_ + f.current_delay_ + f.remain_hops_) * TIMESLOT_SIZE / 1000
             delay = f.queueing_delay_ * TIMESLOT_SIZE / 1000
             self.avg_delay[t].append(delay)
             self.estimated_e2e[t].append(ET)
@@ -171,8 +175,8 @@ class GateControlTestSimulation:
         self.reset()
         gcl = 0
 
-        env.process(self.generate_cc(env))
-        env.process(self.generate_be(env))
+        env.process(self.source.send(env, self.node, 1))
+        env.process(self.source.send(env, self.node, 4))
 
         while not self.done:
             self.timeslots += 1
@@ -204,8 +208,8 @@ class GateControlTestSimulation:
 
         self.log1 = self.log1.append(log_, ignore_index=True)
 
-        if sum(rewards_all) < 30 :
-            self.ex.to_csv('result/test/ex_analysis.csv')
+        # if sum(rewards_all) < 30 :
+        self.ex.to_csv('result/test/ex_analysis.csv')
 
         # print("avg delay", list(map(np.mean, self.avg_delay)))
         # print("ET", list(map(np.mean, self.estimated_e2e)))
@@ -315,16 +319,16 @@ class GateControlTestSimulation:
         self.log3 = self.log3.append(log_, ignore_index=True)
 
     def simulation(self):
-        iter = 10
-        for _ in range(iter):
+        iter_ = 1
+        for _ in range(iter_):
             self.env.process(self.gcl_extract(self.env))
             self.env.run()
             # print("@@@@@@@@@GCL Extract 완료@@@@@@@@@")
 
             # FIFO
-            self.reset()
-            self.env.process(self.FIFO(self.env))
-            self.env.run()
+            # self.reset()
+            # self.env.process(self.FIFO(self.env))
+            # self.env.run()
             # print("@@@@@@@@@FIFO 완료@@@@@@@@@")
 
             # test
@@ -334,9 +338,9 @@ class GateControlTestSimulation:
             # # print("@@@@@@@@@Test simulation 완료@@@@@@@@@")
             self.sequence_p1, self.sequence_p2 = random_sequence()
 
-        self.log1.to_csv("result/test/extract.csv")
+        # self.log1.to_csv("result/test/extract.csv")
         # self.log2.to_csv("result/test/apply.csv")
-        self.log3.to_csv("result/test/fifo.csv")
+        # self.log3.to_csv("result/test/fifo.csv")
 
     def step(self, qlen, max_et):
         state = np.zeros((PRIORITY_QUEUE, STATE))

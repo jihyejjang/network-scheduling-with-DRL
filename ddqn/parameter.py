@@ -4,10 +4,11 @@ import numpy as np
 import random
 
 # parameters
+SINGLE_NODE = True
 FIXED_SEQUENCE = False
 FIRST_TRAIN = True
 MAXSLOT_MODE = True
-MAXSLOTS = 330
+MAXSLOTS = 500
 LEARNING_RATE = 0.0001
 UPDATE = 500
 EPSILON_DECAY = 0.9998
@@ -60,8 +61,8 @@ NODES = 9
 SRCES = 6
 # random parameters
 RANDOM_HOP = 4  # 4
-RANDOM_CURRENT_DELAY_CC = 2
-RANDOM_CURRENT_DELAY_BE = (30, 45)
+RANDOM_CURRENT_DELAY_CC = 2 #originally 2
+RANDOM_CURRENT_DELAY_BE = (30,45) #originally 30,45
 PERIOD_CC = 1  # slot
 PERIOD_BE = 1
 # W = [10,10,1,0.1]
@@ -170,3 +171,4 @@ class Flow:
     bits_: int = None
     met_: bool = None
     remain_hops_: int = None
+    random_delay_: float = None

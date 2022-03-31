@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+#Single node simulation
 
 import pandas as pd
 import simpy
@@ -19,13 +20,14 @@ class GateControlSimulation:
 
     def __init__(self):
         self.env = simpy.Environment()
+        self.start_time = self.env.now
         self.node = Node(1, self.env)
+        self.source = Src(1, self.start_time)
         self.agent = Agent()
         self.trans_list = simpy.Store(self.env)
         self.cnt1 = 0
         self.cnt4 = 0
         self.timeslots = 0
-        self.start_time = self.env.now
         state_shape = np.zeros(INPUT_SIZE)
         self.state = state_shape
         self.reward = 0
@@ -46,16 +48,15 @@ class GateControlSimulation:
 
         self.total_episode = 0
         self.reward_max = 0
-        self.sequence_p1, self.sequence_p2 = random_sequence()
+        # self.sequence_p1, self.sequence_p2 = random_sequence()
 
     def reset(self):
         self.start_time = self.env.now
+        self.source = Src(1, self.start_time)
         self.node.reset(self.env)
         self.trans_list = simpy.Store(self.env)
         self.timeslots = 0
         self.cnt1 = 0
-        # self.cnt2 = 0
-        # self.cnt3 = 0
         self.cnt4 = 0
         self.timeslots = 0
         state_shape = np.zeros((PRIORITY_QUEUE * STATE))
@@ -69,64 +70,64 @@ class GateControlSimulation:
         self.avg_delay = [[], []]
         self.estimated_e2e = [[], []]
 
-        if not FIXED_SEQUENCE:
-            self.sequence_p1, self.sequence_p2 = random_sequence()
+        # if not FIXED_SEQUENCE:
+        #     self.sequence_p1, self.sequence_p2 = random_sequence()
 
         e = self.agent.reset()
         return e
 
-    def flow_generator(self, type_num, fnum):
-
-        flow = Flow()
-
-        if type_num == 1:
-            flow.type_ = 1
-            flow.priority_ = 1
-            flow.num_ = fnum
-            flow.deadline_ = CC_DEADLINE * 0.001
-            # f.generated_time_ = time - self.start_time
-            flow.current_delay_ = self.sequence_p1[0][fnum]
-            flow.queueing_delay_ = 0
-            flow.node_arrival_time_ = 0
-            flow.bits_ = CC_BYTE * 8
-            flow.met_ = -1
-            flow.remain_hops_ = self.sequence_p1[1][fnum]
-
-        else:
-            flow.type_ = 4
-            flow.priority_ = 2
-            flow.num_ = fnum
-            flow.deadline_ = BE_DEADLINE * 0.001
-            flow.current_delay_ = self.sequence_p2[0][fnum]
-            # f.generated_time_ = time - self.start_time
-            flow.queueing_delay_ = 0
-            flow.node_arrival_time_ = 0
-            flow.arrival_time_ = 0
-            flow.bits_ = BE_BYTE * 8
-            flow.met_ = -1
-            flow.remain_hops_ = self.sequence_p2[1][fnum]
-
-        return flow
-
-    def generate_cc(self, env):
-        for i in range(COMMAND_CONTROL):
-            flow = self.flow_generator(1, i)
-            # print("c&c generate time slot", self.timeslots)
-            # if i < 10:
-            #     print("p1 generated in timeslot", self.timeslots)
-            yield env.process(self.node.packet_in(env.now, flow))
-            self.cnt1 += 1
-            yield env.timeout(TIMESLOT_SIZE * PERIOD_CC / 1000)
-
-    def generate_be(self, env):
-        for i in range(BEST_EFFORT):
-            flow = self.flow_generator(4, i)
-            # print("be generate time slot", self.timeslots)
-            # if i < 10:
-            #     print("p2 generated in timeslot", self.timeslots)
-            yield env.process(self.node.packet_in(self.timeslots, flow))
-            self.cnt4 += 1
-            yield env.timeout(TIMESLOT_SIZE * PERIOD_BE / 1000)
+    # def flow_generator(self, type_num, fnum):
+    #
+    #     flow = Flow()
+    #
+    #     if type_num == 1:
+    #         flow.type_ = 1
+    #         flow.priority_ = 1
+    #         flow.num_ = fnum
+    #         flow.deadline_ = CC_DEADLINE * 0.001
+    #         # f.generated_time_ = time - self.start_time
+    #         flow.current_delay_ = self.sequence_p1[0][fnum]
+    #         flow.queueing_delay_ = 0
+    #         flow.node_arrival_time_ = 0
+    #         flow.bits_ = CC_BYTE * 8
+    #         flow.met_ = -1
+    #         flow.remain_hops_ = self.sequence_p1[1][fnum]
+    #
+    #     else:
+    #         flow.type_ = 4
+    #         flow.priority_ = 2
+    #         flow.num_ = fnum
+    #         flow.deadline_ = BE_DEADLINE * 0.001
+    #         flow.current_delay_ = self.sequence_p2[0][fnum]
+    #         # f.generated_time_ = time - self.start_time
+    #         flow.queueing_delay_ = 0
+    #         flow.node_arrival_time_ = 0
+    #         flow.arrival_time_ = 0
+    #         flow.bits_ = BE_BYTE * 8
+    #         flow.met_ = -1
+    #         flow.remain_hops_ = self.sequence_p2[1][fnum]
+    #
+    #     return flow
+    #
+    # def generate_cc(self, env):
+    #     for i in range(COMMAND_CONTROL):
+    #         flow = self.flow_generator(1, i)
+    #         # print("c&c generate time slot", self.timeslots)
+    #         # if i < 10:
+    #         #     print("p1 generated in timeslot", self.timeslots)
+    #         yield env.process(self.node.packet_in(env.now, flow))
+    #         self.cnt1 += 1
+    #         yield env.timeout(TIMESLOT_SIZE * PERIOD_CC / 1000)
+    #
+    # def generate_be(self, env):
+    #     for i in range(BEST_EFFORT):
+    #         flow = self.flow_generator(4, i)
+    #         # print("be generate time slot", self.timeslots)
+    #         # if i < 10:
+    #         #     print("p2 generated in timeslot", self.timeslots)
+    #         yield env.process(self.node.packet_in(self.timeslots, flow))
+    #         self.cnt4 += 1
+    #         yield env.timeout(TIMESLOT_SIZE * PERIOD_BE / 1000)
 
     def sendTo_next_node(self, env):
         flows = self.trans_list
@@ -140,8 +141,10 @@ class GateControlSimulation:
             flow = yield flows.get()
             t = flow.priority_ - 1
             self.received_packet += 1
+            flow.current_delay_ += flow.queueing_delay_
+            flow.queueing_delay_ = 0
             flow.arrival_time_ = env.now - self.start_time
-            ET = (flow.queueing_delay_ + flow.current_delay_ + flow.remain_hops_) * TIMESLOT_SIZE / 1000
+            ET = (flow.random_delay_+flow.queueing_delay_ + flow.current_delay_ + flow.remain_hops_) * TIMESLOT_SIZE / 1000
             delay = flow.queueing_delay_ * TIMESLOT_SIZE / 1000
             self.avg_delay[t].append(delay)
             self.estimated_e2e[t].append(ET)
@@ -160,8 +163,8 @@ class GateControlSimulation:
 
         for episode_num in range(MAX_EPISODE):
             self.total_episode += 1
-            env.process(self.generate_cc(env))
-            env.process(self.generate_be(env))
+            env.process(self.source.send(env, self.node, 1))
+            env.process(self.source.send(env, self.node, 4))
             s = time.time()
             rewards_all = []
             loss = []
@@ -177,8 +180,8 @@ class GateControlSimulation:
                 # training starts when a timeslot cycle has finished
                 qlen, max_et = self.node.queue_info()  # state에 필요한 정보 (Q_p, maxET, index)
                 self.next_state, self.done = self.step(qlen, max_et)
-                if any(self.state):
-                    self.agent.observation(self.state, gcl, self.reward, self.next_state, self.done)
+                # if any(self.state):
+                self.agent.observation(self.state, gcl, self.reward, self.next_state, self.done)
                 rewards_all.append(self.reward)
                 self.reward = 0
                 self.state = self.next_state

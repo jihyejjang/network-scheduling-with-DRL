@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
-import time
+# import time
 
 import simpy
 from parameter import *
 import warnings
-import numpy as np
+# import numpy as np
 
 warnings.filterwarnings('ignore')
 
@@ -23,11 +23,8 @@ class Node:
         self.class_based_queues = [simpy.Store(env) for _ in range(PRIORITY_QUEUE)]
         self.action = number_to_action(INITIAL_ACTION)
 
-    def packet_in(self, flow):
-        del flow.route_[0]
-        yield self.class_based_queues[flow.priority_ - 1].put(flow)
-        #flow.node_arrival_time_ = timeslot
-        flow.remain_hops_ -= 1
+    def packet_in(self, pk):
+        yield self.class_based_queues[pk.priority_ - 1].put(pk)
 
     def queue_info(self):
         # state = queuelength, maxET, argmax
@@ -42,7 +39,7 @@ class Node:
                 continue
             l[q] = len(flows)
             for i, flow in enumerate(flows):
-                ET[q].append(flow.queueing_delay_ + flow.current_delay_ + flow.remain_hops_ + i)
+                ET[q].append(flow.random_delay_ + flow.queueing_delay_ + flow.current_delay_ + flow.remain_hops_ + i)
             max_et[q] = max(ET[q])
             # max_q_pos[q] = np.argmax(ET[q])
         return l, max_et
@@ -54,31 +51,37 @@ class Node:
 
         if action_to_number(self.action) == 0:
             flows = self.class_based_queues[0].items
-            for f in flows:
-                f.queueing_delay_ += 1
+            for fl in flows:
+                fl.queueing_delay_ += 1
 
             if len(self.class_based_queues[0].items) >= 1:
-                f = yield self.class_based_queues[0].get()
-                yield output.put(f)
+                fl = yield self.class_based_queues[0].get()
+                fl.remain_hops_ -= 1
+                fl.route_ = fl.route_[1:]
+                yield output.put(fl)
         else:
             flows = self.class_based_queues[1].items
-            for f in flows:
-                f.queueing_delay_ += 1
+            for fl in flows:
+                fl.queueing_delay_ += 1
 
             if len(self.class_based_queues[1].items) >= 1:
-                f = yield self.class_based_queues[1].get()
-                yield output.put(f)
+                fl = yield self.class_based_queues[1].get()
+                fl.remain_hops_ -= 1
+                fl.route_ = fl.route_[1:]
+                yield output.put(fl)
 
-    def strict_priority(self, trans_list):  # preemption
+    def strict_priority(self, output):
         pk_cnt = 0
         for q in range(PRIORITY_QUEUE):
             flows = self.class_based_queues[q].items
-            for f in flows:
-                f.queueing_delay_ += 1
+            for fl in flows:
+                fl.queueing_delay_ += 1
 
-            if (len(self.class_based_queues[q].items) >= 1):
-                f = yield self.class_based_queues[q].get()
-                yield trans_list.put(f)
+            if len(self.class_based_queues[q].items) >= 1:
+                fl = yield self.class_based_queues[q].get()
+                fl.remain_hops_ -= 1
+                fl.route_ = fl.route_[1:]
+                yield output.put(fl)
                 pk_cnt += 1
 
             if pk_cnt == 1:
