@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-#Single node simulation
+# Single node simulation
 
 import pandas as pd
 import simpy
@@ -22,13 +22,14 @@ class GateControlSimulation:
         self.env = simpy.Environment()
         self.start_time = self.env.now
         self.node = Node(1, self.env)
-        self.source = Src(1, self.start_time)
+        self.seq = random_sequence()
+        self.source = Src(1, self.start_time, self.seq)
         self.agent = Agent()
         self.trans_list = simpy.Store(self.env)
         self.cnt1 = 0
         self.cnt4 = 0
         self.timeslots = 0
-        state_shape = np.zeros(INPUT_SIZE)
+        state_shape = [np.zeros(INPUT_SIZE) for _ in range(OUTPUT_PORT)]
         self.state = state_shape
         self.reward = 0
         self.next_state = state_shape
@@ -48,11 +49,11 @@ class GateControlSimulation:
 
         self.total_episode = 0
         self.reward_max = 0
-        # self.sequence_p1, self.sequence_p2 = random_sequence()
 
     def reset(self):
         self.start_time = self.env.now
-        self.source = Src(1, self.start_time)
+        self.seq = random_sequence()
+        self.source = Src(1, self.start_time, self.seq)
         self.node.reset(self.env)
         self.trans_list = simpy.Store(self.env)
         self.timeslots = 0
@@ -70,8 +71,8 @@ class GateControlSimulation:
         self.avg_delay = [[], []]
         self.estimated_e2e = [[], []]
 
-        # if not FIXED_SEQUENCE:
-        #     self.sequence_p1, self.sequence_p2 = random_sequence()
+        if not FIXED_SEQUENCE:
+            self.sequence_p1, self.sequence_p2 = random_sequence()
 
         e = self.agent.reset()
         return e
@@ -143,10 +144,10 @@ class GateControlSimulation:
             self.received_packet += 1
             flow.current_delay_ += flow.queueing_delay_
             flow.queueing_delay_ = 0
-            flow.arrival_time_ = env.now - self.start_time
-            ET = (flow.random_delay_+flow.queueing_delay_ + flow.current_delay_ + flow.remain_hops_) * TIMESLOT_SIZE / 1000
             delay = flow.queueing_delay_ * TIMESLOT_SIZE / 1000
             self.avg_delay[t].append(delay)
+            flow.arrival_time_ = env.now - self.start_time
+            ET = (flow.random_delay_ + flow.current_delay_ + flow.remain_hops_) * TIMESLOT_SIZE / 1000
             self.estimated_e2e[t].append(ET)
 
             if ET <= flow.deadline_:
@@ -225,13 +226,13 @@ class GateControlSimulation:
 
             print("Episode {p}, Score: {s}, Final Step: {t}, Epsilon: {e} , Min loss: {m}, success: {l}, "
                   "avg_qdelay: {d}".format(
-                    p=episode_num,
-                    s=np.sum(rewards_all),
-                    t=self.timeslots,
-                    e=round(epsilon, 4),
-                    m=round(np.min(loss), 4),
-                    l=self.success,
-                    d=list(map(np.mean, self.avg_delay))))
+                p=episode_num,
+                s=np.sum(rewards_all),
+                t=self.timeslots,
+                e=round(epsilon, 4),
+                m=round(np.min(loss), 4),
+                l=self.success,
+                d=list(map(np.mean, self.avg_delay))))
 
             epsilon = self.reset()
 
@@ -282,13 +283,13 @@ class GateControlSimulation:
 
             print("Episode {p}, Score: {s}, Final Step: {t}, Epsilon: {e} , Min loss: {m}, success: {l}, "
                   "avg_qdelay: {d}".format(
-                    p=episode_num,
-                    s=np.sum(rewards_all),
-                    t=self.timeslots,
-                    e=0,
-                    m=0,
-                    l=self.success,
-                    d=list(map(np.mean, self.avg_delay))))
+                p=episode_num,
+                s=np.sum(rewards_all),
+                t=self.timeslots,
+                e=0,
+                m=0,
+                l=self.success,
+                d=list(map(np.mean, self.avg_delay))))
             print("simulation ends")
             self.reset()
 
@@ -312,7 +313,6 @@ class GateControlSimulation:
                 done = True
 
         return [state, done]
-
 
     def run(self):
         self.env.process(self.episode(self.env))

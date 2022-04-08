@@ -83,61 +83,61 @@ class GateControlSimulation:
         e = self.agent.reset()
         return e
 
-    def flow_generator(self, src, fnum, single_node=False):
-        flow = Flow()
-
-        flow.priority_ = 1
-        if src > 3:
-            flow.priority_ = 2
-
-        flow.src_ = src
-        flow.dst_ = src
-        flow.num_ = fnum
-        flow.generated_time_ = self.env.now - self.start_time
-        flow.current_delay_ = 0
-        flow.queueing_delay_ = 0
-        flow.met_ = -1
-
-        if single_node:
-            flow.route_ = []
-            if flow.priority_ == 1:
-                flow.remain_hops_ = self.sequence_p1[1][fnum]
-                flow.random_delay_ = self.sequence_p1[0][fnum]
-                flow.deadline_ = CC_DEADLINE * 0.001
-                flow.bits_ = CC_BYTE * 8
-            else:
-                flow.remain_hops_ = self.sequence_p2[1][fnum]
-                flow.random_delay_ = self.sequence_p2[0][fnum]
-                flow.deadline_ = BE_DEADLINE * 0.001
-                flow.bits_ = BE_BYTE * 8
-
-        else:
-            flow.route_ = route[src - 1]
-            flow.remain_hops_ = len(route[src - 1]) - 1
-            if flow.priority_ == 1:
-                flow.deadline_ = CC_DEADLINE * 0.001
-                flow.bits_ = CC_BYTE * 8
-
-            else:
-                flow.deadline_ = BE_DEADLINE * 0.001
-                flow.bits_ = BE_BYTE * 8
-
-        return flow
-
-    def send(self, env, src):
-        if src < 4:
-            for i in range(COMMAND_CONTROL):
-                flow = self.flow_generator(src, i)
-                r = flow.route_[0]
-                yield env.process(self.nodes[r - 1].packet_in(flow))
-                yield env.timeout(TIMESLOT_SIZE * PERIOD_CC / 1000)
-
-        else:
-            for i in range(BEST_EFFORT):
-                flow = self.flow_generator(src, i)
-                r = flow.route_[0]
-                yield env.process(self.nodes[r - 1].packet_in(flow))
-                yield env.timeout(TIMESLOT_SIZE * PERIOD_BE / 1000)
+    # def flow_generator(self, src, fnum, single_node=False):
+    #     flow = Flow()
+    #
+    #     flow.priority_ = 1
+    #     if src > 3:
+    #         flow.priority_ = 2
+    #
+    #     flow.src_ = src
+    #     flow.dst_ = src
+    #     flow.num_ = fnum
+    #     flow.generated_time_ = self.env.now - self.start_time
+    #     flow.current_delay_ = 0
+    #     flow.queueing_delay_ = 0
+    #     flow.met_ = -1
+    #
+    #     if single_node:
+    #         flow.route_ = []
+    #         if flow.priority_ == 1:
+    #             flow.remain_hops_ = self.sequence_p1[1][fnum]
+    #             flow.random_delay_ = self.sequence_p1[0][fnum]
+    #             flow.deadline_ = CC_DEADLINE * 0.001
+    #             flow.bits_ = CC_BYTE * 8
+    #         else:
+    #             flow.remain_hops_ = self.sequence_p2[1][fnum]
+    #             flow.random_delay_ = self.sequence_p2[0][fnum]
+    #             flow.deadline_ = BE_DEADLINE * 0.001
+    #             flow.bits_ = BE_BYTE * 8
+    #
+    #     else:
+    #         flow.route_ = route[src - 1]
+    #         flow.remain_hops_ = len(route[src - 1]) - 1
+    #         if flow.priority_ == 1:
+    #             flow.deadline_ = CC_DEADLINE * 0.001
+    #             flow.bits_ = CC_BYTE * 8
+    #
+    #         else:
+    #             flow.deadline_ = BE_DEADLINE * 0.001
+    #             flow.bits_ = BE_BYTE * 8
+    #
+    #     return flow
+    #
+    # def send(self, env, src):
+    #     if src < 4:
+    #         for i in range(COMMAND_CONTROL):
+    #             flow = self.flow_generator(src, i)
+    #             r = flow.route_[0]
+    #             yield env.process(self.nodes[r - 1].packet_in(flow))
+    #             yield env.timeout(TIMESLOT_SIZE * PERIOD_CC / 1000)
+    #
+    #     else:
+    #         for i in range(BEST_EFFORT):
+    #             flow = self.flow_generator(src, i)
+    #             r = flow.route_[0]
+    #             yield env.process(self.nodes[r - 1].packet_in(flow))
+    #             yield env.timeout(TIMESLOT_SIZE * PERIOD_BE / 1000)
 
     def sendTo_next_node(self, env, output):
 
@@ -152,9 +152,9 @@ class GateControlSimulation:
                 packet.queueing_delay_ = 0
                 p = packet.priority_ - 1
                 src = packet.src_
-                ET = (packet.random_delay_ + packet.queueing_delay_ + packet.current_delay_ + packet.remain_hops_) * TIMESLOT_SIZE / 1000
+                ET = (packet.queueing_delay_ + packet.remain_hops_ + packet.random_delay_) * TIMESLOT_SIZE / 1000
                 # print (env.now, packet.generated_time_)
-                delay = env.now - self.start_time - packet.generated_time_
+                delay = env.now - self.start_time - packet.generated_time_ + packet.random_delay_ * TIMESLOT_SIZE / 1000
 
                 if ET <= packet.deadline_:
                     self.reward[node] += W[p]

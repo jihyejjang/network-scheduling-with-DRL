@@ -25,14 +25,16 @@ class GateControlTestSimulation:
         self.model = tf.keras.models.load_model(WEIGHT_FILE)
         self.env = simpy.Environment()
         self.start_time = self.env.now
-        self.source = Src(1, self.start_time)
+        # self.sequence_p1, self.sequence_p2 = random_sequence()
+        self.seq = random_sequence()
+        self.source = Src(1, self.start_time, self.seq)
         self.node = Node(1, self.env)
         self.trans_list = simpy.Store(self.env)
         self.cnt1 = 0
         self.cnt4 = 0
         self.timeslots = 0  # progressed timeslots in a episode
         self.start_time = self.env.now  # episode 시작
-        state_shape = np.zeros((PRIORITY_QUEUE * STATE))
+        state_shape = [np.zeros(INPUT_SIZE) for _ in range(OUTPUT_PORT)]
         self.state = state_shape
         self.next_state = state_shape
         self.reward = 0
@@ -59,7 +61,6 @@ class GateControlTestSimulation:
         self.estimated_e2e = [[], []]
         self.s = [[0, 0] for _ in range(PRIORITY_QUEUE)]
         self.state_and_action = []
-        self.sequence_p1, self.sequence_p2 = random_sequence()
 
     def gcl_predict(self, state):
         n = self.model.predict(state)
@@ -70,11 +71,11 @@ class GateControlTestSimulation:
     def reset(self):  # initial state, new episode start
         self.start_time = self.env.now  # episode 시작
         self.node = Node(1, self.env)
-        self.source = Src(1, self.start_time)
+        self.source = Src(1, self.start_time, self.seq)
         self.timeslots = 0
         self.cnt1 = 0
         self.cnt4 = 0
-        state_shape = np.zeros((PRIORITY_QUEUE * STATE))
+        state_shape = [np.zeros(INPUT_SIZE) for _ in range(OUTPUT_PORT)]
         self.state = state_shape
         self.next_state = state_shape
         self.reward = 0
@@ -82,63 +83,10 @@ class GateControlTestSimulation:
 
         self.received_packet = 0
         self.success = [0, 0]  # deadline met
+        self.avg_delay = [[], []]
         self.state_list = []
         self.ex = pd.DataFrame(columns=['timeslot', 'state', 'gcl'])
         self.ap = pd.DataFrame(columns=['timeslot', 'state', 'gcl'])
-
-    # def flow_generator(self, type_num, fnum):  # flow structure에 맞게 flow생성, timestamp등 남길 수 있음
-    #
-    #     f = Flow()
-    #
-    #     if type_num == 1:  # c&c
-    #         f.type_ = 1
-    #         f.priority_ = 1
-    #         f.num_ = fnum
-    #         f.deadline_ = CC_DEADLINE * 0.001
-    #         # f.generated_time_ = time - self.start_time
-    #         f.current_delay_ = self.sequence_p1[0][fnum]
-    #         f.queueing_delay_ = 0
-    #         f.node_arrival_time_ = 0
-    #         f.bits_ = CC_BYTE * 8
-    #         f.met_ = -1
-    #         f.remain_hops_ = self.sequence_p1[1][fnum]
-    #
-    #
-    #     else:  # best effort
-    #         f.type_ = 4
-    #         f.priority_ = 2
-    #         f.num_ = fnum
-    #         f.deadline_ = BE_DEADLINE * 0.001
-    #         f.current_delay_ = self.sequence_p2[0][fnum]
-    #         # f.generated_time_ = time - self.start_time
-    #         f.queueing_delay_ = 0
-    #         f.node_arrival_time_ = 0
-    #         f.arrival_time_ = 0
-    #         f.bits_ = BE_BYTE * 8
-    #         f.met_ = -1
-    #         f.remain_hops_ = self.sequence_p2[1][fnum]
-    #
-    #     return f
-    #
-    # def generate_cc(self, env):
-    #     for i in range(COMMAND_CONTROL):
-    #         flow = self.flow_generator(1, i)
-    #         # print("c&c generate time slot", self.timeslots)
-    #         # if i < 10:
-    #         #     print("p1 generated in timeslot", self.timeslots)
-    #         yield env.process(self.node.packet_in(env.now, flow))
-    #         self.cnt1 += 1
-    #         yield env.timeout(TIMESLOT_SIZE * PERIOD_CC / 1000)
-    #
-    # def generate_be(self, env):
-    #     for i in range(BEST_EFFORT):
-    #         flow = self.flow_generator(4, i)
-    #         # print("be generate time slot", self.timeslots)
-    #         # if i < 10:
-    #         #     print("p2 generated in timeslot", self.timeslots)
-    #         yield env.process(self.node.packet_in(self.timeslots, flow))
-    #         self.cnt4 += 1
-    #         yield env.timeout(TIMESLOT_SIZE * PERIOD_BE / 1000)
 
     def sendTo_next_node(self, env):
         flows = self.trans_list
@@ -148,54 +96,63 @@ class GateControlTestSimulation:
 
         # transmission completed
         for _ in range(len(flows.items)):
-            self.reward += A  # 패킷을 전송했을 때 reward
-            f = yield flows.get()
-            t = f.priority_ - 1
+            self.reward += A
+            flow = yield flows.get()
+            t = flow.priority_ - 1
             self.received_packet += 1
-            f.arrival_time_ = env.now - self.start_time
-            f.current_delay_ += f.queueing_delay_
-            f.queueing_delay_ = 0
-            ET = (f.random_delay_+f.queueing_delay_ + f.current_delay_ + f.remain_hops_) * TIMESLOT_SIZE / 1000
-            delay = f.queueing_delay_ * TIMESLOT_SIZE / 1000
+            flow.current_delay_ += flow.queueing_delay_
+            delay = flow.queueing_delay_ * TIMESLOT_SIZE / 1000
             self.avg_delay[t].append(delay)
+            flow.queueing_delay_ = 0
+            flow.arrival_time_ = env.now - self.start_time
+            ET = (flow.random_delay_ + flow.current_delay_ + flow.remain_hops_) * TIMESLOT_SIZE / 1000
             self.estimated_e2e[t].append(ET)
 
-            if ET <= f.deadline_:
-                f.met_ = 1
+            if ET <= flow.deadline_:
+                flow.met_ = 1
                 self.success[t] += 1
                 self.reward += W[t]
 
             else:
-                f.met_ = 0
+                flow.met_ = 0
 
     def gcl_extract(self, env):  # mainprocess
         s = time.time()
         rewards_all = []
-        self.sequence_p1, self.sequence_p2 = random_sequence()
-        self.reset()
-        gcl = 0
+        # self.sequence_p1, self.sequence_p2 = random_sequence()
+        # self.reset()
+        action = [INITIAL_ACTION for _ in range(OUTPUT_PORT)]
 
         env.process(self.source.send(env, self.node, 1))
         env.process(self.source.send(env, self.node, 4))
 
         while not self.done:
             self.timeslots += 1
-            #print("timeslot",self.timeslots)
-            log = pd.DataFrame([(self.timeslots, self.state, gcl)], columns=['timeslot', 'state', 'gcl'])
-            yield env.process(self.node.packet_out(self.trans_list))
-            env.process(self.sendTo_next_node(env))
+            # print("timeslot",self.timeslots)
+            log = pd.DataFrame([(self.timeslots, self.state, action)], columns=['timeslot', 'state', 'gcl'])
+            yield env.process(self.node.link(self.trans_list, 'ddqn'))
+            yield env.process(self.sendTo_next_node(env))
             yield env.timeout(TIMESLOT_SIZE / 1000)
 
-            qlen, max_et = self.node.queue_info()  # state에 필요한 정보 (Q_p, maxET, index)
-            self.next_state, self.done = self.step(qlen, max_et)
+            self.next_state = self.node.step()
+            self.done = self.terminated()
             rewards_all.append(self.reward)
             self.reward = 0
             self.state = self.next_state
-            # print(self.state)
-            gcl = self.gcl_predict(np.array(self.state).reshape(1, INPUT_SIZE))  # new state로 gcl 업데이트
-            #print("next slot gcl",gcl)
-            self.node.gcl_update(gcl)
-            self.gate_control_list.append(gcl)
+
+            p = self.node.schedulable()
+            # p=0
+            try:
+                action[p] = self.gcl_predict(
+                    np.array(self.state[p]).reshape(1, INPUT_SIZE))
+                self.node.gcl_update(action[p], p)
+            except:
+                for i in p:
+                    action[i] = self.gcl_predict(
+                        np.array(self.state[i]).reshape(1, INPUT_SIZE))
+                    self.node.gcl_update(action[i], i)
+
+            # self.gate_control_list.append(gcl)
 
             self.ex = self.ex.append(log, ignore_index=True)
 
@@ -207,112 +164,79 @@ class GateControlTestSimulation:
                             columns=['Slots', 'Score', 'p1', 'p2'])
 
         self.log1 = self.log1.append(log_, ignore_index=True)
+        print("Score: {s}, Final Step: {t}, success: {l}, qdelay: {d}".format(
+            s=np.sum(rewards_all),
+            t=self.timeslots,
+            l=self.success,
+            d=list(map(np.mean, self.avg_delay))))
 
         # if sum(rewards_all) < 30 :
         self.ex.to_csv('result/test/ex_analysis.csv')
 
-        # print("avg delay", list(map(np.mean, self.avg_delay)))
-        # print("ET", list(map(np.mean, self.estimated_e2e)))
-        # print("gcl distribution", np.unique(self.gate_control_list, return_counts=True))
-        # print("gcl extract success rate", self.success)
-        # print("reward", sum(rewards_all))
 
-        # x = range(int(len(self.avg_delay[0])))
-        # # y1 = self.avg_delay[0]
-        # y2 = self.estimated_e2e[0]
-        # # plt.scatter(x, y1, s=3, label='p1_q')
-        # plt.scatter(x, y2, s=3, label='p1_e')
-        # plt.plot(x, [5*0.001 for _ in range(len(x))], c='orange', label='deadline')
-        # plt.savefig("test_p1.png", dpi=300)
-        # plt.clf()
-        # X = range(int(len(self.avg_delay[1])))
-        # # Y1 = self.avg_delay[1]
-        # Y2 = self.estimated_e2e[1]
-        # # plt.scatter(X, Y1, s=3, label='p2_q')
-        # plt.scatter(X, Y2, s=3, label='p2_e')
-        # plt.plot(X, [50*0.001 for _ in range(len(X))], c='orange', label='deadline')
-        # plt.savefig("test_p2.png", dpi=300)
-        # plt.clf()
-
-    def gcl_apply(self, env):
-        print("applied gcl")
-        rewards_all = []
-        env.process(self.generate_cc(env))
-        env.process(self.generate_be(env))
-        gcl=0
-        while not self.done:  # 1회의 episode가 종료될 때 까지 cycle을 반복하는 MAIN process
-            self.timeslots += 1
-            log = pd.DataFrame([(self.timeslots, self.state, gcl)], columns=['timeslot', 'state', 'gcl'])
-
-            yield env.process(self.node.packet_out(self.trans_list))
-            env.process(self.sendTo_next_node(env))
-            yield env.timeout(TIMESLOT_SIZE / 1000)
-
-            qlen, max_et = self.node.queue_info()
-            self.next_state, self.done = self.step(qlen, max_et)
-            rewards_all.append(self.reward)
-            self.reward = 0
-            self.state_list.append(self.state)
-            self.state = self.next_state
-            gcl = self.gate_control_list[self.timeslots]
-            self.node.gcl_update(gcl)
-
-            self.ap = self.ap.append(log, ignore_index=True)
-
-        # if sum(rewards_all) < 30:
-        #     self.ap.to_csv('ap_analysis.csv')
-
-        self.gate_control_list = [0]
-
-
-        log_ = pd.DataFrame([(self.timeslots, np.sum(rewards_all), self.success[0], self.success[1])],
-                            columns=['Slots', 'Score', 'p1', 'p2'])
-
-        self.log2 = self.log2.append(log_, ignore_index=True)
+    # def gcl_apply(self, env):
+    #     print("applied gcl")
+    #     rewards_all = []
+    #     env.process(self.generate_cc(env))
+    #     env.process(self.generate_be(env))
+    #     gcl = 0
+    #     while not self.done:  # 1회의 episode가 종료될 때 까지 cycle을 반복하는 MAIN process
+    #         self.timeslots += 1
+    #         log = pd.DataFrame([(self.timeslots, self.state, gcl)], columns=['timeslot', 'state', 'gcl'])
+    #
+    #         yield env.process(self.node.packet_out(self.trans_list))
+    #         yield env.process(self.sendTo_next_node(env))
+    #         yield env.timeout(TIMESLOT_SIZE / 1000)
+    #
+    #         qlen, max_et = self.node.queue_info()
+    #         self.next_state, self.done = self.step(qlen, max_et)
+    #         rewards_all.append(self.reward)
+    #         self.reward = 0
+    #         self.state_list.append(self.state)
+    #         self.state = self.next_state
+    #         gcl = self.gate_control_list[self.timeslots]
+    #         self.node.gcl_update(gcl)
+    #
+    #         self.ap = self.ap.append(log, ignore_index=True)
+    #
+    #     # if sum(rewards_all) < 30:
+    #     #     self.ap.to_csv('ap_analysis.csv')
+    #
+    #     self.gate_control_list = [0]
+    #
+    #     log_ = pd.DataFrame([(self.timeslots, np.sum(rewards_all), self.success[0], self.success[1])],
+    #                         columns=['Slots', 'Score', 'p1', 'p2'])
+    #
+    #     self.log2 = self.log2.append(log_, ignore_index=True)
 
     def FIFO(self, env):
         print("FIFO test")
         rewards_all = []
-        env.process(self.generate_cc(env))
-        env.process(self.generate_be(env))
+        env.process(self.source.send(env, self.node, 1))
+        env.process(self.source.send(env, self.node, 4))
+        # action = [INITIAL_ACTION for _ in range(OUTPUT_PORT)]
         while not self.done:  # 1회의 episode가 종료될 때 까지 cycle을 반복하는 MAIN process
             # gcl = self.gate_control_list[self.timeslots]
+            self.timeslots += 1
 
-            yield env.process(self.node.packet_FIFO_out(self.trans_list))
-            env.process(self.sendTo_next_node(env))
+            yield env.process(self.node.link(self.trans_list,'sp'))
+            yield env.process(self.sendTo_next_node(env))
             yield env.timeout(TIMESLOT_SIZE / 1000)
 
-            qlen, max_et = self.node.queue_info()
-            self.next_state, self.done = self.step(qlen, max_et)
+            self.next_state = self.node.step()
+            self.done = self.terminated()
             rewards_all.append(self.reward)
             self.reward = 0
             self.state = self.next_state
             # self.node.gcl_update(gcl)
-            self.timeslots += 1
 
-        # print("test결과 success rate", self.success)
-        # print("avg delay", list(map(np.mean, self.avg_delay)))
-        # print("ET", list(map(np.mean, self.estimated_e2e)))
-        # print("reward", sum(rewards_all))
 
-        # x = range(int(len(self.avg_delay[0])))
-        # y1 = self.avg_delay[0]
-        # y2 = self.estimated_e2e[0]
-        # plt.scatter(x, y1, s=3, label='p1_q')
-        # plt.plot(x, y2,  label='p1_e')
-        # plt.plot(x, [5*0.001 for _ in range(len(x))], c='orange', label='deadline')
-        # plt.savefig("fifo_p1.png", dpi=300)
-        # plt.clf()
 
-        # X = range(int(len(self.avg_delay[1])))
-        # Y1 = self.avg_delay[1]
-        # Y2 = self.estimated_e2e[1]
-        # plt.scatter(X, Y1, s=3, label='p2_q')
-        # plt.plot(X, Y2,  label='p2_e')
-        # plt.plot(X, [50*0.001 for _ in range(len(X))], c='orange', label='deadline')
-        # plt.savefig("fifo_p2.png", dpi=300)
-        # plt.clf()
-
+        print("Score: {s}, Final Step: {t}, success: {l}, avg_qdelay: {d}".format(
+            s=np.sum(rewards_all),
+            t=self.timeslots,
+            l=self.success,
+            d=list(map(np.mean, self.avg_delay))))
         log_ = pd.DataFrame([(self.timeslots, np.sum(rewards_all), self.success[0], self.success[1])],
                             columns=['Slots', 'Score', 'p1', 'p2'])
 
@@ -323,31 +247,28 @@ class GateControlTestSimulation:
         for _ in range(iter_):
             self.env.process(self.gcl_extract(self.env))
             self.env.run()
+            self.reset()
+
             # print("@@@@@@@@@GCL Extract 완료@@@@@@@@@")
 
             # FIFO
-            # self.reset()
-            # self.env.process(self.FIFO(self.env))
-            # self.env.run()
+            self.env.process(self.FIFO(self.env))
+            self.env.run()
             # print("@@@@@@@@@FIFO 완료@@@@@@@@@")
+            self.seq = random_sequence()
+            self.source = Src(1, self.start_time, self.seq)
+            self.reset()
 
-            # test
-            # self.reset()
-            # self.env.process(self.gcl_apply(self.env))
-            # self.env.run()
-            # # print("@@@@@@@@@Test simulation 완료@@@@@@@@@")
-            self.sequence_p1, self.sequence_p2 = random_sequence()
-
-        # self.log1.to_csv("result/test/extract.csv")
+        self.log1.to_csv("result/test/extract.csv")
         # self.log2.to_csv("result/test/apply.csv")
-        # self.log3.to_csv("result/test/fifo.csv")
+        self.log3.to_csv("result/test/fifo.csv")
 
-    def step(self, qlen, max_et):
-        state = np.zeros((PRIORITY_QUEUE, STATE))
-        state[:, 0] = qlen
-        state[:, 1] = max_et
-        # state[:, 2] = max_qp
-        state = state.flatten()
+    def terminated(self):
+        # state = np.zeros((PRIORITY_QUEUE, STATE))
+        # state[:, 0] = qlen
+        # state[:, 1] = max_et
+        # # state[:, 2] = max_qp
+        # state = state.flatten()
 
         done = False
 
@@ -358,7 +279,7 @@ class GateControlTestSimulation:
             if self.received_packet == COMMAND_CONTROL + BEST_EFFORT:  # originally (CC + A + V + BE)
                 done = True
 
-        return [state, done]
+        return done
 
     # def reward2(self, node):
     #     w = np.array([2, 3, 0.1, 0.01])

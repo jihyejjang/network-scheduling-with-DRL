@@ -4,16 +4,27 @@ import numpy as np
 import random
 
 # parameters
-SINGLE_NODE = True
+SINGLE_NODE = False
+OUTPUT_PORT = 2
+SRCES = 8  # 8
+W = [0.6, 0.1]
+A = 0.01
+
+RANDOM_HOP = 0  # 4
+RANDOM_CURRENT_DELAY_CC = 5  # originally 2
+RANDOM_CURRENT_DELAY_BE = [15, 25]  # originally 30,45
+PERIOD_CC = 2  # slot
+PERIOD_BE = 2
+COMMAND_CONTROL = 20  # 40
+BEST_EFFORT = 50  # 100
+
 FIXED_SEQUENCE = False
 FIRST_TRAIN = True
 MAXSLOT_MODE = True
-MAXSLOTS = 500
+MAXSLOTS = 300
 LEARNING_RATE = 0.0001
 UPDATE = 500
 EPSILON_DECAY = 0.9998
-W = [0.6, 0.1]
-A = 0.01
 
 # Save
 DATE = '0323'
@@ -37,11 +48,7 @@ DISCOUNT_FACTOR = 0.99
 
 # Environment
 MAX_EPISODE = 20000
-COMMAND_CONTROL = 40  # 40
-# AUDIO = 8
-# VIDEO_FRAME = 30
-# VIDEO = 2 * VIDEO_FRAME
-BEST_EFFORT = 100  # 100
+
 # CC_PERIOD = 10
 # AD_PERIOD = 6
 # VD_PERIOD = 8
@@ -58,13 +65,9 @@ TIMESLOT_SIZE = 0.6
 BANDWIDTH = 20000  # bits per msec (20Mbps)
 MAX_BURST = 12000
 NODES = 9
-SRCES = 6
+
 # random parameters
-RANDOM_HOP = 4  # 4
-RANDOM_CURRENT_DELAY_CC = 2 #originally 2
-RANDOM_CURRENT_DELAY_BE = (30,45) #originally 30,45
-PERIOD_CC = 1  # slot
-PERIOD_BE = 1
+
 # W = [10,10,1,0.1]
 
 
@@ -150,9 +153,14 @@ def number_to_action(action_id):  # number -> binary gcl code
     return action_
 
 
-route = [[1], [4, 5, 2], [7, 8, 9, 6, 3],
-         [7, 4, 1, 2, 3], [8, 5, 6], [9]]
+route_ = [[1], [4, 5, 2], [7, 8, 9, 6, 3],
+          [7, 4, 1, 2, 3], [8, 5, 6], [9]]
 
+route = [[1, 2, 5, 6, 9], [3, 2, 5, 4, 7], [4, 1, 2], [4, 7, 8],
+         [6, 3, 2], [6, 9, 8], [7, 8, 5, 6, 3], [9, 8, 5, 4, 1]]
+
+
+# 첫 번째, 마지막 루트만 priority 1
 
 # packet structure
 

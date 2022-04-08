@@ -8,30 +8,33 @@ warnings.filterwarnings('ignore')
 
 
 class Src:
-    def __init__(self, src, start_time):
+    def __init__(self, src, start_time, seq):
         self.src = src
         self.cnt = 0
-        self.p = 1
-        if src >= 3:
-            self.p = 2
+        # self.p = 1
+        # if src > 3:
+        #     self.p = 2
         self.episode_start_time = start_time
-        self.sequence_p1, self.sequence_p2 = random_sequence()
+        self.sequence_p1, self.sequence_p2 = seq
 
     def reset(self, src, start_time):
         self.src = src
         self.cnt = 0
-        self.p = 1
-        if src >= 3:
-            self.p = 2
+        # self.p = 1
+        # if src > 3:
+        #     self.p = 2
         self.episode_start_time = start_time
-        if not FIXED_SEQUENCE:
-            self.sequence_p1, self.sequence_p2 = random_sequence()
+        # if not FIXED_SEQUENCE:
+        #     self.sequence_p1, self.sequence_p2 = random_sequence()
 
     def flow_generator(self, now, src, fnum):
         flow = Flow()
 
         flow.priority_ = 1
-        if src > 3:
+        # if src > 3:
+        #     flow.priority_ = 2
+
+        if 1 < src < 8:
             flow.priority_ = 2
 
         flow.src_ = src
@@ -45,6 +48,7 @@ class Src:
         if SINGLE_NODE:
             flow.route_ = []
             if flow.priority_ == 1:
+                # print(len(self.sequence_p1[1]),fnum)
                 flow.remain_hops_ = self.sequence_p1[1][fnum]
                 flow.random_delay_ = self.sequence_p1[0][fnum]
                 flow.deadline_ = CC_DEADLINE * 0.001
@@ -72,7 +76,7 @@ class Src:
 
     def send(self, env, nodes, src):
         if SINGLE_NODE:
-            if src < 4:
+            if not 1 < src < 8:
                 for i in range(COMMAND_CONTROL):
                     flow = self.flow_generator(env.now, src, i)
                     # r = flow.route_[0]
@@ -86,7 +90,7 @@ class Src:
                     yield env.process(nodes.packet_in(flow))
                     yield env.timeout(TIMESLOT_SIZE * PERIOD_BE / 1000)
         else:
-            if src < 4:
+            if not 1 < src < 8:
                 for i in range(COMMAND_CONTROL):
                     flow = self.flow_generator(env.now, src, i)
                     r = flow.route_[0]
