@@ -11,30 +11,20 @@ class Src:
     def __init__(self, src, start_time, seq):
         self.src = src
         self.cnt = 0
-        # self.p = 1
-        # if src > 3:
-        #     self.p = 2
         self.episode_start_time = start_time
         self.sequence_p1, self.sequence_p2 = seq
 
     def reset(self, src, start_time):
         self.src = src
         self.cnt = 0
-        # self.p = 1
-        # if src > 3:
-        #     self.p = 2
         self.episode_start_time = start_time
-        # if not FIXED_SEQUENCE:
-        #     self.sequence_p1, self.sequence_p2 = random_sequence()
 
     def flow_generator(self, now, src, fnum):
         flow = Flow()
 
         flow.priority_ = 1
-        # if src > 3:
-        #     flow.priority_ = 2
 
-        if 1 < src < 8:
+        if 1 < src < 8:  # must got to be editted when network topology being changed
             flow.priority_ = 2
 
         flow.src_ = src
@@ -42,33 +32,36 @@ class Src:
         flow.num_ = fnum
         flow.generated_time_ = now - self.episode_start_time
         flow.current_delay_ = 0
-        flow.queueing_delay_ = 0
         flow.met_ = -1
 
         if SINGLE_NODE:
             flow.route_ = []
+            flow.queueing_delay_ = 0
+
             if flow.priority_ == 1:
-                # print(len(self.sequence_p1[1]),fnum)
                 flow.remain_hops_ = self.sequence_p1[1][fnum]
                 flow.random_delay_ = self.sequence_p1[0][fnum]
-                flow.deadline_ = CC_DEADLINE * 0.001
+                flow.deadline_ = CC_DEADLINE
                 flow.bits_ = CC_BYTE * 8
             else:
                 flow.remain_hops_ = self.sequence_p2[1][fnum]
                 flow.random_delay_ = self.sequence_p2[0][fnum]
-                flow.deadline_ = BE_DEADLINE * 0.001
+                flow.deadline_ = BE_DEADLINE
                 flow.bits_ = BE_BYTE * 8
 
         else:
             flow.route_ = route[src - 1]
-            flow.remain_hops_ = len(route[src - 1]) - 1
+            h = len(route[src - 1]) - 1
+            flow.remain_hops_ = h - 1
+            flow.queueing_delay_ = [0 for _ in range(h)]  # nodes to be passed packts
+
             if flow.priority_ == 1:
-                flow.deadline_ = CC_DEADLINE * 0.001
+                flow.deadline_ = CC_DEADLINE
                 flow.random_delay_ = self.sequence_p1[0][fnum]
                 flow.bits_ = CC_BYTE * 8
 
             else:
-                flow.deadline_ = BE_DEADLINE * 0.001
+                flow.deadline_ = BE_DEADLINE
                 flow.random_delay_ = self.sequence_p2[0][fnum]
                 flow.bits_ = BE_BYTE * 8
 
@@ -76,21 +69,19 @@ class Src:
 
     def send(self, env, nodes, src):
         if SINGLE_NODE:
-            if not 1 < src < 8:
+            if not 1 < src < 8:  # must got to be editted when network topology being changed
                 for i in range(COMMAND_CONTROL):
                     flow = self.flow_generator(env.now, src, i)
-                    # r = flow.route_[0]
                     yield env.process(nodes.packet_in(flow))
                     yield env.timeout(TIMESLOT_SIZE * PERIOD_CC / 1000)
 
             else:
                 for i in range(BEST_EFFORT):
                     flow = self.flow_generator(env.now, src, i)
-                    # r = flow.route_[0]
                     yield env.process(nodes.packet_in(flow))
                     yield env.timeout(TIMESLOT_SIZE * PERIOD_BE / 1000)
         else:
-            if not 1 < src < 8:
+            if not 1 < src < 8:  # must got to be editted when network topology being changed
                 for i in range(COMMAND_CONTROL):
                     flow = self.flow_generator(env.now, src, i)
                     r = flow.route_[0]

@@ -4,36 +4,47 @@ import numpy as np
 import random
 
 # parameters
-SINGLE_NODE = False
-OUTPUT_PORT = 2
+SINGLE_NODE = True #False
+OUTPUT_PORT = 1 #2
 SRCES = 8  # 8
-W = [0.6, 0.1]
+
+#Reward
+BOUND = [0.3, 0.5]
+W1 = [-0.1, -0.01]
+W2 = [-0.6, -0.2]
+W3 = -1
+LM = 1.5
+
+W = [0.5, 0.6] #? 왜 이게 더 잘되지
 A = 0.01
 
-RANDOM_HOP = 0  # 4
-RANDOM_CURRENT_DELAY_CC = 5  # originally 2
-RANDOM_CURRENT_DELAY_BE = [15, 25]  # originally 30,45
-PERIOD_CC = 2  # slot
-PERIOD_BE = 2
-COMMAND_CONTROL = 20  # 40
-BEST_EFFORT = 50  # 100
 
+# HOP_WEIGHT = 4
+RANDOM_HOP = 4 # 0
+RANDOM_CURRENT_DELAY_CC = 1  # originally 0 unit : T
+RANDOM_CURRENT_DELAY_BE = [0, 3]  # originally [0,1] unit : T
+PERIOD_CC = 2  # T
+PERIOD_BE = 2
+COMMAND_CONTROL = 40  # 40
+BEST_EFFORT = 40  # 100
+CC_DEADLINE = 8 # 5 (8 T), least 5T, unit : T (if not, just multiply TIMESLOT_SIZE)
+BE_DEADLINE = 10 # 50 ( 75 T )
 FIXED_SEQUENCE = False
 FIRST_TRAIN = True
 MAXSLOT_MODE = True
-MAXSLOTS = 300
-LEARNING_RATE = 0.0001
-UPDATE = 500
-EPSILON_DECAY = 0.9998
+MAXSLOTS = 100 # 250
+LEARNING_RATE = 0.001 #0.0001
+UPDATE = 250 #500
+EPSILON_DECAY = 0.9998 #0.9998
 
 # Save
-DATE = '0323'
+DATE = '0421'
 FILENAME = 'result/0220/[15963]0.001464993692934513.h5'  # weight file name
 WEIGHT_FILE = FILENAME
 
 # RL agent
 PRIORITY_QUEUE = 2
-STATE = 2
+STATE = 2 # for simulation with different utilizations(periods), it has to be editted to 3
 INPUT_SIZE = 4
 # GCL_LENGTH = 3
 OUTPUT_SIZE = 2
@@ -47,16 +58,13 @@ EPSILON_MIN = 0.01
 DISCOUNT_FACTOR = 0.99
 
 # Environment
-MAX_EPISODE = 20000
+MAX_EPISODE = 10000
 
 # CC_PERIOD = 10
 # AD_PERIOD = 6
 # VD_PERIOD = 8
 # BE_PERIOD = 4  # PERIOD는 Utilization을 위해 조절해야 할 듯
-CC_DEADLINE = 5  # 5
-# AD_DEADLINE = 8
-# VD_DEADLINE = 30
-BE_DEADLINE = 50  # 50
+
 CC_BYTE = 1500
 # AD_BYTE = 256
 # VD_BYTE = 1500
@@ -109,14 +117,17 @@ def random_sequence():
     p2 = [[], []]
 
     for i in range(COMMAND_CONTROL):
-        p1[0].append(random.randint(0, RANDOM_CURRENT_DELAY_CC))
-        p1[1].append(random.randint(0, RANDOM_HOP))
+        hop = random.randint(0, RANDOM_HOP)
+        cd = hop + random.randint(0,RANDOM_CURRENT_DELAY_CC)
+        p1[0].append(cd)
+        p1[1].append(hop)
 
     for i in range(BEST_EFFORT):
-        p2[0].append(random.randint(RANDOM_CURRENT_DELAY_BE[0], RANDOM_CURRENT_DELAY_BE[1]))
-        p2[1].append(random.randint(0, RANDOM_HOP))
+        hop = random.randint(0, RANDOM_HOP)
+        cd = hop + random.randint(RANDOM_CURRENT_DELAY_BE[0], RANDOM_CURRENT_DELAY_BE[1])
+        p2[0].append(cd)
+        p2[1].append(hop)
 
-    # print (p1)
     return p1, p2
 
 
@@ -156,8 +167,8 @@ def number_to_action(action_id):  # number -> binary gcl code
 route_ = [[1], [4, 5, 2], [7, 8, 9, 6, 3],
           [7, 4, 1, 2, 3], [8, 5, 6], [9]]
 
-route = [[1, 2, 5, 6, 9], [3, 2, 5, 4, 7], [4, 1, 2], [4, 7, 8],
-         [6, 3, 2], [6, 9, 8], [7, 8, 5, 6, 3], [9, 8, 5, 4, 1]]
+route = [[1, 2, 5, 6, 9, 0], [3, 2, 5, 4, 7, 0], [4, 1, 2, 0], [4, 7, 8, 0],
+         [6, 3, 2, 0], [6, 9, 8, 0], [7, 8, 5, 6, 3, 0], [9, 8, 5, 4, 1, 0]]
 
 
 # 첫 번째, 마지막 루트만 priority 1

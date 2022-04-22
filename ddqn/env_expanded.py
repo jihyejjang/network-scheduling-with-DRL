@@ -191,7 +191,7 @@ class GateControlSimulation:
             while not sum(self.done) == NODES:
                 self.timeslots += 1
                 for n in range(NODES):
-                    yield env.process(self.nodes[n].packet_out(self.output[n + 1]))
+                    yield env.process(self.nodes[n].ddqn(self.output[n + 1]))
                 env.process(self.sendTo_next_node(env, self.output))
                 yield env.timeout(TIMESLOT_SIZE / 1000)
                 for n in range(NODES):
@@ -205,7 +205,7 @@ class GateControlSimulation:
 
                 for n in range(NODES):
                     gcl[n] = self.agent.choose_action(self.state[n])  # new state로 gcl 업데이트
-                    self.nodes[n].gcl_update(gcl[n])
+                    self.nodes[n].action_update(gcl[n])
 
                 # self.gate_control_list.append(gcl)
                 loss.append(self.agent.replay())  # train

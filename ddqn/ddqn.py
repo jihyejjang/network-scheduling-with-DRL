@@ -11,10 +11,10 @@ tf.compat.v1.disable_eager_execution()
 
 def create_model():
     model = Sequential()
-    model.add(Dense(64, input_dim=INPUT_SIZE, kernel_initializer='he_normal'))
+    model.add(Dense(128, input_dim=INPUT_SIZE, kernel_initializer='he_normal'))
     model.add(LeakyReLU(alpha=ALPHA))
     # model.add(Dropout(DROPOUT))
-    model.add(Dense(64, kernel_initializer='he_normal'))
+    model.add(Dense(128, kernel_initializer='he_normal'))
     model.add(LeakyReLU(alpha=ALPHA))
     model.add(Dense(OUTPUT_SIZE, activation='linear', kernel_initializer='he_normal'))  # relu
     model.compile(loss='mean_squared_error', optimizer=Adam(lr=LEARNING_RATE))
