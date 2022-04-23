@@ -34,7 +34,7 @@ class Agent:  # one node agent
 
     def _epsilon_decay_(self):
         if self.epsilon > EPSILON_MIN:
-            self.epsilon = self.epsilon * EPSILON_DECAY
+            self.epsilon -= EPSILON_MAX/MAX_EPISODE
         else:
             self.epsilon = EPSILON_MIN
 

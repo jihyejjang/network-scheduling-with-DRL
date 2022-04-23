@@ -10,8 +10,9 @@ SRCES = 8  # 8
 
 #Reward
 BOUND = [0.3, 0.5]
-W1 = [-0.1, -0.01]
-W2 = [-0.6, -0.2]
+W0 = [0.1, 0.03]
+W1 = [0.01, 0.01]
+# W2 = [-0.6, -0.2]
 W3 = -1
 LM = 1.5
 
@@ -25,20 +26,20 @@ RANDOM_CURRENT_DELAY_CC = 1  # originally 0 unit : T
 RANDOM_CURRENT_DELAY_BE = [0, 3]  # originally [0,1] unit : T
 PERIOD_CC = 2  # T
 PERIOD_BE = 2
-COMMAND_CONTROL = 40  # 40
-BEST_EFFORT = 40  # 100
-CC_DEADLINE = 8 # 5 (8 T), least 5T, unit : T (if not, just multiply TIMESLOT_SIZE)
-BE_DEADLINE = 10 # 50 ( 75 T )
+COMMAND_CONTROL = 100  # 40
+BEST_EFFORT = 100  # 100
+CC_DEADLINE = 7 # 5 (8 T), least 5T, unit : T (if not, just multiply TIMESLOT_SIZE)
+BE_DEADLINE = 9 # 50 ( 75 T )
 FIXED_SEQUENCE = False
 FIRST_TRAIN = True
 MAXSLOT_MODE = True
-MAXSLOTS = 100 # 250
-LEARNING_RATE = 0.001 #0.0001
-UPDATE = 250 #500
+MAXSLOTS = 250 # 250
+LEARNING_RATE = 0.005 #0.0001
+UPDATE = 500 #500
 EPSILON_DECAY = 0.9998 #0.9998
 
 # Save
-DATE = '0421'
+DATE = '0423'
 FILENAME = 'result/0220/[15963]0.001464993692934513.h5'  # weight file name
 WEIGHT_FILE = FILENAME
 
@@ -58,7 +59,7 @@ EPSILON_MIN = 0.01
 DISCOUNT_FACTOR = 0.99
 
 # Environment
-MAX_EPISODE = 10000
+MAX_EPISODE = 15000
 
 # CC_PERIOD = 10
 # AD_PERIOD = 6
@@ -117,13 +118,13 @@ def random_sequence():
     p2 = [[], []]
 
     for i in range(COMMAND_CONTROL):
-        hop = random.randint(0, RANDOM_HOP)
+        hop = random.randint(0, RANDOM_HOP) + 1
         cd = hop + random.randint(0,RANDOM_CURRENT_DELAY_CC)
         p1[0].append(cd)
         p1[1].append(hop)
 
     for i in range(BEST_EFFORT):
-        hop = random.randint(0, RANDOM_HOP)
+        hop = random.randint(0, RANDOM_HOP) + 1
         cd = hop + random.randint(RANDOM_CURRENT_DELAY_BE[0], RANDOM_CURRENT_DELAY_BE[1])
         p2[0].append(cd)
         p2[1].append(hop)

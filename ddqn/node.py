@@ -165,14 +165,14 @@ class Node:
     def ddqn(self, output, port):
 
         if action_to_number(self.action[port]) == 0:
-            if len(self.output_port[port][0].items) >= 1:
+            if len(self.output_port[port][0].items):
                 fl = yield self.output_port[port][0].get()
                 fl.remain_hops_ -= 1
                 fl.route_ = fl.route_[1:]
                 yield output.put(fl)
 
         else:
-            if len(self.output_port[port][1].items) >= 1:
+            if len(self.output_port[port][1].items):
                 fl = yield self.output_port[port][1].get()
                 fl.remain_hops_ -= 1
                 fl.route_ = fl.route_[1:]
