@@ -96,19 +96,19 @@ class GateControlSimulation:
         if BOUND[p] <= et / dl <= 1:  # packet received within configured latency boundary
             packet.met_ = 1
             self.success[p] += 1
-            r += W0[p]
+            r += 1
             # self.reward += W[t]
 
         elif et / dl < BOUND[p]:
             packet.met_ = 1
             self.success[p] += 1
-            r += W1[p]
-        elif 1 < et / dl <= LM:
-            packet.met_ = 0
+            r += 0.01
+        # elif 1 < et / dl <= LM:
+        #     packet.met_ = 0
             # r += W2[p]
         else:
             packet.met_ = 0
-            r += W3
+            r -= et/dl
 
         return r
 
