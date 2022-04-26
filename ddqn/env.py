@@ -93,23 +93,33 @@ class GateControlSimulation:
         dl = packet.deadline_
         # print(dl, et)
 
-        if BOUND[p] <= et / dl <= 1:  # packet received within configured latency boundary
-            packet.met_ = 1
-            self.success[p] += 1
-            r += 1
-            # self.reward += W[t]
+        if COMPLEX:
+            if BOUND[p] <= et / dl <= 1:  # packet received within configured latency boundary
+                packet.met_ = 1
+                self.success[p] += 1
+                r += W0[p]
+                # self.reward += W[t]
 
-        elif et / dl < BOUND[p]:
-            packet.met_ = 1
-            self.success[p] += 1
-            r += 0.01
-        # elif 1 < et / dl <= LM:
-        #     packet.met_ = 0
-            # r += W2[p]
+            elif et / dl < BOUND[p]:
+                packet.met_ = 1
+                self.success[p] += 1
+                r += 0.01
+
+            elif 1 < et / dl <= LM:
+                packet.met_ = 0
+                r += W2[p]
+
+            else:
+                packet.met_ = 0
+                r -= et/dl
         else:
-            packet.met_ = 0
-            r -= et/dl
-
+            if et/dl <= 1:
+                packet.met_ = 1
+                self.success[p] += 1
+                r += W[p] + A
+            else:
+                packet.met_ = 0
+                r += A
         return r
 
     def sendTo_next_node(self, env):
@@ -142,7 +152,7 @@ class GateControlSimulation:
             while not self.done:
                 self.timeslots += 1
 
-                yield env.process(self.node.link(self.trans_list, 'ddqn_'))
+                yield env.process(self.node.link(self.trans_list, 'ddqn'))
                 yield env.process(self.sendTo_next_node(env))  # packet arrive and get reward
                 yield env.timeout(TIMESLOT_SIZE * 0.001)
 
@@ -151,10 +161,10 @@ class GateControlSimulation:
 
                 # observe and update new schedule
 
-                # if p:
-                s_ = np.array(self.state).reshape(INPUT_SIZE)
-                ns_ = np.array(self.next_state).reshape(INPUT_SIZE)
-                self.agent.observation(s_, action, self.reward, ns_, self.done)
+                if p:
+                    s_ = np.array(self.state).reshape(INPUT_SIZE)
+                    ns_ = np.array(self.next_state).reshape(INPUT_SIZE)
+                    self.agent.observation(s_, action, self.reward, ns_, self.done)
 
                 rewards_all.append(self.reward)
                 self.reward = 0

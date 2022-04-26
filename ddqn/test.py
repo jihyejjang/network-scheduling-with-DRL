@@ -92,25 +92,27 @@ class GateControlTestSimulation:
         # self.qdelay.append([p, delay])
         packet.queueing_delay_ = 0
         packet.arrival_time_ = self.env.now - self.start_time
-        self.et.append([p, et])
+        # self.estimated_e2e[p].append(et)
 
         dl = packet.deadline_
+        # print(dl, et)
 
         if BOUND[p] <= et / dl <= 1:  # packet received within configured latency boundary
             packet.met_ = 1
             self.success[p] += 1
+            r += 1
             # self.reward += W[t]
 
-        elif et/dl < BOUND[p]:
+        elif et / dl < BOUND[p]:
             packet.met_ = 1
             self.success[p] += 1
-            r += W1[p]
-        elif 1 < et/dl <= LM :
-            packet.met_ = 0
-            r += W2[p]
+            r += 0.01
+        # elif 1 < et / dl <= LM:
+        #     packet.met_ = 0
+        # r += W2[p]
         else:
             packet.met_ = 0
-            r += W3
+            r -= et / dl
 
         return r
 
@@ -221,7 +223,7 @@ class GateControlTestSimulation:
             self.state = self.next_state
             # self.node.gcl_update(gcl)
 
-        print("Score: {s}, Final Step: {t}, success: {l}, avg_qdelay: {d}".format(
+        print("Sp: {s}, Final Step: {t}, success: {l}, avg_qdelay: {d}".format(
             s=np.sum(rewards_all),
             t=self.timeslots,
             l=self.success,
@@ -230,13 +232,13 @@ class GateControlTestSimulation:
         #                     columns=['Slots', 'Score', 'p1', 'p2'])
 
         # self.log3 = self.log3.append(log_, ignore_index=True)
-        delay = pd.DataFrame(self.qdelay)
-        delay.to_csv('result/test/SP/delay.csv')
-        est = pd.DataFrame(self.et)
-        est.to_csv('result/test/SP/et.csv')
+        # delay = pd.DataFrame(self.qdelay)
+        # delay.to_csv('result/test/SP/delay.csv')
+        # est = pd.DataFrame(self.et)
+        # est.to_csv('result/test/SP/et.csv')
 
     def simulation(self):
-        iter_ = 1
+        iter_ = 2
         for _ in range(iter_):
             self.env.process(self.gcl_extract(self.env))
             self.env.run()

@@ -4,42 +4,43 @@ import numpy as np
 import random
 
 # parameters
-SINGLE_NODE = True #False
-OUTPUT_PORT = 1 #2
+SINGLE_NODE = False #False
+OUTPUT_PORT = 2 #2
 SRCES = 8  # 8
 
 #Reward
+COMPLEX = False
 BOUND = [0.5, 0.6]
 W0 = [0.1, 0.03]
 W1 = [0.01, 0.01]
-# W2 = [-0.6, -0.2]
+W2 = [-0.6, -0.2]
 W3 = -1
 LM = 1.5
-
-W = [0.5, 0.6] #? 왜 이게 더 잘되지
-A = 0.01
+W = [0.6, 0.1]
+# W = [0.5, 0.5] #? 왜 이게 더 잘되지
+A = 0.02
 
 
 # HOP_WEIGHT = 4
-RANDOM_HOP = 4 # 0
+RANDOM_HOP = 0 # 0
 RANDOM_CURRENT_DELAY_CC = 1  # originally 0 unit : T
-RANDOM_CURRENT_DELAY_BE = [0, 3]  # originally [0,1] unit : T
-PERIOD_CC = 2  # T
-PERIOD_BE = 2
+RANDOM_CURRENT_DELAY_BE = [0, 1]  # originally [0,1] unit : T
+PERIOD_CC = 1  # T
+PERIOD_BE = 3
 COMMAND_CONTROL = 40  # 40
 BEST_EFFORT = 40  # 100
-CC_DEADLINE = 10 # 5 (8 T), least 5T, unit : T (if not, just multiply TIMESLOT_SIZE)
-BE_DEADLINE = 12 # 50 ( 75 T )
+CC_DEADLINE = 0.005 # 5 (8 T), 10 least 5T, unit : T (if not, just multiply TIMESLOT_SIZE)
+BE_DEADLINE = 0.005 # 50 ( 75 T ) 12
 FIXED_SEQUENCE = False
 FIRST_TRAIN = True
 MAXSLOT_MODE = True
 MAXSLOTS = 300 # 250
 LEARNING_RATE = 0.005 #0.0001
-UPDATE = 500 #500
+UPDATE = 250 #500
 EPSILON_DECAY = 0.9998 #0.9998
 
 # Save
-DATE = '0423'
+DATE = '0426'
 FILENAME = 'result/0220/[15963]0.001464993692934513.h5'  # weight file name
 WEIGHT_FILE = FILENAME
 
@@ -59,8 +60,7 @@ EPSILON_MIN = 0.01
 DISCOUNT_FACTOR = 0.99
 
 # Environment
-MAX_EPISODE = 15000
-
+MAX_EPISODE = 20000
 # CC_PERIOD = 10
 # AD_PERIOD = 6
 # VD_PERIOD = 8
@@ -85,15 +85,24 @@ if not os.path.exists("./result/" + DATE):
 
 f = open("./result/" + DATE + "/parameters.txt", 'w')
 d = "DATE : {p} \nFIXED_SEQUENDE MODE : {f} \nMAX_SLOTS MODE : {ms} \nLEARNING_RATE: {s} \nMAX_EPISODE: {t} \n \
-    EPSILON_DECAY: {e} \nWeight: {m} \nalpha: {l} \n".format(
+    DEADLINE : {e}, PNUM : {m}".format(
     p=DATE,
     f=FIXED_SEQUENCE,
     ms=MAXSLOT_MODE,
     s=LEARNING_RATE,
     t=MAX_EPISODE,
-    e=EPSILON_DECAY,
-    m=W,
-    l=A)
+    e=[CC_DEADLINE, BE_DEADLINE],
+    m=[COMMAND_CONTROL, BEST_EFFORT])
+# d = "DATE : {p} \nFIXED_SEQUENDE MODE : {f} \nMAX_SLOTS MODE : {ms} \nLEARNING_RATE: {s} \nMAX_EPISODE: {t} \n \
+#     EPSILON_DECAY: {e} \nWeight: {m} \nalpha: {l} \n".format(
+#     p=DATE,
+#     f=FIXED_SEQUENCE,
+#     ms=MAXSLOT_MODE,
+#     s=LEARNING_RATE,
+#     t=MAX_EPISODE,
+#     e=EPSILON_DECAY,
+#     m=W,
+#     l=A)
 
 f.write(d)
 # f.close()
