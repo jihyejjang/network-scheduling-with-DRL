@@ -83,6 +83,7 @@ class GateControlSimulation:
         r = 0
         p = packet.priority_ - 1
         packet.current_delay_ += packet.queueing_delay_
+        # et = packet.current_delay_ + packet.remain_hops + 1
         et = packet.random_delay_ + packet.current_delay_ + packet.remain_hops_ + 1
         # delay = (packet.queueing_delay_ + 1) * TIMESLOT_SIZE / 1000
         # self.qdelay.append([p, delay])
@@ -91,7 +92,6 @@ class GateControlSimulation:
         self.estimated_e2e[p].append(et)
 
         dl = packet.deadline_
-        # print(dl, et)
 
         if COMPLEX:
             if BOUND[p] <= et / dl <= 1:  # packet received within configured latency boundary
@@ -117,6 +117,7 @@ class GateControlSimulation:
                 packet.met_ = 1
                 self.success[p] += 1
                 r += W[p] + A
+
             else:
                 packet.met_ = 0
                 r += A

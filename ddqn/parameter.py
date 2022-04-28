@@ -16,20 +16,20 @@ W1 = [0.01, 0.01]
 W2 = [-0.6, -0.2]
 W3 = -1
 LM = 1.5
-W = [0.3, 0.1]
+W = [0.6, 0.5]
 # W = [0.5, 0.5] #? 왜 이게 더 잘되지
 A = 0.01
 
 # HOP_WEIGHT = 4
 RANDOM_HOP = 4  # 0
-RANDOM_CURRENT_DELAY_CC = 1  # originally 0 unit : T
-RANDOM_CURRENT_DELAY_BE = [0, 1]  # originally [0,1] unit : T
+RANDOM_CURRENT_DELAY_CC = 2  # originally 0 unit : T
+RANDOM_CURRENT_DELAY_BE = [0, 3]  # originally [0,1] unit : T
 PERIOD_CC = 2  # T
 PERIOD_BE = 2
-COMMAND_CONTROL = 80  # 40
-BEST_EFFORT = 80  # 100
+COMMAND_CONTROL = 100  # 40
+BEST_EFFORT = 100  # 100
 CC_DEADLINE = 7  # 5 (8 T), 10 least 5T, unit : T (if not, just multiply TIMESLOT_SIZE)
-BE_DEADLINE = 8  # 50 ( 75 T ) 12
+BE_DEADLINE = 7  # 50 ( 75 T ) 12
 FIXED_SEQUENCE = False
 FIRST_TRAIN = True
 MAXSLOT_MODE = True
@@ -40,7 +40,7 @@ EPSILON_DECAY = 0.9998  # 0.9998
 
 # Save
 DATE = '0428'
-FILENAME = 'result/0220/[15963]0.001464993692934513.h5'  # weight file name
+FILENAME = 'result/0220@/[15963]0.001464993692934513.h5'  # weight file name
 WEIGHT_FILE = FILENAME
 
 # RL agent
@@ -73,8 +73,8 @@ TIMESLOT_SIZE = 0.6
 BANDWIDTH = 20000  # bits per msec (20Mbps)
 MAX_BURST = 12000
 NODES = 9
-MAX_REWARD = COMMAND_CONTROL * W[0] + BEST_EFFORT * W[1] + A * (COMMAND_CONTROL+BEST_EFFORT)
-
+MAX_REWARD = COMMAND_CONTROL * W[0] + BEST_EFFORT * W[1] + A * (COMMAND_CONTROL + BEST_EFFORT)
+print(f'available maximum reward is {MAX_REWARD}')
 # random parameters
 
 # W = [10,10,1,0.1]
@@ -91,7 +91,7 @@ d = "DATE : {p} \n REWARD MODE : {rm} \n MAX_REWARD : {mr} \n \
     p=DATE,
     f=FIXED_SEQUENCE,
     rm=COMPLEX,
-    mr = MAX_REWARD,
+    mr=MAX_REWARD,
     ms=MAXSLOT_MODE,
     s=LEARNING_RATE,
     t=MAX_EPISODE,
@@ -134,13 +134,19 @@ def random_sequence():
 
     for i in range(COMMAND_CONTROL):
         hop = random.randint(0, RANDOM_HOP) + 1
-        cd = hop + random.randint(0, RANDOM_CURRENT_DELAY_CC)
+        late = int(round(RANDOM_HOP / hop, 0))
+        if hop == RANDOM_HOP + 1:
+            late = 0
+        cd = late + random.randint(0, RANDOM_CURRENT_DELAY_CC)
         p1[0].append(cd)
         p1[1].append(hop)
 
     for i in range(BEST_EFFORT):
         hop = random.randint(0, RANDOM_HOP) + 1
-        cd = hop + random.randint(RANDOM_CURRENT_DELAY_BE[0], RANDOM_CURRENT_DELAY_BE[1])
+        late = int(round(RANDOM_HOP / hop, 0))
+        if hop == RANDOM_HOP + 1:
+            late = 0
+        cd = late + random.randint(RANDOM_CURRENT_DELAY_BE[0], RANDOM_CURRENT_DELAY_BE[1])
         p2[0].append(cd)
         p2[1].append(hop)
 

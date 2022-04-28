@@ -128,7 +128,8 @@ class GateControlTestSimulation:
                 # print(packet.current_delay_)
                 if packet.remain_hops_ < 0:
                     packet.remain_hops_ = 0
-                ET = float(packet.current_delay_ + packet.remain_hops_ + packet.random_delay_) * TIMESLOT_SIZE * 0.001
+                # ET = packet.current_delay_ + packet.remain_hops
+                ET = packet.current_delay_ + packet.remain_hops_ + packet.random_delay_
                 # print (ET)
                 if ET <= packet.deadline_:
                     self.reward[node] += W[p]

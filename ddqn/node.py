@@ -80,7 +80,7 @@ class Node:
 
     def queue_info(self, port):
         l = [0, 0]  # state 1
-        ET = [[], []]
+        pod = [[], []]
         max_et = [0, 0]  # state 2
         for q in range(PRIORITY_QUEUE):
             flows = self.output_port[port][q].items
@@ -90,11 +90,14 @@ class Node:
             for i, flow in enumerate(flows):
                 # The unit of estimated delay is T(timeslot)
                 if SINGLE_NODE:
+                    # et = flow.current_delay_ + flow.queueing_delay_ + flow.remain_hops_ + i
                     et = (flow.random_delay_ + flow.current_delay_ + flow.queueing_delay_ + flow.remain_hops_ + i)
                 else:
+                    # et = sum(flow.queueing_delay_) + flow.remain_hops_ + i
                     et = (flow.random_delay_ + sum(flow.queueing_delay_) + flow.remain_hops_ + i)
-                ET[q].append(et)
-            max_et[q] = max(ET[q]) / flow.deadline_
+                pod_ = round(et/flow.deadline_,2)
+                pod[q].append(pod_)
+            max_et[q] = max(pod[q])
         return l, max_et
 
     def action_update(self, action, port):  # observe state and update GCL (cycle : 0.2*3)

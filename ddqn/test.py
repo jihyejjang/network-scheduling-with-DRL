@@ -51,7 +51,7 @@ class GateControlTestSimulation:
         self.delay = pd.DataFrame(columns=['p1', 'p2'])
 
         self.success = [0, 0]  # deadline met
-        self.qdelay = []
+        self.qdelay = [[], []]
         self.et = []
         # self.s = [[0, 0] for _ in range(PRIORITY_QUEUE)]
         # self.state_and_action = []
@@ -71,11 +71,11 @@ class GateControlTestSimulation:
 
         self.received_packet = 0
         self.success = [0, 0]  # deadline met
-        self.qdelay = []
+        self.qdelay = [[], []]
         self.et = []
+        self.delay = pd.DataFrame(columns=['p1', 'p2'])
         self.ex = pd.DataFrame(columns=['timeslot', 'state', 'gcl'])
         self.ap = pd.DataFrame(columns=['timeslot', 'state', 'gcl'])
-        # self.delay = pd.DataFrame(columns=['p1', 'p2'])
 
     def ddqn_predict(self, state):
         n = self.model.predict(state)
@@ -88,32 +88,49 @@ class GateControlTestSimulation:
         p = packet.priority_ - 1
         packet.current_delay_ += packet.queueing_delay_
         et = packet.random_delay_ + packet.current_delay_ + packet.remain_hops_ + 1
+        # et = packet.current_delay_ + packet.remain_hops_ + 1
         # delay = (packet.queueing_delay_ + 1) * TIMESLOT_SIZE / 1000
         # self.qdelay.append([p, delay])
         packet.queueing_delay_ = 0
         packet.arrival_time_ = self.env.now - self.start_time
-        # self.estimated_e2e[p].append(et)
+        self.qdelay[p].append(et * 0.001 * TIMESLOT_SIZE)
+        # if p == 0:
+            # print(packet.random_delay_,packet.remain_hops_)
+            # print(et)
+            # if et>5:
+            #     print(packet.random_delay_,packet.current_delay_,packet.remain_hops_)
+            #     print(et)
 
         dl = packet.deadline_
         # print(dl, et)
 
-        if BOUND[p] <= et / dl <= 1:  # packet received within configured latency boundary
-            packet.met_ = 1
-            self.success[p] += 1
-            r += 1
-            # self.reward += W[t]
+        if COMPLEX:
+            if BOUND[p] <= et / dl <= 1:  # packet received within configured latency boundary
+                packet.met_ = 1
+                self.success[p] += 1
+                r += W0[p]
+                # self.reward += W[t]
 
-        elif et / dl < BOUND[p]:
-            packet.met_ = 1
-            self.success[p] += 1
-            r += 0.01
-        # elif 1 < et / dl <= LM:
-        #     packet.met_ = 0
-        # r += W2[p]
+            elif et / dl < BOUND[p]:
+                packet.met_ = 1
+                self.success[p] += 1
+                r += 0.01
+
+            elif 1 < et / dl <= LM:
+                packet.met_ = 0
+                r += W2[p]
+
+            else:
+                packet.met_ = 0
+                r -= et / dl
         else:
-            packet.met_ = 0
-            r -= et / dl
-
+            if et / dl <= 1:
+                packet.met_ = 1
+                self.success[p] += 1
+                r += W[p] + A
+            else:
+                packet.met_ = 0
+                r += A
         return r
 
     def sendTo_next_node(self, env):
@@ -192,18 +209,15 @@ class GateControlTestSimulation:
                             columns=['Slots', 'Score', 'p1', 'p2'])
 
         self.log1 = self.log1.append(log_, ignore_index=True)
-        print("Score: {s}, Final Step: {t}, success: {l}, qdelay: {d}".format(
+        print("DDQN: {s}, Final Step: {t}, success: {l}, qdelay: {d}".format(
             s=np.sum(rewards_all),
             t=self.timeslots,
             l=self.success,
             d=list(map(np.mean, self.qdelay))))
-
-        # if sum(rewards_all) < 30 :
-        # self.ex.to_csv('result/test/ex_analysis.csv')
-        delay = pd.DataFrame(self.qdelay)
-        delay.to_csv('result/test/delay.csv')
-        est = pd.DataFrame(self.et)
-        est.to_csv('result/test/et.csv')
+        # delay = pd.DataFrame(self.qdelay)
+        # delay.to_csv('result/test/delay.csv')
+        # est = pd.DataFrame(self.et)
+        # est.to_csv('result/test/et.csv')
 
     def SP(self, env):
         rewards_all = []
@@ -214,7 +228,7 @@ class GateControlTestSimulation:
             self.timeslots += 1
             yield env.process(self.node.link(self.trans_list, 'sp'))
             yield env.process(self.sendTo_next_node(env))
-            yield env.timeout(TIMESLOT_SIZE / 1000)
+            yield env.timeout(TIMESLOT_SIZE * 0.001)
 
             self.next_state = self.node.step()
             self.done = self.terminated()
