@@ -259,12 +259,6 @@ class GateControlTestSimulation:
         # self.log3.to_csv("result/test/fifo.csv")
 
     def terminated(self):
-        # state = np.zeros((PRIORITY_QUEUE, STATE))
-        # state[:, 0] = qlen
-        # state[:, 1] = max_et
-        # # state[:, 2] = max_qp
-        # state = state.flatten()
-
         done = False
 
         if MAXSLOT_MODE:
@@ -275,13 +269,6 @@ class GateControlTestSimulation:
                 done = True
 
         return done
-
-    # def reward2(self, node):
-    #     w = np.array([2, 3, 0.1, 0.01])
-    #     # print("s:",self.s)
-    #     r = round(sum(w * np.array(self.s[node - 5])), 1)
-    #     # print ("r2:", r)
-    #     return r
 
 
 if __name__ == "__main__":

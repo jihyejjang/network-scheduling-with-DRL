@@ -4,11 +4,11 @@ import numpy as np
 import random
 
 # parameters
-SINGLE_NODE = False #False
-OUTPUT_PORT = 2 #2
+SINGLE_NODE = True  # False
+OUTPUT_PORT = 1  # 2
 SRCES = 8  # 8
 
-#Reward
+# Reward
 COMPLEX = False
 BOUND = [0.5, 0.6]
 W0 = [0.1, 0.03]
@@ -16,37 +16,36 @@ W1 = [0.01, 0.01]
 W2 = [-0.6, -0.2]
 W3 = -1
 LM = 1.5
-W = [0.6, 0.1]
+W = [0.3, 0.1]
 # W = [0.5, 0.5] #? 왜 이게 더 잘되지
-A = 0.02
-
+A = 0.01
 
 # HOP_WEIGHT = 4
-RANDOM_HOP = 0 # 0
+RANDOM_HOP = 4  # 0
 RANDOM_CURRENT_DELAY_CC = 1  # originally 0 unit : T
 RANDOM_CURRENT_DELAY_BE = [0, 1]  # originally [0,1] unit : T
-PERIOD_CC = 1  # T
-PERIOD_BE = 3
-COMMAND_CONTROL = 40  # 40
-BEST_EFFORT = 40  # 100
-CC_DEADLINE = 0.005 # 5 (8 T), 10 least 5T, unit : T (if not, just multiply TIMESLOT_SIZE)
-BE_DEADLINE = 0.005 # 50 ( 75 T ) 12
+PERIOD_CC = 2  # T
+PERIOD_BE = 2
+COMMAND_CONTROL = 80  # 40
+BEST_EFFORT = 80  # 100
+CC_DEADLINE = 7  # 5 (8 T), 10 least 5T, unit : T (if not, just multiply TIMESLOT_SIZE)
+BE_DEADLINE = 8  # 50 ( 75 T ) 12
 FIXED_SEQUENCE = False
 FIRST_TRAIN = True
 MAXSLOT_MODE = True
-MAXSLOTS = 300 # 250
-LEARNING_RATE = 0.005 #0.0001
-UPDATE = 250 #500
-EPSILON_DECAY = 0.9998 #0.9998
+MAXSLOTS = 250  # 250
+LEARNING_RATE = 0.001  # 0.0001
+UPDATE = 400  # 500
+EPSILON_DECAY = 0.9998  # 0.9998
 
 # Save
-DATE = '0426'
+DATE = '0428'
 FILENAME = 'result/0220/[15963]0.001464993692934513.h5'  # weight file name
 WEIGHT_FILE = FILENAME
 
 # RL agent
 PRIORITY_QUEUE = 2
-STATE = 2 # for simulation with different utilizations(periods), it has to be editted to 3
+STATE = 2  # for simulation with different utilizations(periods), it has to be editted to 3
 INPUT_SIZE = 4
 # GCL_LENGTH = 3
 OUTPUT_SIZE = 2
@@ -74,6 +73,7 @@ TIMESLOT_SIZE = 0.6
 BANDWIDTH = 20000  # bits per msec (20Mbps)
 MAX_BURST = 12000
 NODES = 9
+MAX_REWARD = COMMAND_CONTROL * W[0] + BEST_EFFORT * W[1] + A * (COMMAND_CONTROL+BEST_EFFORT)
 
 # random parameters
 
@@ -84,15 +84,21 @@ if not os.path.exists("./result/" + DATE):
     os.makedirs("./result/" + DATE)
 
 f = open("./result/" + DATE + "/parameters.txt", 'w')
-d = "DATE : {p} \nFIXED_SEQUENDE MODE : {f} \nMAX_SLOTS MODE : {ms} \nLEARNING_RATE: {s} \nMAX_EPISODE: {t} \n \
-    DEADLINE : {e}, PNUM : {m}".format(
+d = "DATE : {p} \n REWARD MODE : {rm} \n MAX_REWARD : {mr} \n \
+    FIXED_SEQUENDE MODE : {f} \n MAX_SLOTS MODE : {ms} \n \
+    LEARNING_RATE: {s} \n MAX_EPISODE: {t} \n DEADLINE : {e} \n \
+    PNUM : {m} \n weight:{w} \n alpha:{a}".format(
     p=DATE,
     f=FIXED_SEQUENCE,
+    rm=COMPLEX,
+    mr = MAX_REWARD,
     ms=MAXSLOT_MODE,
     s=LEARNING_RATE,
     t=MAX_EPISODE,
     e=[CC_DEADLINE, BE_DEADLINE],
-    m=[COMMAND_CONTROL, BEST_EFFORT])
+    m=[COMMAND_CONTROL, BEST_EFFORT],
+    w=W,
+    a=A)
 # d = "DATE : {p} \nFIXED_SEQUENDE MODE : {f} \nMAX_SLOTS MODE : {ms} \nLEARNING_RATE: {s} \nMAX_EPISODE: {t} \n \
 #     EPSILON_DECAY: {e} \nWeight: {m} \nalpha: {l} \n".format(
 #     p=DATE,
@@ -128,7 +134,7 @@ def random_sequence():
 
     for i in range(COMMAND_CONTROL):
         hop = random.randint(0, RANDOM_HOP) + 1
-        cd = hop + random.randint(0,RANDOM_CURRENT_DELAY_CC)
+        cd = hop + random.randint(0, RANDOM_CURRENT_DELAY_CC)
         p1[0].append(cd)
         p1[1].append(hop)
 
