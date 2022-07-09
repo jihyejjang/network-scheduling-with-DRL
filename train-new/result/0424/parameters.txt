@@ -1,0 +1,6 @@
+DATE : 0424 
+FIXED_SEQUENDE MODE : False 
+MAX_SLOTS MODE : True 
+LEARNING_RATE: 0.005 
+MAX_EPISODE: 15000 
+     DEADLINE : [10, 12], PNUM : [40, 40]total simulation time : 1 h 1 m 

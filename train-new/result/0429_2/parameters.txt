@@ -1,0 +1,11 @@
+DATE : 0429_2 
+ REWARD MODE : False 
+ MAX_REWARD : 6.0 
+     FIXED_SEQUENDE MODE : False 
+ MAX_SLOTS MODE : True 
+     LEARNING_RATE: 0.001 
+ MAX_EPISODE: 20000 
+ DEADLINE : [7, 7] 
+     PNUM : [60, 0] 
+ weight:[0.1, 0.1] 
+ alpha:0

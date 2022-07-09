@@ -4,34 +4,19 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LeakyReLU
 from tensorflow.keras.optimizers import *
 import tensorflow as tf
+from parameter import *
+
 tf.compat.v1.disable_eager_execution()
-
-import numpy as np
-
-import warnings
-
-warnings.filterwarnings('ignore')
-PRIORITY_QUEUE = 2
-STATE = 4
-INPUT_SIZE = STATE * PRIORITY_QUEUE
-GCL_LENGTH = 3
-OUTPUT_SIZE = 8
-LEARNING_RATE = 0.0001
-ALPHA = 0.1
-# DATE = '1118'
-# FILENAME = '[1999]0.011379198171198368.h5' #weight file name
-# WEIGHT_FILE = './result/' + DATE + '/' + FILENAME
-#DROPOUT = 0.5
 
 
 def create_model():
     model = Sequential()
-    model.add(Dense(64, input_dim=INPUT_SIZE ,kernel_initializer='he_normal'))
+    model.add(Dense(64, input_dim=INPUT_SIZE, kernel_initializer='he_normal'))
     model.add(LeakyReLU(alpha=ALPHA))
-    #model.add(Dropout(DROPOUT))
-    model.add(Dense(64 ,kernel_initializer='he_normal'))
+    # model.add(Dropout(DROPOUT))
+    model.add(Dense(64, kernel_initializer='he_normal'))
     model.add(LeakyReLU(alpha=ALPHA))
-    model.add(Dense(OUTPUT_SIZE, activation='relu' ,kernel_initializer='he_normal'))  # relu
+    model.add(Dense(OUTPUT_SIZE, activation='linear', kernel_initializer='he_normal'))  # relu
     model.compile(loss='mean_squared_error', optimizer=Adam(lr=LEARNING_RATE))
     return model
 
@@ -39,10 +24,13 @@ def create_model():
 class DeepQNetwork:
     def __init__(self):
         self.loss_history = []
-        self.model = create_model()
-        #self.model = tf.keras.models.load_model(WEIGHT_FILE)
-        self.target_model = create_model()
-        #self.target_model = tf.keras.models.load_model(WEIGHT_FILE)
+
+        if FIRST_TRAIN :
+            self.model = create_model()
+            self.target_model = create_model()
+        else:
+            self.model = tf.keras.models.load_model(WEIGHT_FILE)
+            self.target_model = tf.keras.models.load_model(WEIGHT_FILE)
 
     # create the neural network to train the q function
 
@@ -62,7 +50,7 @@ class DeepQNetwork:
         if target:  # get prediction from target network
             return self.target_model.predict(state)
         else:  # get prediction from local network
-            #print (state)
+            # print (state)
             return self.model.predict(state)
 
     def update_target_model(self):

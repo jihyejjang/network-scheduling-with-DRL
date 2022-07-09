@@ -4,102 +4,27 @@
 import numpy as np
 import pandas as pd
 import simpy
-import random
 from node import Node
-from agent import Agent
 from dataclasses import dataclass
-import warnings
 import time
 import os
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import *
+from parameter import *
 
-warnings.filterwarnings('ignore')
-
-DATE = '1118'
-FILENAME = '[1999]0.011379198171198368.h5' #weight file name
-WEIGHT_FILE = './result/' + DATE + '/' + FILENAME
-# if not os.path.exists("./result/" + DATE):
-#     os.makedirs("./result/" + DATE)
-PRIORITY_QUEUE = 2
-STATE = 3 #3
-STATE_SIZE = STATE * PRIORITY_QUEUE
-GCL_LENGTH = 3
-ACTION_SIZE = 2 ** (GCL_LENGTH * PRIORITY_QUEUE)
-MAX_EPISODE = 2000
-COMMAND_CONTROL = 40
-AUDIO = 8
-VIDEO_FRAME = 30
-VIDEO = 2 * VIDEO_FRAME
-BEST_EFFORT = 100
-CC_PERIOD = 5
-AD_PERIOD = 1
-VD_PERIOD = 1.1
-BE_PERIOD = 0.5
-CC_BYTE = 300
-AD_BYTE = 256
-VD_BYTE = 1500
-BE_BYTE = 1024
-
-TIMESLOT_SIZE = 0.6
-NODES = 6  # switch의 수
-UPDATE = 3000
-W = [6, 0.05]
-
-BANDWIDTH = 20000 #bits per msec (20Mbps)
-
-def max_burst():
-    burst = BANDWIDTH * TIMESLOT_SIZE
-    print ("burst", burst)
 max_burst()
 
-def utilization(): # without Best-effort traffic
-    f1 = (CC_BYTE * 8) / CC_PERIOD # bits per ms
-    f2 = (AD_BYTE * 8) / AD_PERIOD
-    f3 = (VD_BYTE * 8) / VD_PERIOD
-    utilization = (f1 + f2 + f3) / BANDWIDTH
-
-    print ("utilzation " , round(utilization,2))
-    #f4 = (CC_BYTE * 8) / (CC_PERIOD * 0.001)
 utilization()
-def action_to_number(action):
-    action_ = action.flatten()
-    bin = ''
-    for a in action_:
-        bin += str(a)
-    return int(bin, 2)
-
-
-def number_to_action(action_id):  # number -> binary gcl code
-    b_id = format(action_id, '06b')
-    action_ = np.array(list(map(int, b_id)))
-    return action_.reshape((PRIORITY_QUEUE, GCL_LENGTH))
-
-
-@dataclass
-class Flow:  # type(class1:cc,2:ad,3:vd,4:be),Num,deadline,generate_time,depart_time,bits
-    type_: int = None
-    num_: int = None
-    deadline_: float = None  # millisecond 단위, arrival time - generated time < deadline 이어야 함
-    generated_time_: float = None  # millisecond 단위
-    queueing_delay_: list = None  # node departure time - node arrival time
-    node_arrival_time_: float = None
-    # node_departure_time_: list = None
-    arrival_time_: float = None
-    bits_: int = None
-    met_: bool = None
-    hops_: int = None
-    priority_: int = None
 
 
 class GateControlTestSimulation:
 
     def __init__(self):
         # self.success_at_episode = [0, 0, 0, 0]  # deadline met
-        self.model = tf.keras.models.load_model(WEIGHT_FILE)
-        print (self.model.get_weights())
+        # self.model = tf.keras.models.load_model(WEIGHT_FILE)
+        # print(self.model.get_weights())
         self.env = simpy.Environment()
         self.nodes = [Node(n + 1, self.env) for n in range(NODES)]
         # self.agent = Agent()
@@ -134,7 +59,7 @@ class GateControlTestSimulation:
         self.end_time = 0  # episode 끝났을 때
         self.received_packet = 0  # 전송완료 패킷수
         self.loss_min = 999999
-        self.gate_control_list = [63, 63, 63, 63, 63, 63]
+        self.gate_control_list = [INITIAL_ACTION for _ in range(NODES)]  # action
 
         # save logs
         self.log = pd.DataFrame(
@@ -153,7 +78,7 @@ class GateControlTestSimulation:
         return action
 
     def reset(self):  # initial state, new episode start
-        self.model = tf.keras.models.load_model(WEIGHT_FILE)
+        # self.model = tf.keras.models.load_model(WEIGHT_FILE)
         self.start_time = self.env.now  # episode 시작
         for n in range(NODES):
             self.nodes[n].reset(self.env, self.start_time)
@@ -201,7 +126,7 @@ class GateControlTestSimulation:
             f.arrival_time_ = 0
             f.bits_ = CC_BYTE * 8  # originally random.randrange(53, 300)
             f.met_ = -1
-            f.hops_ = 4  # it means how many packet-in occur
+            f.remain_hops_ = 4  # it means how many packet-in occur
 
         elif type_num == 2:  # audio
             f.type_ = 2
@@ -214,7 +139,7 @@ class GateControlTestSimulation:
             f.arrival_time_ = 0
             f.bits_ = AD_BYTE * 8  # originally random.choice([128, 256])
             f.met_ = -1
-            f.hops_ = 4
+            f.remain_hops_ = 4
 
         elif type_num == 3:  # video
             f.type_ = 3
@@ -227,20 +152,20 @@ class GateControlTestSimulation:
             f.arrival_time_ = 0
             f.bits_ = VD_BYTE * 8
             f.met_ = -1
-            f.hops_ = 4
+            f.remain_hops_ = 4
 
         else:  # best effort
             f.type_ = 4
             f.priority_ = 2
             f.num_ = fnum
-            f.deadline_ = 0.05
+            f.deadline_ = 0.3
             f.generated_time_ = time - self.start_time
             f.queueing_delay_ = 0
             f.node_arrival_time_ = 0
             f.arrival_time_ = 0
             f.bits_ = BE_BYTE * 8
             f.met_ = -1
-            f.hops_ = 4
+            f.remain_hops_ = 4
 
         return f
 
@@ -313,8 +238,9 @@ class GateControlTestSimulation:
                 t = f.type_ - 1
                 self.received_packet += 1
                 f.arrival_time_ = env.now - self.start_time
-                delay = f.arrival_time_ - f.generated_time_
-                #print (f.queueing_delay_)
+                delay = f.bits_ / 20000000.0 + f.queueing_delay_ + f.node_arrival_time_ - f.generated_time_
+                # delay = f.arrival_time_ - f.generated_time_
+                # print (f.queueing_delay_)
                 self.avg_delay[t].append(delay)
                 if delay <= f.deadline_:
                     f.met_ = 1
@@ -367,30 +293,30 @@ class GateControlTestSimulation:
             # training starts when a timeslot cycle has finished
             qlen = np.zeros((NODES, PRIORITY_QUEUE))  # flow type
             qdata = np.zeros((NODES, PRIORITY_QUEUE))
-            t=self.env.now
+            t = self.env.now
             for i in range(NODES):
-                qdata[i],_,_,qlen[i] = self.nodes[i].queue_info(t)
+                qdata[i], _, _, qlen[i] = self.nodes[i].queue_info(t)
 
             # GCL predict & update
             for n in range(NODES):  # convey the predicted gcl and get states of queue
                 self.next_state[n + 1], reward, self.done = self.step(n + 1, qlen, qdata)
                 rewards_all.append(reward)
                 self.state[n + 1] = self.next_state[n + 1]
-                gcl[n + 1] = self.gcl_predict(self.state[n + 1].reshape((1, STATE_SIZE)))  # new state로 gcl 업데이트
+                gcl[n + 1] = self.gcl_predict(self.state[n + 1].reshape((1, INPUT_SIZE)))  # new state로 gcl 업데이트
                 self.nodes[n].gcl_update(gcl[n + 1])
                 self.gate_control_list.append(action_to_number(gcl[n + 1]))
-                #print(self.gate_control_list)
+                # print(self.gate_control_list)
 
         # Episode ends
         self.end_time = env.now
         e = time.time() - s
-        print("avg delay", list(map(np.mean,self.avg_delay)))
-        print("gcl distribution",np.unique(self.gate_control_list, return_counts=True))
+        print("avg delay", list(map(np.mean, self.avg_delay)))
+        print("gcl distribution", np.unique(self.gate_control_list, return_counts=True))
         print("gcl extract success rate", self.success)
         print("reward", sum(rewards_all))
 
     def gcl_apply(self, env):
-        print ("Test 시작")
+        print("Test 시작")
         env.process(self.generate_cc(env))
         env.process(self.generate_ad(env))
         env.process(self.generate_vd(env))
@@ -405,32 +331,42 @@ class GateControlTestSimulation:
                 yield env.timeout(TIMESLOT_SIZE / 1000)
 
             # training starts when a timeslot cycle has finished
-            qlen = np.zeros((NODES, PRIORITY_QUEUE))  # flow type
-            qdata = np.zeros((NODES, PRIORITY_QUEUE))
+            # qlen = np.zeros((NODES, PRIORITY_QUEUE))  # flow type
+            # qdata = np.zeros((NODES, PRIORITY_QUEUE))
 
+            # gcl_ = self.gate_control_list[i * 6:i * 6 + 6]
+            # gcl = list(map(number_to_action, gcl_))
 
-            gcl_ = self.gate_control_list[i * 6:i * 6 + 6]
-            gcl = list(map(number_to_action, gcl_))
-
-            if not gcl:
-                print("not gcl")
-                gcl = list(map(number_to_action, [63, 63, 63, 63, 63, 63]))
-            t=env.now
+            # if not gcl:
+            #     #print("not gcl")
+            #     gcl = list(map(number_to_action, [0 for _ in range(NODES)]))
+            t = env.now
             for n in range(NODES):
-                gcl = list(map(number_to_action, [63, 63, 63, 63, 63, 63]))
+                gcl = list(map(number_to_action, [0 for _ in range(NODES)]))  # action
                 self.nodes[n].gcl_update(gcl[n])
-                qdata[n],_,_, qlen[n]  = self.nodes[n].queue_info(t)
-                _, _, self.done = self.step(n + 1, qlen, qdata)
+                self.gate_control_list.append(action_to_number(gcl[n]))
+                # qdata[n],_,_, qlen[n]= self.nodes[n].queue_info(t)
+                # _, _, self.done = self.step(n + 1, qlen, qdata)
+                # print(self.received_packet)
+                # print(self.cnt1, self.cnt2, self.cnt3, self.cnt4)
+                if self.received_packet == COMMAND_CONTROL + AUDIO + VIDEO + BEST_EFFORT:  # originally (CC + A + V + BE)
+                    self.done = True
+                    if n == 5:
+                        self.success[2] //= VIDEO_FRAME
 
             i += 1
 
         print("test결과 success rate", self.success)
+        print("avg delay", list(map(np.mean, self.avg_delay)))
+        print("gcl distribution", np.unique(self.gate_control_list, return_counts=True))
+        # print("gcl extract success rate", self.success)
+        # print("reward", sum(rewards_all))
 
     def simulation(self):
         # gcl extract
-        #self.env.process(self.gcl_extract(self.env))
-        #self.env.run()
-        #print("GCL Extract 완료")
+        # self.env.process(self.gcl_extract(self.env))
+        # self.env.run()
+        # print("GCL Extract 완료")
 
         # test
         self.reset()

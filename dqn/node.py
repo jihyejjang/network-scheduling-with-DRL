@@ -47,7 +47,6 @@ def number_to_action(action_id):  # number -> binary gcl code
 class Node:
 
     def __init__(self, datapath_id, env):
-        # TODO: 학습 노드 구현
         self.datapath_id = datapath_id
         self.class_based_queues = [simpy.Store(env) for _ in range(PRIORITY_QUEUE)]
         self.action = number_to_action(0)
@@ -114,10 +113,10 @@ class Node:
                         return
                     departure_time = env.now - self.start_time
                     f.queueing_delay_ = departure_time - f.node_arrival_time_
-                    if deadline[q] > 0:
-                        if f.queueing_delay_ < (deadline[q]-0.0006):
-                            f.reward_ = w[q]
-                        else : f.reward_ = -w[q]
-                    else:
-                        f.reward_ = 0
+                    # if deadline[q] > 0:
+                    #     if f.queueing_delay_ < (deadline[q]-0.0006):
+                    #         f.reward_ = w[q]
+                    #     else : f.reward_ = -w[q]
+                    # else:
+                    #     f.reward_ = 0
                     yield trans_dict.put(f)
