@@ -8,7 +8,6 @@ from parameter import *
 
 tf.compat.v1.disable_eager_execution()
 
-
 def create_model():
     model = Sequential()
     model.add(Dense(128, input_dim=INPUT_SIZE, kernel_initializer='he_normal'))

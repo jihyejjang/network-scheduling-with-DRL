@@ -1,19 +1,16 @@
-#!/usr/bin/env python
-
 import numpy as np
 import random
 from random import randrange
 from collections import deque
-from dqn import DeepQNetwork
+from ddqn import DoubleDeepQNetwork
 import warnings
 from parameter import *
-
 warnings.filterwarnings('ignore')
 
 
 class Agent:  # one node agent
     def __init__(self):
-        self.model = DeepQNetwork()
+        self.model = DoubleDeepQNetwork()
         self.epsilon = EPSILON_MAX
         self.memory = deque(maxlen=999999999999999)
 
@@ -34,7 +31,7 @@ class Agent:  # one node agent
 
     def _epsilon_decay_(self):
         if self.epsilon > EPSILON_MIN:
-            self.epsilon = self.epsilon * EPSILON_DECAY
+            self.epsilon -= EPSILON_MAX/MAX_EPISODE
         else:
             self.epsilon = EPSILON_MIN
 
@@ -55,6 +52,7 @@ class Agent:  # one node agent
         states_ = np.array([o[3] for o in batch])  # next state
 
         p = self.model.predict(states)  # model predict with state
+        p_ = self.model.predict(states_)
         pTarget_ = self.model.predict(states_, target=True)  # target_model predict with next state
 
         x = np.zeros((BATCH, INPUT_SIZE))
@@ -75,7 +73,7 @@ class Agent:  # one node agent
             if done:
                 t[a] = r
             else:
-                t[a] = r + DISCOUNT_FACTOR * np.amax(pTarget_[i])
+                t[a] = r + DISCOUNT_FACTOR * pTarget_[i][np.argmax(p_[i])]
 
             x[i] = s
             y[i] = t

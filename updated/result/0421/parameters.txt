@@ -1,9 +1,0 @@
-DATE : 0421 
-FIXED_SEQUENDE MODE : False 
-MAX_SLOTS MODE : True 
-LEARNING_RATE: 0.005 
-MAX_EPISODE: 15000 
-     EPSILON_DECAY: 0.9998 
-Weight: [0.5, 0.6] 
-alpha: 0.01 
-total simulation time : 2 h 2 m 
