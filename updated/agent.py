@@ -8,7 +8,7 @@ from parameter import *
 warnings.filterwarnings('ignore')
 
 
-class Agent:  # one node agent
+class Agent:  
     def __init__(self):
         self.model = DoubleDeepQNetwork()
         self.epsilon = EPSILON_MAX
@@ -35,18 +35,15 @@ class Agent:  # one node agent
         else:
             self.epsilon = EPSILON_MIN
 
-    # agent memory
-    def sample(self):  # 학습용 샘플 생성
+    def sample(self):  
         sample_batch = random.sample(self.memory, BATCH)
         return sample_batch
 
-    def observation(self, state, action_id, reward, next_state,
-                    done):  # sample = [state,action,reward,next_state,done] 저장
-        # action = "".join(action)
+    def observation(self, state, action_id, reward, next_state, done):  
         sample = [state, action_id, reward, next_state, done]
         self.memory.append(sample)
 
-    def state_target(self, batch):  # sample을 받아서 dqn의 input(state)과 target(predicted q-value)로 데이터셋을 나눠주는작업
+    def state_target(self, batch):  # data split
 
         states = np.array([o[0] for o in batch])
         states_ = np.array([o[3] for o in batch])  # next state
@@ -73,7 +70,7 @@ class Agent:  # one node agent
             if done:
                 t[a] = r
             else:
-                t[a] = r + DISCOUNT_FACTOR * pTarget_[i][np.argmax(p_[i])]
+                t[a] = r + DISCOUNT_FACTOR * pTarget_[i][np.argmax(p_[i])] # ddqn differs with dqn at this point
 
             x[i] = s
             y[i] = t

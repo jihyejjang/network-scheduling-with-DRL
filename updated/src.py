@@ -5,14 +5,13 @@ warnings.filterwarnings('ignore')
 
 
 class Src:
-    def __init__(self, src, start_time, seq):
-        self.src = src
+    def __init__(self, start_time, seq, SINGLE_NODE = False):
+        self.single_node = SINGLE_NODE
         self.cnt = 0
         self.episode_start_time = start_time
         self.sequence_p1, self.sequence_p2 = seq
 
-    def reset(self, src, start_time):
-        self.src = src
+    def reset(self, start_time):
         self.cnt = 0
         self.episode_start_time = start_time
 
@@ -31,7 +30,7 @@ class Src:
         flow.current_delay_ = 0
         flow.met_ = -1
 
-        if SINGLE_NODE:
+        if self.single_node:
             flow.route_ = []
             flow.queueing_delay_ = 0
 
@@ -50,7 +49,7 @@ class Src:
             flow.route_ = route[src - 1]
             h = len(route[src - 1]) - 1
             flow.remain_hops_ = h - 1
-            flow.queueing_delay_ = [0 for _ in range(h)]  # nodes to be passed packts
+            flow.queueing_delay_ = [0 for _ in range(h)]  # nodes to be passed packets
 
             if flow.priority_ == 1:
                 flow.deadline_ = CC_DEADLINE
@@ -65,7 +64,7 @@ class Src:
         return flow
 
     def send(self, env, nodes, src):
-        if SINGLE_NODE:
+        if self.single_node:
             if not 1 < src < 8:  # must got to be editted when network topology being changed
                 for i in range(COMMAND_CONTROL):
                     flow = self.flow_generator(env.now, src, i)
@@ -91,22 +90,3 @@ class Src:
                     r = flow.route_[0]
                     yield env.process(nodes[r - 1].packet_in(flow))
                     yield env.timeout(TIMESLOT_SIZE * PERIOD_BE / 1000)
-
-    # def send(self, env, nodes):
-    #     if self.p == 1:
-    #         for i in range(COMMAND_CONTROL):
-    #             flow = self.flow_generator(env.now, i)
-    #             # print(i,":",flow.route_, flow.remain_hops_)
-    #             print(flow.route_)
-    #             r = flow.route_[0]
-    #             yield env.process(nodes[r - 1].packet_in(flow))
-    #             self.cnt += 1
-    #             yield env.timeout(TIMESLOT_SIZE * PERIOD_CC / 1000)
-    #
-    #     else:
-    #         for i in range(BEST_EFFORT):
-    #             flow = self.flow_generator(env.now, i)
-    #             print(flow.route_)
-    #             yield env.process(nodes[flow.route_[0] - 1].packet_in(flow))
-    #             self.cnt += 1
-    #             yield env.timeout(TIMESLOT_SIZE * PERIOD_BE / 1000)

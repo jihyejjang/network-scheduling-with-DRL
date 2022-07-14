@@ -1,10 +1,20 @@
-import os
+# import os
 from dataclasses import dataclass
+# from jupyterlab_server import WORKSPACE_EXTENSION
 import numpy as np
 import random
 
 # parameters
 SINGLE_NODE = False  # False
+WORK_CONSERVING = True
+SAVE = False
+TRAIN = False
+
+
+
+
+
+
 OUTPUT_PORT = 2  # 2
 SRCES = 8  # 8
 
@@ -31,7 +41,6 @@ BEST_EFFORT = 60  # 100
 CC_DEADLINE = 7  # 5 (8 T), 10 least 5T, unit : T (if not, just multiply TIMESLOT_SIZE)
 BE_DEADLINE = 7  # 50 ( 75 T ) 12
 FIXED_SEQUENCE = False
-FIRST_TRAIN = True
 MAXSLOT_MODE = True
 MAXSLOTS = 250  # 250
 LEARNING_RATE = 0.001  # 0.0001
@@ -46,7 +55,7 @@ WEIGHT_FILE = FILENAME
 # RL agent
 PRIORITY_QUEUE = 2
 STATE = 2  # for simulation with different utilizations(periods), it has to be editted to 3
-INPUT_SIZE = 4
+INPUT_SIZE = PRIORITY_QUEUE*STATE
 # GCL_LENGTH = 3
 OUTPUT_SIZE = 2
 ALPHA = 0.1
@@ -80,10 +89,10 @@ print(f'available maximum reward is {MAX_REWARD}')
 # W = [10,10,1,0.1]
 
 
-# if not os.path.exists("./result/" + DATE):
-#     os.makedirs("./result/" + DATE)
+if not os.path.exists("./result/" + DATE):
+    os.makedirs("./result/" + DATE)
 
-# f = open("./result/" + DATE + "/parameters.txt", 'w')
+f = open("./result/" + DATE + "/parameters.txt", 'w')
 d = "DATE : {p} \n REWARD MODE : {rm} \n MAX_REWARD : {mr} \n \
     FIXED_SEQUENDE MODE : {f} \n MAX_SLOTS MODE : {ms} \n \
     LEARNING_RATE: {s} \n MAX_EPISODE: {t} \n DEADLINE : {e} \n \

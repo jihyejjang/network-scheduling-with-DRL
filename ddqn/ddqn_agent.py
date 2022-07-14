@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import numpy as np
 import random
 from random import randrange
@@ -76,7 +74,7 @@ class Agent:  # one node agent
             if done:
                 t[a] = r
             else:
-                t[a] = r + DISCOUNT_FACTOR * pTarget_[i][np.argmax(p_[i])]
+                t[a] = r + DISCOUNT_FACTOR * pTarget_[i][np.argmax(p_[i])] # r + DISCOUNT_FACTOR * np.amax(pTarget_[i]) at dqn
 
             x[i] = s
             y[i] = t

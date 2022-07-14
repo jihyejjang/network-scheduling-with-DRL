@@ -151,7 +151,7 @@ class GateControlTestSimulation:
                         packet.met_ = 0
                 else:
                     r = packet.route_[0]
-                    yield env.process(self.nodes[r - 1].packet_in(packet))
+                    yield env.process(self.nodes[r - 1].route_modify(packet))
 
     def src_send(self, env):
         env.process(self.source.send(env, self.nodes, 1))
@@ -175,12 +175,12 @@ class GateControlTestSimulation:
             self.timeslots += 1
 
             for n in range(NODES):
-                yield env.process(self.nodes[n].link(self.output[n + 1], 'ddqn'))
+                yield env.process(self.nodes[n].scheduling(self.output[n + 1], 'ddqn'))
             yield env.process(self.sendTo_next_node(env, self.output))
             yield env.timeout(TIMESLOT_SIZE / 1000)
 
             for n in range(NODES):
-                self.next_state[n] = self.nodes[n].step()
+                self.next_state[n] = self.nodes[n].state_observe()
                 self.done = self.terminated()
             rewards_all.extend(self.reward)
             self.reward = [0 for _ in range(NODES)]
@@ -189,9 +189,9 @@ class GateControlTestSimulation:
             # observe(생략)
 
             for n in range(NODES):
-                p = self.nodes[n].schedulable()
+                schedulable_port = self.nodes[n].schedulable()
                 # p = [0, 1]
-                for i in p:
+                for i in schedulable_port:
                     # print("node:", n, self.state[n][i])
                     action[n][i] = self.ddqn_predict(
                         np.array(self.state[n][i]).reshape(1, INPUT_SIZE))
@@ -309,7 +309,7 @@ class GateControlTestSimulation:
             #                     columns=['node', 'timeslot', 'state'])
 
             for n in range(NODES):
-                yield env.process(self.nodes[n].link(self.output[n + 1], 'sp'))
+                yield env.process(self.nodes[n].scheduling(self.output[n + 1], 'sp'))
             yield env.process(self.sendTo_next_node(env, self.output))
             yield env.timeout(TIMESLOT_SIZE / 1000)
 
@@ -358,7 +358,7 @@ class GateControlTestSimulation:
         while not self.done:  # 1회의 episode가 종료될 때 까지 cycle을 반복하는 MAIN process
             self.timeslots += 1
             for n in range(NODES):
-                yield env.process(self.nodes[n].link(self.output[n + 1], 'rr'))
+                yield env.process(self.nodes[n].scheduling(self.output[n + 1], 'rr'))
             yield env.process(self.sendTo_next_node(env, self.output))
             yield env.timeout(TIMESLOT_SIZE / 1000)
 

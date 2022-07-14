@@ -1,12 +1,13 @@
-#!/usr/bin/env python
-# coding: utf-8
-# Single node simulation
+# ----------------------------------------
+# Autor : Jihye Ryu, jh_r_1004@naver.com
+# ----------------------------------------
 
+# from re import S
 import pandas as pd
 import simpy
 from src import Src
 from node import Node
-from ddqn_agent import Agent
+from agent import Agent
 import warnings
 import time
 import tensorflow as tf
@@ -16,174 +17,221 @@ tf.compat.v1.disable_eager_execution()
 warnings.filterwarnings('ignore')
 
 
-class GateControlSimulation:
+class TrainSchedulingSimulation:
 
-    def __init__(self):
+    def __init__(self, args):
+        self.single_node = args.env
+        if self.single_node:
+            self.output_port = 1
+        else:
+            self.output_port = 2
+        self.work_conserving = args.workconserving
+        self.save = args.save
+        self.withflows = args.withflows
         self.env = simpy.Environment()
         self.start_time = self.env.now
-        self.node = Node(1, self.env, self.start_time)
         self.seq = random_sequence()
-        self.source = Src(1, self.start_time, self.seq)
+        self.source = Src(self.start_time, self.seq, self.single_node)
         self.agent = Agent()
-        self.trans_list = simpy.Store(self.env)
-        self.cnt1 = 0
-        self.cnt4 = 0
         self.timeslots = 0
         state_shape = [np.zeros(INPUT_SIZE) for _ in range(OUTPUT_PORT)]
-        self.state = state_shape
-        self.reward = 0
-        self.next_state = state_shape
         self.done = False
         self.end_time = 0
         self.received_packet = 0
+        self.score = 0 
+        
+        if self.single_node:
+            self.node = Node(1, self.env, self.start_time, self.single_node, self.work_conserving)
+            self.state = state_shape
+            self.next_state = state_shape
+            self.transmission = simpy.Store(self.env)
+            self.reward = 0
+            self.success = [0, 0]
+        else:
+            self.node = [Node(n + 1, self.env, self.start_time, self.single_node, self.work_conserving) for n in range(NODES)]
+            self.state = [state_shape for _ in range(NODES)]
+            self.next_state = [state_shape for _ in range(NODES)]
+            self.transmission = {1: simpy.Store(self.env),
+                       2: simpy.Store(self.env),
+                       3: simpy.Store(self.env),
+                       4: simpy.Store(self.env),
+                       5: simpy.Store(self.env),
+                       6: simpy.Store(self.env),
+                       7: simpy.Store(self.env),
+                       8: simpy.Store(self.env),
+                       9: simpy.Store(self.env)}
+            self.reward = [0 for _ in range(NODES)]
+            self.success = [0 for _ in range(SRCES)]
 
-        # save logs
-        self.log = pd.DataFrame(
-            columns=['Episode', 'Duration', 'Slots', 'Score', 'Epsilon', 'min_loss', 'p1', 'p2'])
-        self.delay = pd.DataFrame(columns=['Episode', 'high', 'low'])
-        self.success = [0, 0]
-        # self.avg_delay = [[], []]
-        self.estimated_e2e = [[], []]
-        # self.gate_control_list = []
-        # self.state_and_action = []
-
-        #
+        if self.save:
+            self.logs = pd.DataFrame(
+                columns=['Episode', 'Duration', 'Slots', 'Score', 'Epsilon', 'min_loss', 'p1', 'p2'])
+            self.delay = pd.DataFrame(columns=['Episode', 'p1', 'p2'])
+        
+        self.estimated_delay = [[], []] # in topology, it traces node only 6(7) or 8(9) 
+        self.queueing_delay = [[],[]]
         self.total_episode = 0
         self.reward_max = 0
 
     def reset(self):
         self.start_time = self.env.now
         self.seq = random_sequence()
-        self.source = Src(1, self.start_time, self.seq)
-        self.node = Node(1, self.env, self.start_time)
-        self.trans_list = simpy.Store(self.env)
+        self.source = Src(self.start_time, self.seq, self.single_node)
         self.timeslots = 0
-        self.cnt1 = 0
-        self.cnt4 = 0
-        self.timeslots = 0
-        state_shape = np.zeros((PRIORITY_QUEUE * STATE))
-        self.state = state_shape
-        self.next_state = state_shape
-        self.reward = 0
+        self.score = 0 
+        state_shape = [np.zeros(INPUT_SIZE) for _ in range(OUTPUT_PORT)]
+        
+        if self.single_node:
+            self.node = Node(1, self.env, self.start_time)
+            self.state = state_shape
+            self.next_state = state_shape
+            self.transmission = simpy.Store(self.env)
+            self.reward = 0
+            self.success = [0, 0]
+        else:
+            self.node = [Node(n + 1, self.env, self.start_time) for n in range(NODES)]
+            state_shape = np.zeros((INPUT_SIZE))
+            self.state = [state_shape for _ in range(NODES)]
+            self.next_state = [state_shape for _ in range(NODES)]
+            self.transmission = {1: simpy.Store(self.env),
+                       2: simpy.Store(self.env),
+                       3: simpy.Store(self.env),
+                       4: simpy.Store(self.env),
+                       5: simpy.Store(self.env),
+                       6: simpy.Store(self.env),
+                       7: simpy.Store(self.env),
+                       8: simpy.Store(self.env),
+                       9: simpy.Store(self.env)}
+            self.reward = [0 for _ in range(NODES)]
+            self.success = [0 for _ in range(SRCES)]
+
         self.done = False
         self.received_packet = 0
         self.end_time = 0
-        self.success = [0, 0]
         self.seq = random_sequence()
-        # self.avg_delay = [[], []]
-        self.estimated_e2e = [[], []]
+        self.estimated_delay = [[], []]
+        self.queueing_delay = [[],[]]
+        eps = self.agent.reset()
+        
+        return eps
 
-        # if not FIXED_SEQUENCE:
-        #     self.sequence_p1, self.sequence_p2 = random_sequence()
-
-        e = self.agent.reset()
-        return e
-
-    def reward_func(self, packet):
+    def reward_single(self, packet):
         r = 0
         p = packet.priority_ - 1
         packet.current_delay_ += packet.queueing_delay_
-        # et = packet.current_delay_ + packet.remain_hops + 1
         et = packet.random_delay_ + packet.current_delay_ + packet.remain_hops_ + 1
-        # delay = (packet.queueing_delay_ + 1) * TIMESLOT_SIZE / 1000
-        # self.qdelay.append([p, delay])
         packet.queueing_delay_ = 0
         packet.arrival_time_ = self.env.now - self.start_time
-        self.estimated_e2e[p].append(et)
+        self.estimated_delay[p].append(et)
+        self.queueing_delay[p].append(packet.current_delay_)
 
         dl = packet.deadline_
-
-        if COMPLEX:
-            if BOUND[p] <= et / dl <= 1:  # packet received within configured latency boundary
-                packet.met_ = 1
-                self.success[p] += 1
-                r += W0[p]
-                # self.reward += W[t]
-
-            elif et / dl < BOUND[p]:
-                packet.met_ = 1
-                self.success[p] += 1
-                r += 0.01
-
-            elif 1 < et / dl <= LM:
-                packet.met_ = 0
-                r += W2[p]
-
-            else:
-                packet.met_ = 0
-                r -= et/dl
+        if et / dl <= 1:
+            packet.met_ = 1
+            self.success[p] += 1
+            r += W[p] + A
         else:
-            if et/dl <= 1:
-                packet.met_ = 1
-                self.success[p] += 1
-                r += 0.1
-                # r += float((W[p] + A)/MAX_REWARD)
+            packet.met_ = 0
+            r += A
 
-            else:
-                packet.met_ = 0
-                # r += float(A/MAX_REWARD)
         return r
 
     def sendTo_next_node(self, env):
-        flows = self.trans_list
+        if self.single_node:
+            # transmission completed immediatly
+            flows = self.transmission
+            if not flows.items:
+                return
+            for _ in range(len(flows.items)):
+                flow = yield flows.get()
+                self.received_packet += 1
 
-        if not (len(flows.items)):
-            return
+                self.reward += self.reward_single(flow)
+        else:
+            transmission = self.transmission
+            for i, pkts in transmission.items():
+                if not pkts.items:
+                    continue
+                for _ in range(len(pkts.items)):
+                    node = i - 1
+                    self.reward[node] += A
+                    packet = yield pkts.get()
+                    h = packet.remain_hops_
+                    l = len(packet.queueing_delay_)
+                    q = packet.queueing_delay_[l - h - 2]
+                    packet.current_delay_ += q + 1
 
-        # transmission completed immediatly
-        for _ in range(len(flows.items)):
-            flow = yield flows.get()
-            self.received_packet += 1
+                    p = packet.priority_ - 1
+                    src = packet.src_
+                    if packet.remain_hops_ < 0:
+                        packet.remain_hops_ = 0
+                    ET = packet.current_delay_ + packet.remain_hops_ + packet.random_delay_
+                    
+                    if node == 1 or node == 7: # competition node
+                        self.queueing_delay[p].append(q)
 
-            self.reward += self.reward_func(flow)
+                    # if ET <= packet.deadline_:
+                        # self.reward[node] += W[p]
+                        
+                    if packet.route_ == [0]:
+                        self.received_packet += 1
+                        
+                        if node == 6 or node == 8: # the edge nodes of flow 1, 2
+                            self.avg_delay[p].append(ET)
 
-    def episode(self, env):
+                        if ET <= packet.deadline_:
+                            packet.met_ = 1
+                            self.reward[node] += W[p]
+                            self.success[src - 1] += 1
+                        else:
+                            packet.met_ = 0
+                    else:
+                        r = packet.route_[0]
+                        yield env.process(self.nodes[r - 1].packet_in(packet))
+
+
+    def train_episode(self, env):
         start_time = time.time()
         epsilon = EPSILON_MAX
 
         for episode_num in range(MAX_EPISODE):
             self.total_episode += 1
+            rewards_all = []
+            action = [INITIAL_ACTION for _ in range(self.output_port)]
+
             env.process(self.source.send(env, self.node, 1))
             env.process(self.source.send(env, self.node, 4))
+            
             s = time.time()
-            rewards_all = []
             loss = []
-            action = [INITIAL_ACTION for _ in range(OUTPUT_PORT)]
-            p = [i for i in range(OUTPUT_PORT)]
+            schedulable_ports = [i for i in range(self.output_port)]
 
             while not self.done:
                 self.timeslots += 1
 
-                yield env.process(self.node.link(self.trans_list, 'ddqn'))
+                yield env.process(self.node.scheduling(self.transmission, 'ddqn'))
                 yield env.process(self.sendTo_next_node(env))  # packet arrive and get reward
                 yield env.timeout(TIMESLOT_SIZE * 0.001)
 
-                self.next_state = self.node.step()
+                self.next_state = self.node.state_observe()
                 self.done = self.terminated()
-
-                # observe and update new schedule
-
-                if p:
-                    s_ = np.array(self.state).reshape(INPUT_SIZE)
-                    ns_ = np.array(self.next_state).reshape(INPUT_SIZE)
-                    self.agent.observation(s_, action, self.reward, ns_, self.done)
-
                 rewards_all.append(self.reward)
+
+                # observe sample for schedulable ports
+                for p in schedulable_ports:
+                    s_ = np.array(self.state[p]).reshape(INPUT_SIZE)
+                    ns_ = np.array(self.next_state[p]).reshape(INPUT_SIZE)
+                    self.agent.observation(s_, action[p], self.reward, ns_, self.done)
+
                 self.reward = 0
                 self.state = self.next_state
-
-                # action = self.agent.choose_action(self.state)  # new state로 gcl 업데이트
-                # self.node.action_update(action)
-                # self.gate_control_list.append(gcl)
-                # loss.append(self.agent.replay())  # train
-
-                p = self.node.schedulable()
-                for i in p:
-                    action = self.agent.choose_action(self.state)  # new state로 gcl 업데이트
-                    self.node.action_update(action, i)
-
-                loss.append(self.agent.replay())  # train
-
+                schedulable_ports = self.node.schedulable()
+                for p in schedulable_ports:
+                    action[p] = self.agent.choose_action(self.state[p])  # new state로 gcl 업데이트
+                    self.node.action_update(action[p], p)
+                    loss.append(self.agent.replay())  # train
+            
+            # The episode ends
             if self.total_episode % UPDATE == 0:
                 print("Target models update")
                 # print("action distribution : ", np.unique(self.gate_control_list, return_counts=True))
@@ -200,9 +248,9 @@ class GateControlSimulation:
                                 columns=['Episode', 'Duration', 'Slots', 'Score', 'Epsilon', 'min_loss',
                                          'p1', 'p2'])
 
-            delay_ = pd.DataFrame([(episode_num, np.mean(self.estimated_e2e[0]),
-                                    np.mean(self.estimated_e2e[1]))],
-                                  columns=['Episode', 'high', 'low'])
+            delay_ = pd.DataFrame([(episode_num, np.mean(self.estimated_delay[0]),
+                                    np.mean(self.estimated_delay[1]))],
+                                  columns=['Episode', 'p1', 'p2'])
 
             self.log = self.log.append(log_, ignore_index=True)
             self.delay = self.delay.append(delay_, ignore_index=True)
@@ -224,10 +272,11 @@ class GateControlSimulation:
                 e=round(epsilon, 4),
                 m=round(np.min(loss), 4),
                 l=self.success,
-                d=list(map(np.mean, self.estimated_e2e))))
+                d=list(map(np.mean, self.estimated_delay))))
 
             epsilon = self.reset()
 
+        #the simulation ends
         print("simulation ends")
         self.agent.model.save_model(
             "./result/" + DATE + "/" + "[" + str(MAX_EPISODE) + "]" + str(round(self.reward_max, 2)) + ".h5")
@@ -320,11 +369,16 @@ class GateControlSimulation:
     #     return [state, done]
 
     def run(self):
-        self.env.process(self.episode(self.env))
+        self.env.process(self.train_episode(self.env))
         # self.env.process(self.fifo(self.env))
         self.env.run(until=1000000)
 
 
 if __name__ == "__main__":
-    environment = GateControlSimulation()
+    import argparse
+    parser = argparse.ArgumentParser(description = "The training environment of timeslot scheduling with DDQN")
+    
+    
+    
+    environment = TrainSchedulingSimulation()
     environment.run()
