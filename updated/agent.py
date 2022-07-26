@@ -4,13 +4,14 @@ from random import randrange
 from collections import deque
 from ddqn import DoubleDeepQNetwork
 import warnings
-from parameter import *
+from utils import *
 warnings.filterwarnings('ignore')
 
 
 class Agent:  
-    def __init__(self):
-        self.model = DoubleDeepQNetwork()
+    def __init__(self,args):
+        self.max_episode = args.totalepisode
+        self.model = DoubleDeepQNetwork(args)
         self.epsilon = EPSILON_MAX
         self.memory = deque(maxlen=999999999999999)
 
@@ -31,7 +32,7 @@ class Agent:
 
     def _epsilon_decay_(self):
         if self.epsilon > EPSILON_MIN:
-            self.epsilon -= EPSILON_MAX/MAX_EPISODE
+            self.epsilon -= EPSILON_MAX/self.max_episode
         else:
             self.epsilon = EPSILON_MIN
 

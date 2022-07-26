@@ -2,11 +2,11 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LeakyReLU
 from tensorflow.keras.optimizers import *
 import tensorflow as tf
-from parameter import *
+from utils import *
 
 tf.compat.v1.disable_eager_execution()
 
-def create_model():
+def create_model(lr):
     model = Sequential()
     model.add(Dense(128, input_dim=INPUT_SIZE, kernel_initializer='he_normal'))
     model.add(LeakyReLU(alpha=ALPHA))
@@ -14,16 +14,18 @@ def create_model():
     model.add(Dense(128, kernel_initializer='he_normal'))
     model.add(LeakyReLU(alpha=ALPHA))
     model.add(Dense(OUTPUT_SIZE, activation='linear', kernel_initializer='he_normal'))  # relu
-    model.compile(loss='mean_squared_error', optimizer=Adam(lr=LEARNING_RATE))
+    model.compile(loss='mean_squared_error', optimizer=Adam(lr=lr))
     return model
 
 
 class DoubleDeepQNetwork:
-    def __init__(self):
+    def __init__(self,args):
+        np.random.seed(args.seed)
+        tf.random.set_seed(args.seed)
         self.loss_history = []
 
-        self.model = create_model()
-        self.target_model = create_model()
+        self.model = create_model(args.learningrate)
+        self.target_model = create_model(args.learningrate)
         # else:
         #     self.model = tf.keras.models.load_model(WEIGHT_FILE)
         #     self.target_model = tf.keras.models.load_model(WEIGHT_FILE)

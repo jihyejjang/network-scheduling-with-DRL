@@ -22,7 +22,7 @@ class TestSchedulingSimulation:
         self.env = simpy.Environment()
         self.start_time = self.env.now
         # self.sequence_p1, self.sequence_p2 = random_sequence()
-        self.seq = random_sequence()
+        self.seq = test_random_sequence(SEED*2)
         self.source = Src(1, self.start_time, self.seq)
         self.node = Node(1, self.env, self.start_time)
         self.trans_list = simpy.Store(self.env)

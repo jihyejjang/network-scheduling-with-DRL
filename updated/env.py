@@ -2,7 +2,6 @@
 # Autor : Jihye Ryu, jh_r_1004@naver.com
 # ----------------------------------------
 
-# from re import S
 import pandas as pd
 import simpy
 from src import Src
@@ -11,8 +10,8 @@ from agent import Agent
 import warnings
 import time
 import tensorflow as tf
-from parameter import *
-
+from utils import *
+import os
 tf.compat.v1.disable_eager_execution()
 warnings.filterwarnings('ignore')
 
@@ -22,17 +21,28 @@ class TrainSchedulingSimulation:
     def __init__(self, args):
         self.single_node = args.env
         if self.single_node:
-            self.output_port = 1
-        else:
-            self.output_port = 2
+            print("@@@@@@@@@@@@@@@@@@",args.env)
         self.work_conserving = args.workconserving
         self.save = args.save
         self.withflows = args.withflows
+        self.seed = args.seed
+        self.w = args.reward
+        self.a = args.reward2
+        self.max_episode = args.totalepisode
+        self.np = args.numberofpackets
+        self.rh = args.randomhops
+        self.rcd = args.randomcurrentdelay
+
+        if self.single_node:
+            self.output_port = 1
+        else:
+            self.output_port = 2
+        
         self.env = simpy.Environment()
         self.start_time = self.env.now
-        self.seq = random_sequence()
-        self.source = Src(self.start_time, self.seq, self.single_node)
-        self.agent = Agent()
+        self.seq = train_random_sequence(self.seed, self.np, self.rh, self.rcd)
+        self.source = Src(self.start_time, self.seq, args)
+        self.agent = Agent(args)
         self.timeslots = 0
         state_shape = [np.zeros(INPUT_SIZE) for _ in range(OUTPUT_PORT)]
         self.done = False
@@ -41,14 +51,14 @@ class TrainSchedulingSimulation:
         self.score = 0 
         
         if self.single_node:
-            self.node = Node(1, self.env, self.start_time, self.single_node, self.work_conserving)
+            self.node = Node(1, self.env, self.start_time, args)
             self.state = state_shape
             self.next_state = state_shape
             self.transmission = simpy.Store(self.env)
             self.reward = 0
             self.success = [0, 0]
         else:
-            self.node = [Node(n + 1, self.env, self.start_time, self.single_node, self.work_conserving) for n in range(NODES)]
+            self.node = [Node(n + 1, self.env, self.start_time, args) for n in range(NODES)]
             self.state = [state_shape for _ in range(NODES)]
             self.next_state = [state_shape for _ in range(NODES)]
             self.transmission = {1: simpy.Store(self.env),
@@ -62,11 +72,15 @@ class TrainSchedulingSimulation:
                        9: simpy.Store(self.env)}
             self.reward = [0 for _ in range(NODES)]
             self.success = [0 for _ in range(SRCES)]
-
         if self.save:
-            self.logs = pd.DataFrame(
+            self.date = args.date
+            if not os.path.exists("./result/" + self.date):
+                os.makedirs("./result/" + self.date)
+            self.folder = "./result/"+self.date+"/"
+        
+        self.log = pd.DataFrame(
                 columns=['Episode', 'Duration', 'Slots', 'Score', 'Epsilon', 'min_loss', 'p1', 'p2'])
-            self.delay = pd.DataFrame(columns=['Episode', 'p1', 'p2'])
+        self.delay = pd.DataFrame(columns=['Episode', 'p1', 'p2'])
         
         self.estimated_delay = [[], []] # in topology, it traces node only 6(7) or 8(9) 
         self.queueing_delay = [[],[]]
@@ -75,21 +89,22 @@ class TrainSchedulingSimulation:
 
     def reset(self):
         self.start_time = self.env.now
-        self.seq = random_sequence()
-        self.source = Src(self.start_time, self.seq, self.single_node)
+        self.seq = train_random_sequence(self.seed, self.np, self.rh, self.rcd)
+        self.source.reset(self.start_time, self.seq)
         self.timeslots = 0
         self.score = 0 
         state_shape = [np.zeros(INPUT_SIZE) for _ in range(OUTPUT_PORT)]
         
         if self.single_node:
-            self.node = Node(1, self.env, self.start_time)
+            self.node.reset(self.start_time)
             self.state = state_shape
             self.next_state = state_shape
             self.transmission = simpy.Store(self.env)
             self.reward = 0
             self.success = [0, 0]
         else:
-            self.node = [Node(n + 1, self.env, self.start_time) for n in range(NODES)]
+            for node in self.node:
+                node.reset(self.start_time)
             state_shape = np.zeros((INPUT_SIZE))
             self.state = [state_shape for _ in range(NODES)]
             self.next_state = [state_shape for _ in range(NODES)]
@@ -108,7 +123,6 @@ class TrainSchedulingSimulation:
         self.done = False
         self.received_packet = 0
         self.end_time = 0
-        self.seq = random_sequence()
         self.estimated_delay = [[], []]
         self.queueing_delay = [[],[]]
         eps = self.agent.reset()
@@ -129,10 +143,10 @@ class TrainSchedulingSimulation:
         if et / dl <= 1:
             packet.met_ = 1
             self.success[p] += 1
-            r += W[p] + A
+            r += self.w[p] + self.a
         else:
             packet.met_ = 0
-            r += A
+            r += self.a
 
         return r
 
@@ -154,7 +168,7 @@ class TrainSchedulingSimulation:
                     continue
                 for _ in range(len(pkts.items)):
                     node = i - 1
-                    self.reward[node] += A
+                    self.reward[node] += self.a
                     packet = yield pkts.get()
                     h = packet.remain_hops_
                     l = len(packet.queueing_delay_)
@@ -169,9 +183,6 @@ class TrainSchedulingSimulation:
                     
                     if node == 1 or node == 7: # competition node
                         self.queueing_delay[p].append(q)
-
-                    # if ET <= packet.deadline_:
-                        # self.reward[node] += W[p]
                         
                     if packet.route_ == [0]:
                         self.received_packet += 1
@@ -181,26 +192,23 @@ class TrainSchedulingSimulation:
 
                         if ET <= packet.deadline_:
                             packet.met_ = 1
-                            self.reward[node] += W[p]
+                            self.reward[node] += self.w[p]
                             self.success[src - 1] += 1
                         else:
                             packet.met_ = 0
                     else:
                         r = packet.route_[0]
-                        yield env.process(self.nodes[r - 1].packet_in(packet))
+                        yield env.process(self.node[r - 1].route_modify(packet))
 
-
-    def train_episode(self, env):
+    def train_episode(self, env): # episode for singlenode
         start_time = time.time()
         epsilon = EPSILON_MAX
 
-        for episode_num in range(MAX_EPISODE):
+        for episode_num in range(self.max_episode):
             self.total_episode += 1
             rewards_all = []
             action = [INITIAL_ACTION for _ in range(self.output_port)]
-
-            env.process(self.source.send(env, self.node, 1))
-            env.process(self.source.send(env, self.node, 4))
+            self.packet_generation(env)
             
             s = time.time()
             loss = []
@@ -208,11 +216,12 @@ class TrainSchedulingSimulation:
 
             while not self.done:
                 self.timeslots += 1
-
+                
+                # print(self.node)
                 yield env.process(self.node.scheduling(self.transmission, 'ddqn'))
                 yield env.process(self.sendTo_next_node(env))  # packet arrive and get reward
                 yield env.timeout(TIMESLOT_SIZE * 0.001)
-
+                
                 self.next_state = self.node.state_observe()
                 self.done = self.terminated()
                 rewards_all.append(self.reward)
@@ -222,6 +231,8 @@ class TrainSchedulingSimulation:
                     s_ = np.array(self.state[p]).reshape(INPUT_SIZE)
                     ns_ = np.array(self.next_state[p]).reshape(INPUT_SIZE)
                     self.agent.observation(s_, action[p], self.reward, ns_, self.done)
+                    loss.append(self.agent.replay())  # train
+
 
                 self.reward = 0
                 self.state = self.next_state
@@ -229,7 +240,6 @@ class TrainSchedulingSimulation:
                 for p in schedulable_ports:
                     action[p] = self.agent.choose_action(self.state[p])  # new state로 gcl 업데이트
                     self.node.action_update(action[p], p)
-                    loss.append(self.agent.replay())  # train
             
             # The episode ends
             if self.total_episode % UPDATE == 0:
@@ -255,14 +265,16 @@ class TrainSchedulingSimulation:
             self.log = self.log.append(log_, ignore_index=True)
             self.delay = self.delay.append(delay_, ignore_index=True)
 
-            if (self.total_episode >= MAX_EPISODE / 2) and (self.reward_max < sum(rewards_all)):
-                self.reward_max = sum(rewards_all)
-                self.agent.model.save_model(
-                    "./result/" + DATE + "/" + "[" + str(episode_num) + "]" + str(round(self.reward_max, 2)) + ".h5")
+            if self.save:
+                if (self.total_episode >= self.max_episode / 2) and (self.reward_max < sum(rewards_all)):
+                    self.reward_max = sum(rewards_all)
+                    self.agent.model.save_model(
+                        self.folder + "[" + str(episode_num) + "]" + str(round(self.reward_max, 2)) + ".h5")
+
             e = time.time() - s
 
             print("소요시간 : %s 초, 예상소요시간 : %s 시간" % (
-                round(e % 60, 2), round(e * (MAX_EPISODE - self.total_episode) / 3600, 2)))
+                round(e % 60, 2), round(e * (self.max_episode - self.total_episode) / 3600, 2)))
 
             print("Episode {p}, Score: {s}, Final Step: {t}, Epsilon: {e} , Min loss: {m}, success: {l}, "
                   "ET: {d}".format(
@@ -277,108 +289,52 @@ class TrainSchedulingSimulation:
             epsilon = self.reset()
 
         #the simulation ends
-        print("simulation ends")
-        self.agent.model.save_model(
-            "./result/" + DATE + "/" + "[" + str(MAX_EPISODE) + "]" + str(round(self.reward_max, 2)) + ".h5")
-        self.log.to_csv("./result/" + DATE + "/log_last" + DATE + ".csv")
-        self.delay.to_csv("./result/" + DATE + "/avg_delay_last" + DATE + ".csv")
-        save_result_plot(self.log)
+        self.agent.model.save_model(self.folder + "[" + str(self.max_episode) + "]" + str(round(self.reward_max, 2)) + ".h5")
+        self.log.to_csv(self.folder + "log_last" + self.date + ".csv")
+        # self.delay.to_csv(self.folder "avg_et_last" + self.date + ".csv")
+        save_result_plot(self.log,self.folder)
         end_time = time.time()
         duration = end_time - start_time
-        f.write("total simulation time : {h} h {m} m \n".format(
+        print("total simulation time : {h} h {m} m \n".format(
             h=int(duration / 3600), m=int((duration / 3600) % 60)))
-        f.close()
+
 
     def terminated(self):
-
         done = False
-
         if MAXSLOT_MODE:
-            if (self.received_packet == COMMAND_CONTROL + BEST_EFFORT) or (self.timeslots == MAXSLOTS):
+            if (self.received_packet == self.np[0] + self.np[1]) or (self.timeslots == MAXSLOTS):
                 done = True
         else:
-            if self.received_packet == COMMAND_CONTROL + BEST_EFFORT:  # originally (CC + A + V + BE)
+            if self.received_packet == self.np[0] + self.np[1]:  
                 done = True
 
         return done
 
-    # def fifo(self, env):
-    #
-    #     for episode_num in range(MAX_EPISODE):
-    #         self.total_episode += 1
-    #         env.process(self.generate_cc(env))
-    #         env.process(self.generate_be(env))
-    #         s = time.time()
-    #         rewards_all = []
-    #
-    #         while not self.done:
-    #             self.timeslots += 1
-    #
-    #             yield env.process(self.node.strict_priority(self.trans_list))
-    #             # print("gcl, trans_list", gcl, self.trans_list.items)
-    #             # print("node", time.time())
-    #             env.process(self.sendTo_next_node(env))
-    #             yield env.timeout(TIMESLOT_SIZE / 1000)
-    #             rewards_all.append(self.reward)
-    #             self.reward = 0
-    #
-    #             _, self.done = self.step()
-    #
-    #         self.end_time = env.now
-    #         log_ = pd.DataFrame([(episode_num, self.end_time - self.start_time, self.timeslots, np.sum(rewards_all),
-    #                               0, 0, self.success[0], self.success[1])],
-    #                             columns=['Episode', 'Duration', 'Slots', 'Score', 'Epsilon', 'min_loss',
-    #                                      'p1', 'p2'])
-    #         self.log = self.log.append(log_, ignore_index=True)
-    #         e = time.time() - s
-    #
-    #         print("소요시간 : %s 초, 예상소요시간 : %s 시간" % (
-    #             round(e % 60, 2), round(e * (MAX_EPISODE - self.total_episode) / 3600, 2)))
-    #
-    #         print("Episode {p}, Score: {s}, Final Step: {t}, Epsilon: {e} , Min loss: {m}, success: {l}, "
-    #               "avg_qdelay: {d}".format(
-    #             p=episode_num,
-    #             s=np.sum(rewards_all),
-    #             t=self.timeslots,
-    #             e=0,
-    #             m=0,
-    #             l=self.success,
-    #             d=list(map(np.mean, self.avg_delay))))
-    #         print("simulation ends")
-    #         self.reset()
-    #
-    #     self.log.to_csv("./result/" + DATE + "/log_last" + DATE + ".csv")
-    #     save_result_plot(self.log)
-
-    # def step(self, qlen=None, max_et=None):
-    #     state = np.zeros((PRIORITY_QUEUE, STATE))
-    #     state[:, 0] = qlen
-    #     state[:, 1] = max_et
-    #     # state[:, 2] = max_qp
-    #     state = state.flatten()
-    #
-    #     done = False
-    #
-    #     if MAXSLOT_MODE:
-    #         if (self.received_packet == COMMAND_CONTROL + BEST_EFFORT) or (self.timeslots == MAXSLOTS):
-    #             done = True
-    #     else:
-    #         if self.received_packet == COMMAND_CONTROL + BEST_EFFORT:  # originally (CC + A + V + BE)
-    #             done = True
-    #
-    #     return [state, done]
+    def packet_generation(self,env):
+        if self.single_node:
+            env.process(self.source.send(env, self.node, 1))
+            env.process(self.source.send(env, self.node, 4))
+        else:
+            if self.withflows:
+                for s in range(SRCES):
+                    env.process(self.source[s].send(env, self.nodes, s + 1))
+            else:
+                env.process(self.source.send(env, self.nodes, 1))
+                env.process(self.source.send(env, self.nodes, 2))
+                env.process(self.source.send(env, self.nodes, 7))
+                env.process(self.source.send(env, self.nodes, 8))
+                
 
     def run(self):
         self.env.process(self.train_episode(self.env))
-        # self.env.process(self.fifo(self.env))
         self.env.run(until=1000000)
 
 
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description = "The training environment of timeslot scheduling with DDQN")
+# if __name__ == "__main__":
+#     import argparse
+#     parser = argparse.ArgumentParser(description = "The training environment of timeslot scheduling with DDQN")
     
     
     
-    environment = TrainSchedulingSimulation()
-    environment.run()
+#     environment = TrainSchedulingSimulation()
+#     environment.run()

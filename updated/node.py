@@ -1,5 +1,5 @@
 import simpy
-from parameter import *
+from utils import *
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -7,41 +7,46 @@ warnings.filterwarnings('ignore')
 
 class Node:
 
-    def __init__(self, node, env, start, SINGLE_NODE = False, WORK_CONSERVING=True):
-        self.single_node = SINGLE_NODE
-        self.work_conserving = WORK_CONSERVING
+    def __init__(self, node, env, start, args):
+        self.single_node = args.env
+        if self.single_node:
+            self.op = 1
+        else:
+            self.op = OUTPUT_PORT
+        self.wc = args.workconserving
+        self.rrw = args.wrrweight
         self.node = node
         self.env = env
         self.start = start
-        self.output_port = [[simpy.Store(env), simpy.Store(env)] for _ in range(OUTPUT_PORT)]
-        self.action = [number_to_action(INITIAL_ACTION) for _ in range(OUTPUT_PORT)]
+        self.output_port = [[simpy.Store(env), simpy.Store(env)] for _ in range(self.op)]
+        self.action = [number_to_action(INITIAL_ACTION) for _ in range(self.op)]
         self.port = -1
         self.schedulable_ports = []
         self.r = [0, 0]
         self.rr = 0
-        self.state = [np.zeros(INPUT_SIZE) for _ in range(OUTPUT_PORT)]
+        self.state = [np.zeros(INPUT_SIZE) for _ in range(self.op)]
 
-    def reset(self, env, start):  
-        self.env = env
+    def reset(self, start):  
+        # self.env = env
         self.start = start
-        self.output_port = [[simpy.Store(env), simpy.Store(env)] for _ in range(OUTPUT_PORT)]
-        self.action = [number_to_action(INITIAL_ACTION) for _ in range(OUTPUT_PORT)]
+        self.output_port = [[simpy.Store(self.env), simpy.Store(self.env)] for _ in range(self.op)]
+        self.action = [number_to_action(INITIAL_ACTION) for _ in range(self.op)]
         self.port = -1
         self.schedulable_ports = []
         self.r = [0, 0]
         self.rr = 0
-        self.state = [np.zeros(INPUT_SIZE) for _ in range(OUTPUT_PORT)]
+        self.state = [np.zeros(INPUT_SIZE) for _ in range(self.op)]
 
-    def scheduling(self, output, scheduler='sp', WORK_CONSERVING = True):
-        if self.work_conserving:
+    def scheduling(self, output, scheduler='sp'):
+        if self.wc:
             if scheduler == 'ddqn':
-                for p in range(OUTPUT_PORT):
+                for p in range(self.op):
                     if p in self.schedulable_ports:
                         yield self.env.process(self.ddqn(output, p))
                     else:
                         yield self.env.process(self.work_conserving(output, p))
             elif scheduler == 'sp':
-                for p in range(OUTPUT_PORT):
+                for p in range(self.op):
                     yield self.env.process(self.strict_priority(output, p))
             elif scheduler == 'rr':
                 for p in self.schedulable_ports:
@@ -50,20 +55,20 @@ class Node:
                     yield self.env.process(self.work_conserving(output, p))
         else:
             if scheduler == 'ddqn':
-                for p in range(OUTPUT_PORT):
+                for p in range(self.op):
                     yield self.env.process(self.ddqn(output, p))
             elif scheduler == 'sp':
-                for p in range(OUTPUT_PORT):
+                for p in range(self.op):
                     yield self.env.process(self.strict_priority(output, p))
             elif scheduler == 'rr':
-                for p in range(OUTPUT_PORT):
+                for p in range(self.op):
                     yield self.env.process(self.round_robin(output, p))
     
     def schedulable(self):
         port = []
         self.schedulable_ports = []
 
-        for p in range(OUTPUT_PORT):
+        for p in range(self.op):
             q1 = int(self.state[p][0])
             q2 = int(self.state[p][2])
             # print (q1, q2)
@@ -75,7 +80,7 @@ class Node:
 
     def route_modify(self, pk):
         pt = 0
-        if OUTPUT_PORT == 2:
+        if self.op == 2:
             if self.port == -1:
                 if pk.route_[1]:
                     self.port = pk.route_[1]
@@ -89,7 +94,7 @@ class Node:
 
     def state_observe(self):
 
-        for p in range(OUTPUT_PORT):
+        for p in range(self.op):
             qlen, max_et = self.queue_info(p)
             state = np.zeros((PRIORITY_QUEUE, STATE))
             state[:, 0] = qlen
@@ -186,12 +191,12 @@ class Node:
             self.r = [0, 0]
             yield output.put(fl)
             
-        elif self.r[0] < RRW:
+        elif self.r[0] < self.rrw:
             fl = yield self.output_port[port][0].get()
             fl.remain_hops_ -= 1
             fl.route_ = fl.route_[1:]
             yield output.put(fl)
-            if self.r[0] == RRW - 1:
+            if self.r[0] == self.rrw - 1:
                 self.r[1] = 1
             else:
                 self.r[0] += 1
