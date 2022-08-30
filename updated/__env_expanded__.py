@@ -5,7 +5,7 @@ import pandas as pd
 import simpy
 from node import Node
 from src import Src
-from ddqn_agent import Agent
+from ddqn import Agent
 import warnings
 import time
 import tensorflow as tf
@@ -171,7 +171,7 @@ class GateControlSimulation:
                         packet.met_ = 0
                 else:
                     r = packet.route_[0]
-                    yield env.process(self.nodes[r - 1].packet_in(packet))
+                    yield env.process(self.nodes[r - 1].route_modify(packet))
 
     def episode(self, env):
         start_time = time.time()

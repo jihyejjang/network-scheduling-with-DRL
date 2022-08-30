@@ -14,7 +14,7 @@ def operator(delay):
     delay = np.mean(delay * 1000)
     return delay
 
-class GateControlTestSimulation:
+class TestSchedulingSimulation:
 
     def __init__(self):
         self.end_time = 0
@@ -22,7 +22,7 @@ class GateControlTestSimulation:
         self.env = simpy.Environment()
         self.start_time = self.env.now
         # self.sequence_p1, self.sequence_p2 = random_sequence()
-        self.seq = random_sequence()
+        self.seq = test_random_sequence(SEED*2)
         self.source = Src(1, self.start_time, self.seq)
         self.node = Node(1, self.env, self.start_time)
         self.trans_list = simpy.Store(self.env)
@@ -185,11 +185,11 @@ class GateControlTestSimulation:
         while not self.done:
             self.timeslots += 1
             # log = pd.DataFrame([(self.timeslots, self.state, action)], columns=['timeslot', 'state', 'gcl'])
-            yield env.process(self.node.link(self.trans_list, 'ddqn'))
+            yield env.process(self.node.scheduling(self.trans_list, 'ddqn'))
             yield env.process(self.sendTo_next_node(env))
             yield env.timeout(TIMESLOT_SIZE * 0.001)
 
-            self.next_state = self.node.step()
+            self.next_state = self.node.state_observe()
             self.done = self.terminated()
             rewards_all.append(self.reward)
             self.reward = 0
@@ -230,11 +230,11 @@ class GateControlTestSimulation:
 
         while not self.done:
             self.timeslots += 1
-            yield env.process(self.node.link(self.trans_list, 'sp'))
+            yield env.process(self.node.scheduling(self.trans_list, 'sp'))
             yield env.process(self.sendTo_next_node(env))
             yield env.timeout(TIMESLOT_SIZE * 0.001)
 
-            self.next_state = self.node.step()
+            self.next_state = self.node.state_observe()
             self.done = self.terminated()
             rewards_all.append(self.reward)
             self.reward = 0
