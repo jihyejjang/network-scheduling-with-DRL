@@ -1,7 +1,7 @@
 # DDQN을 활용한 강화학습 기반 타임슬롯 스케줄링(**Timeslot scheduling using Double Deep Q-Network**)
 
 
-> Timeslot 기반의 deterministic network에서 DDQN을 사용해 Priority packet scheduling을 학습하여 Heuristic algorithms(Strict Priority, Weighted Round-Robin)을 능가하는 성능 달성
+> Timeslot 기반의 deterministic network에서 DDQN을 사용해 Priority packet scheduling을 학습하여 Heuristic algorithms(Strict Priority, Weighted Round-Robin)을 능가하는 성능 달성 (simpy, tensorflow 사용)
 
 ## Description
 
