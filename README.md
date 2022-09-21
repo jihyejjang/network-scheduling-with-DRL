@@ -42,7 +42,9 @@ score (accumulated reward of an episode)가 existing algorithms를 능가 ⇒ �
 <img width="488" src="https://user-images.githubusercontent.com/61912635/190987230-bd67261b-99bb-48d7-96a3-eb11e6d8d853.png">  
     
 - test result in topology at each scenario  
-<img width="488" src="https://user-images.githubusercontent.com/61912635/190987232-cd48bd9f-b6bb-470b-8d64-c750c6ab51f4.png">  
+<img width="488" src="https://user-images.githubusercontent.com/61912635/190987232-cd48bd9f-b6bb-470b-8d64-c750c6ab51f4.png"> 
+
+### 👩🏻‍💻 Development
     
 
 ### 🛠 Source code
