@@ -44,8 +44,14 @@ score (accumulated reward of an episode)가 existing algorithms를 능가 ⇒ �
 - test result in topology at each scenario  
 <img width="488" src="https://user-images.githubusercontent.com/61912635/190987232-cd48bd9f-b6bb-470b-8d64-c750c6ab51f4.png"> 
 
-### 👩🏻‍💻 Development
-    
+### 👩🏻‍💻 Development & Contribution point  
+1. Existing algorithms의 단점을 해결
+    - SP : 높은 우선순위를 보장하는 대신 낮은 우선순위를 잘 보장하지 못함
+    - WRR : 네트워크 상황에 따라 weight를 조절해주어야 함(S5의 경우 해당)
+    - **DDQN : 높은 우선순위/낮은 우선순위 모두 잘 보장하며 weight를 조절해주지 않아도 됨**
+2. 실제 End-to-end delay를 알 수 없는 환경에서 Estimated delay를 통해 학습했음에도 불구하고 topology에서 existing algorithms보다 같거나 높은 performance를 달성함 ( = 실제 e2e delay가 deadline보다 작음)
+3. (IEEE 제출 버전) 실제 네트워크에 적용하기 위해 inference time의 단축이 필요하기 때문에, look-up table을 통해 자주 등장하는 state-action pair를 기록함으로써 simulation시간이 크게 단축됨
+    - reference 논문에서 model의 distilation을 통해 시간을 단축시킨 사례가 있으므로, 다음 연구에 적용할 예정
 
 ### 🛠 Source code
 
